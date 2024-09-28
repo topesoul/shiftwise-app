@@ -27,3 +27,8 @@ class ShiftListViewTestCase(TestCase):
         response = self.client.get(reverse('shift_list'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "All Shifts")
+
+class AuthenticationTestCase(TestCase):
+    def test_login_page(self):
+        response = self.client.get('/accounts/login/')
+        self.assertEqual(response.status_code, 200)
