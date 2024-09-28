@@ -21,3 +21,9 @@ class ShiftFormTestCase(TestCase):
         }
         form = ShiftForm(data=form_data)
         self.assertTrue(form.is_valid())
+
+class ShiftListViewTestCase(TestCase):
+    def test_shift_list_view(self):
+        response = self.client.get(reverse('shift_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "All Shifts")
