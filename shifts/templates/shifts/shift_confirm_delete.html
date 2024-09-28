@@ -1,0 +1,7 @@
+<h1>Delete Shift</h1>
+<p>Are you sure you want to delete {{ shift.name }}?</p>
+<form method="POST">
+    {% csrf_token %}
+    <button type="submit">Confirm</button>
+</form>
+<a href="{% url 'shift_list' %}">Cancel</a>
