@@ -8,3 +8,16 @@ class ShiftTestCase(TestCase):
     def test_shift_creation(self):
         shift = Shift.objects.create(name="Morning Shift", start_time="08:00", end_time="12:00")
         self.assertEqual(shift.name, "Morning Shift")
+
+from django.urls import reverse
+from .forms import ShiftForm
+
+class ShiftFormTestCase(TestCase):
+    def test_valid_shift_form(self):
+        form_data = {
+            'name': 'Afternoon Shift',
+            'start_time': '12:00',
+            'end_time': '18:00',
+        }
+        form = ShiftForm(data=form_data)
+        self.assertTrue(form.is_valid())
