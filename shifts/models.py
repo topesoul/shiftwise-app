@@ -6,18 +6,18 @@ from geopy.distance import geodesic
 # Create your models here.
 class Shift(models.Model):
     # Name of the shift
-    name = models.CharField(max_length=100, null=True)
+    name = models.CharField(max_length=100)
 
-    # Date and time fields
-    start_time = models.TimeField(null=True)
-    end_time = models.TimeField(null=True)
-    shift_date = models.DateField(null=True)
-    
-    # Address fields
-    postcode = models.CharField(max_length=10, null=True)
-    address_line1 = models.CharField(max_length=255, blank=True, null=True)
+    # Date and time fields (required)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    shift_date = models.DateField()
+
+    # Address fields (with required ones set correctly)
+    postcode = models.CharField(max_length=10)
+    address_line1 = models.CharField(max_length=255)
     address_line2 = models.CharField(max_length=255, blank=True, null=True)
-    city = models.CharField(max_length=100, null=True)
+    city = models.CharField(max_length=100)
     county = models.CharField(max_length=100, blank=True, null=True)
     country = models.CharField(max_length=100, default='UK')
 
@@ -36,5 +36,5 @@ class Shift(models.Model):
         return None
 
     def clean(self):
-        if self.end_time and self.start_time and self.end_time <= self.start_time:
+        if self.end_time <= self.start_time:
             raise ValidationError('End time must be after the start time.')
