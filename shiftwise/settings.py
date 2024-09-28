@@ -2,10 +2,7 @@ import os
 from pathlib import Path
 
 # Import environment variables from env.py
-env_path = Path(__file__).resolve().parent / 'env.py'
-if env_path.exists():
-    import sys
-    sys.path.append(str(env_path.parent))
+if os.path.isfile('env.py'):
     import env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
