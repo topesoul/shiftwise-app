@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .forms import ShiftForm
 from .models import Shift
 
@@ -26,3 +26,10 @@ def shift_update(request, pk):
     else:
         form = ShiftForm(instance=shift)
     return render(request, 'shifts/shift_form.html', {'form': form})
+
+def shift_delete(request, pk):
+    shift = get_object_or_404(Shift, pk=pk)
+    if request.method == 'POST':
+        shift.delete()
+        return redirect('shift_list')
+    return render(request, 'shifts/shift_confirm_delete.html', {'shift': shift})
