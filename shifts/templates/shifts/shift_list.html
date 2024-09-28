@@ -1,0 +1,10 @@
+<h1>All Shifts</h1>
+<ul>
+    {% for shift in shifts %}
+        <li>{{ shift.name }} - {{ shift.start_time }} to {{ shift.end_time }}
+            <a href="{% url 'shift_update' shift.pk %}">Edit</a> | 
+            <a href="{% url 'shift_delete' shift.pk %}">Delete</a>
+        </li>
+    {% endfor %}
+</ul>
+<a href="{% url 'shift_create' %}">Create New Shift</a>
