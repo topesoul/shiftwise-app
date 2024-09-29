@@ -75,7 +75,7 @@ class ShiftListViewTestCase(TestCase):
     def test_shift_list_view(self):
         response = self.client.get(reverse('shift_list'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'shift_list.html')  # Assuming this is the template used
+        self.assertTemplateUsed(response, 'shift_list.html')
         self.assertContains(response, "Morning Shift")
         self.assertContains(response, "Afternoon Shift")
 
