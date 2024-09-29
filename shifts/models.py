@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from geopy.distance import geodesic
+from django.core.exceptions import ValidationError
 
 # Create your models here.
 class Shift(models.Model):
@@ -13,7 +14,7 @@ class Shift(models.Model):
     end_time = models.TimeField()
     shift_date = models.DateField()
 
-    # Address fields (with required ones set correctly)
+    # Address fields
     postcode = models.CharField(max_length=10)
     address_line1 = models.CharField(max_length=255)
     address_line2 = models.CharField(max_length=255, blank=True, null=True)
@@ -22,8 +23,16 @@ class Shift(models.Model):
     country = models.CharField(max_length=100, default='UK')
 
     # Location fields for proximity checks
-    latitude = models.FloatField(null=True, blank=True, validators=[MinValueValidator(-90.0), MaxValueValidator(90.0)])
-    longitude = models.FloatField(null=True, blank=True, validators=[MinValueValidator(-180.0), MaxValueValidator(180.0)])
+    latitude = models.FloatField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(-90.0), MaxValueValidator(90.0)]
+    )
+    longitude = models.FloatField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(-180.0), MaxValueValidator(180.0)]
+    )
 
     def __str__(self):
         return f"{self.name} on {self.shift_date}"
@@ -36,5 +45,18 @@ class Shift(models.Model):
         return None
 
     def clean(self):
+        super().clean()
         if self.end_time <= self.start_time:
             raise ValidationError('End time must be after the start time.')
+
+        # Calculate duration
+        start_dt = timezone.datetime.combine(self.shift_date, self.start_time)
+        end_dt = timezone.datetime.combine(self.shift_date, self.end_time)
+
+        duration = (end_dt - start_dt).total_seconds() / 3600  # Duration in hours
+
+        if duration <= 0:
+            duration += 24  # Adjust for shifts that end the next day
+
+        if duration > 24:
+            raise ValidationError('Shift duration cannot exceed 24 hours.')
