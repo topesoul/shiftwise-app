@@ -1,9 +1,9 @@
 from django.urls import path
-from . import views
+from .views import ShiftListView, ShiftCreateView, ShiftUpdateView, ShiftDeleteView
 
 urlpatterns = [
-    path('', views.shift_list, name='shift_list'),
-    path('create/', views.shift_create, name='shift_create'),
-    path('<int:pk>/edit/', views.shift_update, name='shift_update'),
-    path('<int:pk>/delete/', views.shift_delete, name='shift_delete'),
+    path('', ShiftListView.as_view(), name='shift_list'),
+    path('create/', ShiftCreateView.as_view(), name='shift_create'),
+    path('<int:pk>/edit/', ShiftUpdateView.as_view(), name='shift_update'),
+    path('<int:pk>/delete/', ShiftDeleteView.as_view(), name='shift_delete'),
 ]
