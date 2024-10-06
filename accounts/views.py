@@ -4,10 +4,13 @@ from django.shortcuts import render
 from django.shortcuts import render
 
 def custom_login(request):
-    return render(request, 'accounts/login.html')
+    # Point to the allauth login template
+    return render(request, 'allauth/account/login.html')
 
 def custom_signup(request):
-    return render(request, 'accounts/signup.html')
+    # Point to the allauth signup template
+    return render(request, 'allauth/account/signup.html')
 
+# For custom profile template
 def profile(request):
     return render(request, 'accounts/profile.html')
