@@ -31,22 +31,23 @@ class Shift(models.Model):
     # Validation to ensure start time is before end time and handle shifts crossing midnight
     def clean(self):
         super().clean()
-        if self.end_time <= self.start_time:
-            raise ValidationError("End time must be after start time unless it spans into the next day.")
         
-        if self.shift_date < timezone.now().date():
-            raise ValidationError("Shift date cannot be in the past.")
+        if self.shift_date:
+            if self.shift_date < timezone.now().date():
+                raise ValidationError('Shift date cannot be in the past.')
+        
+        if self.end_time <= self.start_time:
+            raise ValidationError('End time must be after the start time.')
 
-        # Calculate shift duration
         start_dt = timezone.datetime.combine(self.shift_date, self.start_time)
         end_dt = timezone.datetime.combine(self.shift_date, self.end_time)
 
-        if self.end_time <= self.start_time:
-            end_dt += timezone.timedelta(days=1)  # Adjust for overnight shifts
-
         duration = (end_dt - start_dt).total_seconds() / 3600  # Duration in hours
+        if duration <= 0:
+            duration += 24  # Adjust for overnight shifts
+
         if duration > 24:
-            raise ValidationError("Shift duration cannot exceed 24 hours.")
+            raise ValidationError('Shift duration cannot exceed 24 hours.')
 
     @property
     def available_slots(self):
