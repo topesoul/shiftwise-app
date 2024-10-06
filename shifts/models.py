@@ -57,3 +57,15 @@ class Shift(models.Model):
     def is_full(self):
         """Returns True if the shift is fully booked."""
         return self.available_slots <= 0
+
+class ShiftAssignment(models.Model):
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
+    worker = models.ForeignKey(User, on_delete=models.CASCADE)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('shift', 'worker')
+
+    def clean(self):
+        if self.shift.is_full:
+            raise ValidationError("This shift is fully booked.")
