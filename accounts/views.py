@@ -1,8 +1,6 @@
 from django.shortcuts import render
 
 # Create your views here.
-from django.shortcuts import render
-
 def custom_login(request):
     # Point to the allauth login template
     return render(request, 'allauth/account/login.html')
