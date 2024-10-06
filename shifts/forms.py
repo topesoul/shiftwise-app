@@ -1,7 +1,7 @@
 from django import forms
-from .models import Shift
+from .models import Shift, ShiftAssignment
 from django.core.exceptions import ValidationError
-from datetime import time
+from django.utils import timezone
 
 class ShiftForm(forms.ModelForm):
     class Meta:
@@ -19,9 +19,9 @@ class ShiftForm(forms.ModelForm):
         end_time = cleaned_data.get("end_time")
         shift_date = cleaned_data.get("shift_date")
 
-        # Validate that end time is after start time
+        # Validate that end time is after start time or spans into the next day
         if start_time and end_time and end_time <= start_time:
-            raise ValidationError("End time must be after start time.")
+            raise ValidationError("End time must be after start time unless it spans into the next day.")
         
         # Ensure that shifts cannot be created in the past
         if shift_date and shift_date < timezone.now().date():
