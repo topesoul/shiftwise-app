@@ -51,7 +51,6 @@ class ShiftTestCase(TestCase):
 
 class ShiftFormTestCase(TestCase):
     def test_valid_shift_form(self):
-        # Adding all required fields
         form_data = {
             'name': 'Afternoon Shift',
             'start_time': '12:00',
@@ -62,7 +61,7 @@ class ShiftFormTestCase(TestCase):
             'city': 'London',
         }
         form = ShiftForm(data=form_data)
-        self.assertTrue(form.is_valid())
+        self.assertTrue(form.is_valid(), msg=f"Form errors: {form.errors}")
 
     def test_invalid_shift_form(self):
         # Missing a required field (e.g., shift_date)
@@ -99,10 +98,11 @@ class ShiftListViewTestCase(TestCase):
             city="London"
         )
 
+class ShiftListViewTestCase(TestCase):
     def test_shift_list_view(self):
         response = self.client.get(reverse('shift_list'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'shift_list.html')
+        self.assertTemplateUsed(response, 'shifts/shift_list.html')
         self.assertContains(response, "Morning Shift")
         self.assertContains(response, "Afternoon Shift")
 
