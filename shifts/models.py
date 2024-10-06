@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from geopy.distance import geodesic
@@ -58,14 +59,14 @@ class Shift(models.Model):
         """Returns True if the shift is fully booked."""
         return self.available_slots <= 0
 
+# ShiftAssignment model (for linking shifts to staff)
 class ShiftAssignment(models.Model):
-    shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
     worker = models.ForeignKey(User, on_delete=models.CASCADE)
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
     assigned_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ('shift', 'worker')
+    def __str__(self):
+        return f"{self.worker.username} assigned to {self.shift.name} on {self.shift.shift_date}"
 
-    def clean(self):
-        if self.shift.is_full:
-            raise ValidationError("This shift is fully booked.")
+    class Meta:
+        unique_together = ('worker', 'shift')  # Ensure a worker can't be assigned to the same shift twice
