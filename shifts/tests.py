@@ -1,11 +1,12 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from .models import Shift
 from .forms import ShiftForm
-from django.utils import timezone
 
 class ShiftTestCase(TestCase):
     def setUp(self):
+        # Setup for shift creation test
         self.shift = Shift.objects.create(
             name="Morning Shift",
             start_time="08:00",
@@ -21,6 +22,7 @@ class ShiftTestCase(TestCase):
         self.assertEqual(self.shift.name, "Morning Shift")
         self.assertEqual(self.shift.city, "London")
         self.assertEqual(self.shift.postcode, "SW1A 1AA")
+
 
 class ShiftFormTestCase(TestCase):
     def test_valid_shift_form(self):
@@ -49,6 +51,7 @@ class ShiftFormTestCase(TestCase):
         }
         form = ShiftForm(data=form_data)
         self.assertFalse(form.is_valid())  # This should fail because shift_date is missing
+
 
 class ShiftListViewTestCase(TestCase):
     def setUp(self):
@@ -79,14 +82,17 @@ class ShiftListViewTestCase(TestCase):
         self.assertContains(response, "Morning Shift")
         self.assertContains(response, "Afternoon Shift")
 
+
 class AuthenticationTestCase(TestCase):
     def test_login_page(self):
         response = self.client.get('/accounts/login/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Log In")
 
+
 class ShiftUpdateTestCase(TestCase):
     def setUp(self):
+        # Setup for shift update test
         self.shift = Shift.objects.create(
             name="Morning Shift",
             start_time="08:00",
@@ -111,8 +117,10 @@ class ShiftUpdateTestCase(TestCase):
         updated_shift = Shift.objects.get(id=self.shift.id)
         self.assertEqual(updated_shift.name, 'Updated Shift')
 
+
 class ShiftDeleteTestCase(TestCase):
     def setUp(self):
+        # Setup for shift delete test
         self.shift = Shift.objects.create(
             name="Morning Shift",
             start_time="08:00",
@@ -126,5 +134,4 @@ class ShiftDeleteTestCase(TestCase):
     def test_shift_delete(self):
         response = self.client.post(reverse('shift_delete', args=[self.shift.id]))
         self.assertEqual(response.status_code, 302)  # Redirect after successful deletion
-        self.assertFalse(Shift.objects.filter(id=self.shift.id).exists())
-
+        self.assertFalse(Shift.objects.filter(id=self.shift.id).exists())  # Ensure the shift no longer exists
