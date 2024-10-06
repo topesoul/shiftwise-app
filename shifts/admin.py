@@ -8,4 +8,4 @@ class ShiftAdmin(admin.ModelAdmin):
     form = ShiftForm
     list_display = ('name', 'shift_date', 'start_time', 'end_time', 'city')
     search_fields = ('name', 'city', 'postcode')
-    list_filter = ('shift_date', 'city', 'country')
+    list_filter = ('shift_date', 'city')
