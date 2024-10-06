@@ -6,6 +6,12 @@ from geopy.distance import geodesic
 from django.core.exceptions import ValidationError
 
 # Create your models here.
+class Agency(models.Model):
+    name = models.CharField(max_length=100)
+    address = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
 
 class Shift(models.Model):
     name = models.CharField(max_length=100)
