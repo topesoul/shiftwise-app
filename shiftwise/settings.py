@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'shifts',
     'accounts',
     'django.contrib.sites',
@@ -72,7 +73,7 @@ WSGI_APPLICATION = 'shiftwise.wsgi.application'
 # Database configuration for PostgreSQL
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL')  # Fetch from environment variable
+        default=os.getenv('DATABASE_URL')
     )
 }
 
