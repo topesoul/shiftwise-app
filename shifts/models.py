@@ -23,9 +23,9 @@ class Agency(TimestampedModel):
     Inherits from TimestampedModel to track creation and update times.
     """
     name = models.CharField(max_length=100)
-    address_line1 = models.CharField(max_length=255)
+    address_line1 = models.CharField(max_length=255, default="Unknown Address")
     address_line2 = models.CharField(max_length=255, blank=True, null=True)
-    city = models.CharField(max_length=100)
+    city = models.CharField(max_length=100, default="Unknown City")
     state = models.CharField(max_length=100, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
     postcode = models.CharField(max_length=20)
