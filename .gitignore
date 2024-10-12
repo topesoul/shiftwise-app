@@ -31,3 +31,8 @@ htmlcov/
 core.Microsoft*
 core.mongo*
 core.python*
+
+# Exclude ERD output files
+erd.png
+*.dot
+*.json
