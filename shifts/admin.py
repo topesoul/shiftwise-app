@@ -7,9 +7,23 @@ class AgencyAdmin(admin.ModelAdmin):
     """
     Admin interface for the Agency model.
     """
-    list_display = ('name', 'address', 'agency_code')
-    search_fields = ('name', 'agency_code')
+    list_display = ('name', 'address_display', 'agency_code', 'email', 'phone_number', 'created_at')
+    search_fields = ('name', 'agency_code', 'email')
     ordering = ('name',)
+
+    def address_display(self, obj):
+        """
+        Combines address_line1, address_line2, city, state, and country for display.
+        """
+        address_parts = [
+            obj.address_line1,
+            obj.address_line2 or '',
+            obj.city,
+            obj.state,
+            obj.country
+        ]
+        return ', '.join(filter(None, address_parts))
+    address_display.short_description = 'Address'
 
 
 @admin.register(Shift)
