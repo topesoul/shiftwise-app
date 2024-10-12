@@ -145,7 +145,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='shift',
             name='agency',
-            field=models.ForeignKey(default='Test Agency', on_delete=django.db.models.deletion.CASCADE, to='shifts.agency'),
-            preserve_default=False,
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='shifts.agency'),
         ),
     ]
