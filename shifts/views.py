@@ -2,11 +2,12 @@ from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
 from django.http import HttpResponseRedirect
-from .forms import ShiftForm
-from .models import Shift
-from .utils import get_address_from_postcode
 from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
+from .forms import ShiftForm
+from .models import Shift, ShiftAssignment
+from .utils import get_address_from_postcode
 
 # Shift List View
 class ShiftListView(ListView):
@@ -17,7 +18,10 @@ class ShiftListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset().order_by('shift_date', 'start_time')
-        return queryset
+        if self.request.user.is_superuser:
+            return queryset  # Superusers can see all shifts
+        # Restrict agency admins to only their agency's shifts
+        return queryset.filter(agency=self.request.user.profile.agency)
 
 
 # Shift Create View
@@ -28,6 +32,9 @@ class ShiftCreateView(CreateView):
     success_url = reverse_lazy('shift_list')
 
     def form_valid(self, form):
+        # Automatically set the agency based on the logged-in user's profile
+        form.instance.agency = self.request.user.profile.agency
+
         # Fetch address details based on postcode
         postcode = form.cleaned_data['postcode']
         address_data = get_address_from_postcode(postcode)
@@ -38,8 +45,8 @@ class ShiftCreateView(CreateView):
             form.instance.city = address_data['city']
             form.instance.county = address_data.get('county', '')
             form.instance.country = address_data.get('country', 'UK')
-            form.instance.latitude = address_data.get('latitude')
-            form.instance.longitude = address_data.get('longitude')
+            form.instance.latitude = address_data['latitude']
+            form.instance.longitude = address_data['longitude']
         else:
             messages.error(self.request, "Could not fetch address for the provided postcode.")
             return self.form_invalid(form)
@@ -56,6 +63,11 @@ class ShiftUpdateView(UpdateView):
     success_url = reverse_lazy('shift_list')
 
     def form_valid(self, form):
+        # Ensure the shift belongs to the user's agency
+        if form.instance.agency != self.request.user.profile.agency:
+            messages.error(self.request, "You can only update shifts from your own agency.")
+            return redirect('shift_list')
+
         # Fetch address details based on postcode if it has been changed
         postcode = form.cleaned_data['postcode']
         address_data = get_address_from_postcode(postcode)
@@ -66,8 +78,8 @@ class ShiftUpdateView(UpdateView):
             form.instance.city = address_data['city']
             form.instance.county = address_data.get('county', '')
             form.instance.country = address_data.get('country', 'UK')
-            form.instance.latitude = address_data.get('latitude')
-            form.instance.longitude = address_data.get('longitude')
+            form.instance.latitude = address_data['latitude']
+            form.instance.longitude = address_data['longitude']
         else:
             messages.error(self.request, "Could not fetch address for the provided postcode.")
             return self.form_invalid(form)
@@ -95,3 +107,32 @@ class ShiftDeleteView(DeleteView):
             return HttpResponseRedirect(self.success_url)
         return super().get(request, *args, **kwargs)
 
+
+# Shift Booking Function
+def book_shift(request, shift_id):
+    shift = get_object_or_404(Shift, id=shift_id)
+
+    # Check if the shift belongs to the user's agency
+    if shift.agency != request.user.profile.agency:
+        messages.error(request, "You cannot book shifts from another agency.")
+        return redirect('shift_list')
+
+    # Prevent booking past shifts
+    if shift.shift_date < timezone.now().date():
+        messages.error(request, "You cannot book a shift that is in the past.")
+        return redirect('shift_list')
+
+    # Check if the shift is already full
+    if shift.is_full:
+        messages.error(request, "This shift is already fully booked.")
+        return redirect('shift_list')
+
+    # Prevent duplicate assignment
+    if ShiftAssignment.objects.filter(worker=request.user, shift=shift).exists():
+        messages.error(request, "You are already assigned to this shift.")
+        return redirect('shift_list')
+
+    # Create the assignment
+    ShiftAssignment.objects.create(worker=request.user, shift=shift)
+    messages.success(request, "You have successfully booked this shift.")
+    return redirect('shift_list')
