@@ -17,6 +17,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='shift',
             name='agency',
-            field=models.ForeignKey(null=True, blank=True, on_delete=django.db.models.deletion.CASCADE, to='shifts.agency'),
+            field=models.ForeignKey(null=True, on_delete=models.CASCADE, to='shifts.Agency'),
         ),
     ]
