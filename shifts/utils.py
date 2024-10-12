@@ -1,5 +1,9 @@
 import requests
 from django.conf import settings
+import logging
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 def get_address_from_postcode(postcode):
     """
@@ -14,8 +18,8 @@ def get_address_from_postcode(postcode):
         response.raise_for_status()
         data = response.json()
         
-        # Check if there are results
-        if data['results']:
+        # Validate response structure
+        if 'results' in data and data['results']:
             result = data['results'][0]
             address = {
                 'address_line1': result['DPA'].get('ADDRESS', ''),
@@ -27,7 +31,10 @@ def get_address_from_postcode(postcode):
                 'longitude': result['DPA'].get('LONGITUDE', None),
             }
             return address
+        
+        logger.warning(f"No results found for postcode: {postcode}")
         return None
+
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching address from postcode: {e}")
+        logger.error(f"Error fetching address from postcode: {e}")
         return None
