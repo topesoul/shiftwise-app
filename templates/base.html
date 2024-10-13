@@ -10,9 +10,9 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/css/bootstrap.min.css">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{% static 'static/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
 
     <!-- Navbar -->
     <header>
@@ -54,7 +54,7 @@
 
     <!-- Footer -->
     <footer class="bg-light text-center py-3 mt-auto">
-        <p>&copy; 2024 ShiftWise Flexi</p>
+        <p>&copy; {{ current_year|date:"Y" }} ShiftWise Flexi</p>
     </footer>
 
     <!-- jQuery, Popper.js, and Bootstrap JS -->
@@ -63,6 +63,6 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.min.js"></script>
 
     <!-- Custom JS -->
-    <script src="{% static 'static/js/scripts.js' %}"></script>
+    <script src="{% static 'js/scripts.js' %}"></script>
 </body>
 </html>
