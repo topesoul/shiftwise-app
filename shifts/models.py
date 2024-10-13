@@ -69,6 +69,8 @@ class Shift(TimestampedModel):
     postcode = models.CharField(max_length=10)
     address_line1 = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     shift_type = models.CharField(
