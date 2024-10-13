@@ -1,0 +1,17 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar-brand img {
+    margin-right: 10px;
+}
+
+footer {
+    background-color: #343a40;
+    color: #ffffff;
+}
+
+/* Customize alert messages */
+.alert {
+    margin-top: 20px;
+}
