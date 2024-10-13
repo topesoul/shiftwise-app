@@ -5,13 +5,20 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}ShiftWise Flexi{% endblock %}</title>
+    <title>{% block title %}ShiftWise App{% endblock %}</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
 
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-pap1HHR2C4iA3QbDY33sDRXcb/B80HNlGz3kvz9H2EbCl3X1af4GhcTKXghmM0vBIQzj0QAB7YjrQnX88l1QZw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/css/bootstrap.min.css"
+          integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumD1vGIKkO1r3vRrsuXepHnj6rKhVPv5W6tIOeV5"
+          crossorigin="anonymous">
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
@@ -21,7 +28,11 @@
     <!-- Navbar -->
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="{% url 'shift_list' %}">ShiftWise</a>
+            <!-- Logo Image -->
+            <a class="navbar-brand" href="{% url 'shifts:shift_list' %}">
+                <img src="{% static 'images/logo.png' %}" alt="ShiftWise" height="30" class="d-inline-block align-top">
+                ShiftWise
+            </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -29,21 +40,31 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'shift_list' %}">Shifts</a>
+                        <a class="nav-link" href="{% url 'shift_list' %}">
+                            <i class="fas fa-clipboard-list"></i> Shifts
+                        </a>
                     </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>
+                        <a class="nav-link" href="{% url 'account_logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounts:account_profile' %}">Profile</a>
+                        <a class="nav-link" href="{% url 'accounts:account_profile' %}">
+                            <i class="fas fa-user-circle"></i> Profile
+                        </a>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_login' %}">Login</a>
+                        <a class="nav-link" href="{% url 'account_login' %}">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_signup' %}">Sign Up</a>
+                        <a class="nav-link" href="{% url 'account_signup' %}">
+                            <i class="fas fa-user-plus"></i> Sign Up
+                        </a>
                     </li>
                     {% endif %}
                 </ul>
@@ -51,15 +72,26 @@
         </nav>
     </header>
 
-    <!-- Main Content -->
+    <!-- User Feedback Messages -->
     <main class="container my-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
         {% block content %}
         {% endblock %}
     </main>
 
     <!-- Footer -->
     <footer class="bg-light text-center py-3 mt-auto">
-        <p>&copy; {{ current_year|date:"Y" }} ShiftWise Flexi</p>
+        <p>&copy; {% now "Y" %} ShiftWise App</p>
     </footer>
 
     <!-- jQuery, Popper.js, and Bootstrap JS -->
@@ -69,7 +101,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" 
             integrity="sha384-Z+P7pQjL6Ihxj+G9H0ex+KzZr4FJfOv92AXp+0U9Qe2V5v2kW9ja8+JkPfsZ0L" 
             crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.min.js"
+            integrity="sha384-VP6vFgMx/1x2VvD95kpl3xAsE4u3jO27T/NsF/S7RDLFjDjhdJTRRrzb3u3cQpKC"
+            crossorigin="anonymous"></script>
+
+    <!-- Font Awesome JS -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"
+            integrity="sha512-zI+U/4G6kDcVju65e37YVqe2tPdPlPqsCYw6hFY8hXkTP9K+PQ9A3+qcHh5yvFIM6J0Yf4XhWyD0XrV7i5SgUg=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- Custom JS -->
     <script src="{% static 'js/scripts.js' %}"></script>
