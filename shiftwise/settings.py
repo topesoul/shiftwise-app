@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'shifts',
     'accounts',
+    'home',
     'django.contrib.sites',
     'allauth',
     'allauth.account',
