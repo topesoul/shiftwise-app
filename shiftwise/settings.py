@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-import dj_database_url  # Import this to use PostgreSQL URL parsing
+import dj_database_url
 
 # Import environment variables from env.py
 if os.path.isfile('env.py'):
