@@ -1,8 +1,21 @@
+<!-- home/templates/home/home.html -->
+
 {% extends 'base.html' %}
 
+{% block title %}Home - ShiftWise Flexi{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1>Welcome to Shiftwise Flexi</h1>
-    <p>Manage shifts, book shifts, and more.</p>
+<div class="jumbotron">
+    <h1 class="display-4">Welcome to ShiftWise Flexi!</h1>
+    <p class="lead">Manage your shifts effortlessly.</p>
+    <hr class="my-4">
+    {% if user.is_authenticated %}
+        <p>Welcome back, {{ user.username }}!</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'shifts:shift_list' %}" role="button">View Shifts</a>
+    {% else %}
+        <p>Get started by signing up or logging in.</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'accounts:account_signup' %}" role="button">Sign Up</a>
+        <a class="btn btn-secondary btn-lg" href="{% url 'accounts:account_login' %}" role="button">Login</a>
+    {% endif %}
 </div>
 {% endblock %}
