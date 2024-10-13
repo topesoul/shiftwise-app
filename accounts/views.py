@@ -1,13 +1,18 @@
 from django.shortcuts import render
 
 # Create your views here.
-# accounts/views.py
-def custom_login(request):
-    return render(request, 'allauth/account/login.html')
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
-def custom_signup(request):
-    return render(request, 'allauth/account/signup.html')
-
-
-def profile(request):
+@login_required
+def profile_view(request):
     return render(request, 'accounts/profile.html')
+
+def login_view(request):
+    return render(request, 'accounts/login.html')
+
+def logout_view(request):
+    return render(request, 'accounts/logout.html')
+
+def signup_view(request):
+    return render(request, 'accounts/signup.html')
