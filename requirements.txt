@@ -22,3 +22,4 @@ sqlparse==0.5.1
 starkbank-ecdsa==2.2.0
 stripe==5.0.0
 whitenoise==6.3.0
+django-extensions==3.2.3
