@@ -1,3 +1,5 @@
+# shifts/admin.py
+
 from django.contrib import admin
 from .models import Agency, Shift, ShiftAssignment
 
@@ -19,8 +21,8 @@ class AgencyAdmin(admin.ModelAdmin):
             obj.address_line1,
             obj.address_line2 or '',
             obj.city,
-            obj.state,
-            obj.country
+            obj.state or '',
+            obj.country or ''
         ]
         return ', '.join(filter(None, address_parts))
     address_display.short_description = 'Address'
@@ -31,9 +33,9 @@ class ShiftAdmin(admin.ModelAdmin):
     """
     Admin interface for the Shift model.
     """
-    list_display = ('name', 'shift_date', 'start_time', 'end_time', 'city', 'agency')
+    list_display = ('name', 'shift_date', 'start_time', 'end_time', 'city', 'agency', 'status')
     search_fields = ('name', 'city', 'postcode')
-    list_filter = ('shift_date', 'city', 'agency')
+    list_filter = ('shift_date', 'city', 'agency', 'status', 'shift_type')
     ordering = ('shift_date', 'start_time')
 
     def get_queryset(self, request):
@@ -65,8 +67,8 @@ class ShiftAssignmentAdmin(admin.ModelAdmin):
     """
     Admin interface for the ShiftAssignment model.
     """
-    list_display = ('worker', 'shift', 'assigned_at')
-    list_filter = ('shift__agency', 'shift__shift_date')
+    list_display = ('worker', 'shift', 'assigned_at', 'role', 'status')
+    list_filter = ('shift__agency', 'shift__shift_date', 'status', 'role')
     search_fields = ('worker__username', 'shift__name', 'shift__agency__name')
     ordering = ('-assigned_at',)
 
