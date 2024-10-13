@@ -1,13 +1,12 @@
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized files
 __pycache__/
 *.py[cod]
-*$py.class
+
+# Environment variables
+env.py
 
 # Database
 *.sqlite3
-
-# Virtual environment
-env.py
 
 # Node modules
 node_modules/
@@ -17,13 +16,9 @@ node_modules/
 
 # Coverage reports
 .coverage
-.coverage.*
-nosetests.xml
-coverage.xml
 *.cover
-htmlcov/
 
-# Django migrations
+# Migrations cache
 */migrations/*.pyc
 */migrations/__pycache__/
 
