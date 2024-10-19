@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-
 {% load group_filters %}
 
 {% block title %}Available Shifts{% endblock %}
@@ -7,10 +6,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Available Shifts</h2>
-    {% if user.is_authenticated and (user|has_group:"Agency Managers" or user.is_superuser) %}
-        <a href="{% url 'shifts:shift_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus-circle"></i> Create Shift
-        </a>
+    {% if user.is_authenticated %}
+        {% if user.is_superuser or user|has_group:"Agency Managers" %}
+            <a href="{% url 'shifts:shift_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Create Shift
+            </a>
+        {% endif %}
     {% endif %}
 </div>
 
@@ -24,6 +25,7 @@
             <th>Agency</th>
             <th>Status</th>
             <th>Available Slots</th>
+            <th>Assigned Workers</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -38,29 +40,38 @@
                 <td>{{ shift.get_status_display }}</td>
                 <td>{{ shift.available_slots }}</td>
                 <td>
+                    {% if shift.assigned_workers %}
+                        {% for assignment in shift.assigned_workers %}
+                            {{ assignment.worker.get_full_name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">No assignments</span>
+                    {% endif %}
+                </td>
+                <td>
                     {% if user.is_authenticated %}
-                        {% if user|has_group:"Agency Managers" or user.is_superuser %}
+                        {% if shift.can_edit %}
                             <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-sm btn-secondary">Edit</a>
                             <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-sm btn-danger">Delete</a>
                         {% endif %}
-                        {% if user|has_group:"Agency Staff" %}
-                            {% if not shift.is_full and not shift.assignments.filter(worker=user).exists %}
-                                <a href="{% url 'shifts:book_shift' shift.id %}" class="btn btn-sm btn-primary">Book</a>
-                            {% elif shift.assignments.filter(worker=user).exists %}
-                                <a href="{% url 'shifts:unbook_shift' shift.id %}" class="btn btn-sm btn-warning">Unbook</a>
-                            {% else %}
-                                <span class="text-muted">Full</span>
-                            {% endif %}
+                        {% if shift.can_book %}
+                            <a href="{% url 'shifts:book_shift' shift.id %}" class="btn btn-sm btn-primary">Book</a>
+                        {% elif shift.can_unbook %}
+                            <a href="{% url 'shifts:unbook_shift' shift.id %}" class="btn btn-sm btn-warning">Unbook</a>
+                        {% elif shift.is_full %}
+                            <span class="text-muted">Full</span>
                         {% endif %}
+                        <a href="{% url 'shifts:shift_detail' shift.pk %}" class="btn btn-sm btn-info">Details</a>
+                    {% else %}
+                        <a href="{% url 'account_login' %}?next={{ request.path }}" class="btn btn-sm btn-primary">Login to Book</a>
                     {% endif %}
                 </td>
             </tr>
         {% empty %}
             <tr>
-                <td colspan="8" class="text-center">No shifts available.</td>
+                <td colspan="9" class="text-center">No shifts available.</td>
             </tr>
         {% endfor %}
     </tbody>
 </table>
-
 {% endblock %}
