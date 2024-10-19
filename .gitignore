@@ -13,6 +13,8 @@ node_modules/
 
 # Django stuff:
 *.log
+staticfiles/
+media/
 
 # Coverage reports
 .coverage
