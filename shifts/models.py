@@ -136,7 +136,7 @@ class Shift(TimestampedModel):
         end_dt = timezone.datetime.combine(self.shift_date, self.end_time)
         duration = (end_dt - start_dt).total_seconds() / 3600
         if duration <= 0:
-            duration += 24  # Adjust for overnight shifts
+            duration += 24
         if duration > 24:
             raise ValidationError('Shift duration cannot exceed 24 hours.')
         self.duration = duration
