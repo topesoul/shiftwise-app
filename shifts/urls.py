@@ -8,6 +8,7 @@ from .views import (
     book_shift,
     unbook_shift,
     get_address,
+    assign_worker,
 )
 
 app_name = 'shifts'
@@ -21,4 +22,5 @@ urlpatterns = [
     path('<int:shift_id>/book/', book_shift, name='book_shift'),
     path('<int:shift_id>/unbook/', unbook_shift, name='unbook_shift'),
     path('get_address/', get_address, name='get_address'),
+    path('<int:pk>/assign/', assign_worker, name='assign_worker'),
 ]
