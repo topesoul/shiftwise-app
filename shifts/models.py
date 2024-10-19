@@ -1,5 +1,6 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 import uuid
@@ -60,12 +61,40 @@ class Shift(TimestampedModel):
     Represents a work shift managed by an agency.
     Inherits from TimestampedModel to track creation and update times.
     """
+
+    # Define Shift Types as Class Constants
+    REGULAR = 'regular'
+    MORNING_SHIFT = 'morning_shift'
+    DAY_SHIFT = 'day_shift'
+    NIGHT_SHIFT = 'night_shift'
+    BANK_HOLIDAY = 'bank_holiday'
+    EMERGENCY_SHIFT = 'emergency_shift'
+
+    SHIFT_TYPE_CHOICES = [
+        (REGULAR, 'Regular'),
+        (MORNING_SHIFT, 'Morning Shift'),
+        (DAY_SHIFT, 'Day Shift'),
+        (NIGHT_SHIFT, 'Night Shift'),
+        (BANK_HOLIDAY, 'Bank Holiday'),
+        (EMERGENCY_SHIFT, 'Emergency Shift'),
+    ]
+
+    STATUS_PENDING = 'pending'
+    STATUS_COMPLETED = 'completed'
+    STATUS_CANCELED = 'canceled'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_CANCELED, 'Canceled'),
+    ]
+
     name = models.CharField(max_length=100)
     start_time = models.TimeField()
     end_time = models.TimeField()
     shift_date = models.DateField()
     capacity = models.PositiveIntegerField(default=1)
-    agency = models.ForeignKey(Agency, on_delete=models.CASCADE)
+    agency = models.ForeignKey(Agency, on_delete=models.CASCADE, related_name='shifts')
     postcode = models.CharField(max_length=10)
     address_line1 = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
@@ -75,15 +104,15 @@ class Shift(TimestampedModel):
     longitude = models.FloatField(null=True, blank=True)
     shift_type = models.CharField(
         max_length=50,
-        choices=[('regular', 'Regular'), ('overtime', 'Overtime'), ('holiday', 'Holiday')],
-        default='regular'
+        choices=SHIFT_TYPE_CHOICES,
+        default=REGULAR
     )
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2)
     notes = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=20,
-        choices=[('pending', 'Pending'), ('completed', 'Completed'), ('canceled', 'Canceled')],
-        default='pending'
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING
     )
     duration = models.FloatField(null=True, blank=True)
 
@@ -96,29 +125,31 @@ class Shift(TimestampedModel):
     def clean(self):
         """
         Validates the Shift instance before saving.
+        Allows shifts to span into the next day within a 24-hour period.
         """
         super().clean()
         if self.shift_date and self.shift_date < timezone.now().date():
             raise ValidationError('Shift date cannot be in the past.')
-        if self.end_time <= self.start_time:
-            raise ValidationError('End time must be after the start time.')
 
         # Calculate duration of the shift
         start_dt = timezone.datetime.combine(self.shift_date, self.start_time)
         end_dt = timezone.datetime.combine(self.shift_date, self.end_time)
         duration = (end_dt - start_dt).total_seconds() / 3600
         if duration <= 0:
-            duration += 24
+            duration += 24  # Adjust for overnight shifts
         if duration > 24:
             raise ValidationError('Shift duration cannot exceed 24 hours.')
         self.duration = duration
+
+    def get_absolute_url(self):
+        return reverse('shifts:shift_detail', kwargs={'pk': self.pk})
 
     @property
     def available_slots(self):
         """
         Returns the number of available slots for the shift.
         """
-        assigned_count = self.shiftassignment_set.count()
+        assigned_count = self.assignments.count()
         return self.capacity - assigned_count
 
     @property
@@ -134,14 +165,22 @@ class ShiftAssignment(TimestampedModel):
     Associates a worker with a specific shift.
     Inherits from TimestampedModel to track creation and update times.
     """
-    worker = models.ForeignKey(User, on_delete=models.CASCADE)
-    shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
+    CONFIRMED = 'confirmed'
+    CANCELED = 'canceled'
+
+    STATUS_CHOICES = [
+        (CONFIRMED, 'Confirmed'),
+        (CANCELED, 'Canceled'),
+    ]
+
+    worker = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shift_assignments')
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='assignments')
     assigned_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(max_length=100, default='Staff')
     status = models.CharField(
         max_length=20,
-        choices=[('confirmed', 'Confirmed'), ('canceled', 'Canceled')],
-        default='confirmed'
+        choices=STATUS_CHOICES,
+        default=CONFIRMED
     )
 
     class Meta:
