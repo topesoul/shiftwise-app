@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-
+{% load group_filters %}
 {% block title %}Shift Detail - {{ shift.name }}{% endblock %}
 
 {% block content %}
-<div class="card">
+<div class="card mb-4">
     <div class="card-header">
         <h3>{{ shift.name }} Details</h3>
     </div>
@@ -20,13 +20,47 @@
         <p><strong>Hourly Rate:</strong> £{{ shift.hourly_rate }}</p>
         <p><strong>Notes:</strong> {{ shift.notes }}</p>
         <p><strong>Status:</strong> {{ shift.get_status_display }}</p>
+        <p><strong>Assigned Workers:</strong>
+            {% if assigned_workers %}
+                <ul>
+                    {% for assignment in assigned_workers %}
+                        <li>{{ assignment.worker.get_full_name }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <span class="text-muted">No workers assigned yet.</span>
+            {% endif %}
+        </p>
     </div>
     <div class="card-footer">
-        {% if user.groups.filter(name='Agency Managers').exists %}
-            <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-primary">Edit Shift</a>
-            <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-danger">Delete Shift</a>
+        {% if user.is_authenticated %}
+            {% if can_edit %}
+                <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-primary">Edit Shift</a>
+                <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-danger">Delete Shift</a>
+            {% endif %}
+            {% if can_book %}
+                <a href="{% url 'shifts:book_shift' shift.id %}" class="btn btn-success">Book Shift</a>
+            {% elif can_unbook %}
+                <a href="{% url 'shifts:unbook_shift' shift.id %}" class="btn btn-warning">Unbook Shift</a>
+            {% endif %}
         {% endif %}
         <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary">Back to Shifts</a>
     </div>
 </div>
+
+{% if can_assign_workers %}
+    <h4>Assign Workers</h4>
+    <form method="post" action="{% url 'shifts:assign_worker' shift.pk %}">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="worker">Select Worker:</label>
+            <select name="worker_id" id="worker" class="form-control">
+                {% for worker in available_workers %}
+                    <option value="{{ worker.id }}">{{ worker.get_full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-success">Assign Worker</button>
+    </form>
+{% endif %}
 {% endblock %}
