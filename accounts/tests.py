@@ -1,12 +1,24 @@
 from django.test import TestCase
-
-# Create your tests here.
-from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from .models import Profile
+from shifts.models import Agency
 
+class ProfileTests(TestCase):
+    def setUp(self):
+        self.agency = Agency.objects.create(
+            name='Test Agency',
+            postcode='NW1 6XE',
+            address_line1='123 Baker Street',
+            city='London',
+            email='agency@test.com'
+        )
+        self.user = User.objects.create_user(username='testuser', password='pass123')
+        self.user.profile.agency = self.agency
+        self.user.profile.save()
 
+    def test_profile_association(self):
+        self.assertEqual(self.user.profile.agency, self.agency)
 class AccountsTestCase(TestCase):
     def setUp(self):
         self.signup_url = reverse('accounts:account_signup')
