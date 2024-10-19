@@ -112,23 +112,22 @@ class ShiftForm(forms.ModelForm):
         capacity = cleaned_data.get("capacity")
         hourly_rate = cleaned_data.get("hourly_rate")
 
-
         # Ensure that shifts cannot be created in the past
         if shift_date and shift_date < timezone.now().date():
-            raise ValidationError("Shift date cannot be in the past.")
+            self.add_error('shift_date', "Shift date cannot be in the past.")
 
         # Validate capacity
         if capacity and capacity < 1:
-            raise ValidationError("Capacity must be at least 1.")
+            self.add_error('capacity', "Capacity must be at least 1.")
 
         # Validate hourly rate
         if hourly_rate and hourly_rate <= 0:
-            raise ValidationError("Hourly rate must be positive.")
+            self.add_error('hourly_rate', "Hourly rate must be positive.")
 
         return cleaned_data
 
     def clean_name(self):
         name = self.cleaned_data.get('name')
-        if not all(part.isalpha() for part in name.split()):
+        if not all(part.isalpha() or part.isspace() for part in name):
             raise ValidationError("Shift name should only contain alphabetic characters and spaces.")
         return name
