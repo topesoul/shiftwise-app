@@ -1,40 +1,35 @@
-import requests
-from django.conf import settings
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderServiceError
 import logging
 
-# Get an instance of a logger
+# Initialize logger
 logger = logging.getLogger(__name__)
 
 def get_address_from_postcode(postcode):
     """
-    This function uses the OS Places API to get address information from a given postcode.
+    Fetches address details based on the provided postcode using Geopy's Nominatim geocoder.
     
     :param postcode: A valid UK postcode
     :return: A dictionary containing address information (address_line1, city, state, country, latitude, longitude)
     """
-    url = f"https://api.os.uk/search/places/v1/postcode?postcode={postcode}&key={settings.API_KEY}"
+    geolocator = Nominatim(user_agent="shiftwise_app")
     try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        
-        # Validate response structure
-        if 'results' in data and data['results']:
-            result = data['results'][0]
-            address = {
-                'address_line1': result['DPA'].get('ADDRESS', ''),
-                'postcode': result['DPA'].get('POSTCODE', ''),
-                'city': result['DPA'].get('POST_TOWN', ''),
-                'state': result['DPA'].get('COUNTY', ''),
-                'country': result['DPA'].get('COUNTRY', 'UK'),
-                'latitude': result['DPA'].get('LATITUDE', None),
-                'longitude': result['DPA'].get('LONGITUDE', None),
+        location = geolocator.geocode(postcode, exactly_one=True, timeout=10, country_codes='gb')
+        if location:
+            address = location.raw.get('address', {})
+            return {
+                'address_line1': f"{address.get('road', '')} {address.get('house_number', '')}".strip(),
+                'postcode': address.get('postcode', ''),
+                'city': address.get('city') or address.get('town') or address.get('village', ''),
+                'state': address.get('county', ''),
+                'country': address.get('country', 'UK'),
+                'latitude': location.latitude,
+                'longitude': location.longitude,
             }
-            return address
         
         logger.warning(f"No results found for postcode: {postcode}")
         return None
 
-    except requests.exceptions.RequestException as e:
+    except GeocoderServiceError as e:
         logger.error(f"Error fetching address from postcode: {e}")
         return None
