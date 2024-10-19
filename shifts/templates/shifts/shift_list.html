@@ -1,16 +1,19 @@
 {% extends 'base.html' %}
 
+{% load group_filters %}
+
 {% block title %}Available Shifts{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Available Shifts</h2>
-    {% if user.is_authenticated and user.groups.filter(name='Agency Managers').exists %}
+    {% if user.is_authenticated and (user|has_group:"Agency Managers" or user.is_superuser) %}
         <a href="{% url 'shifts:shift_create' %}" class="btn btn-primary">
             <i class="fas fa-plus-circle"></i> Create Shift
         </a>
     {% endif %}
 </div>
+
 <table class="table table-striped">
     <thead>
         <tr>
@@ -26,85 +29,38 @@
     </thead>
     <tbody>
         {% for shift in shifts %}
-        <tr>
-            <td>{{ shift.name }}</td>
-            <td>{{ shift.shift_date }}</td>
-            <td>{{ shift.start_time }}</td>
-            <td>{{ shift.end_time }}</td>
-            <td>{{ shift.agency.name }}</td>
-            <td>{{ shift.get_status_display }}</td>
-            <td>{{ shift.available_slots }}</td>
-            <td>
-                {% if user.is_authenticated %}
-                    {% if user.groups.filter(name='Agency Managers').exists %}
-                        <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-sm btn-info">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>
-                        <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-sm btn-danger">
-                            <i class="fas fa-trash-alt"></i> Delete
-                        </a>
-                    {% else %}
-                        {% if not shift.is_full %}
-                            <a href="{% url 'shifts:book_shift' shift.id %}" class="btn btn-sm btn-success">
-                                <i class="fas fa-bookmark"></i> Book
-                            </a>
-                        {% else %}
-                            <span class="badge badge-secondary">Full</span>
+            <tr>
+                <td>{{ shift.name }}</td>
+                <td>{{ shift.shift_date }}</td>
+                <td>{{ shift.start_time }}</td>
+                <td>{{ shift.end_time }}</td>
+                <td>{{ shift.agency.name }}</td>
+                <td>{{ shift.get_status_display }}</td>
+                <td>{{ shift.available_slots }}</td>
+                <td>
+                    {% if user.is_authenticated %}
+                        {% if user|has_group:"Agency Managers" or user.is_superuser %}
+                            <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+                            <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                        {% endif %}
+                        {% if user|has_group:"Agency Staff" %}
+                            {% if not shift.is_full and not shift.assignments.filter(worker=user).exists %}
+                                <a href="{% url 'shifts:book_shift' shift.id %}" class="btn btn-sm btn-primary">Book</a>
+                            {% elif shift.assignments.filter(worker=user).exists %}
+                                <a href="{% url 'shifts:unbook_shift' shift.id %}" class="btn btn-sm btn-warning">Unbook</a>
+                            {% else %}
+                                <span class="text-muted">Full</span>
+                            {% endif %}
                         {% endif %}
                     {% endif %}
-                {% else %}
-                    <a href="{% url 'accounts:account_login' %}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-sign-in-alt"></i> Login to Book
-                    </a>
-                {% endif %}
-            </td>
-        </tr>
+                </td>
+            </tr>
         {% empty %}
-        <tr>
-            <td colspan="8" class="text-center">No shifts available.</td>
-        </tr>
+            <tr>
+                <td colspan="8" class="text-center">No shifts available.</td>
+            </tr>
         {% endfor %}
     </tbody>
 </table>
 
-<!-- Pagination -->
-{% if is_paginated %}
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center">
-            {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <a class="page-link" href="#" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-            {% endif %}
-            {% for num in paginator.page_range %}
-                {% if page_obj.number == num %}
-                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
-                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                {% endif %}
-            {% endfor %}
-            {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <a class="page-link" href="#" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
-{% endif %}
 {% endblock %}
