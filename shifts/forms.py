@@ -3,7 +3,6 @@ from .models import Shift
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-
 class ShiftForm(forms.ModelForm):
     class Meta:
         model = Shift
@@ -16,63 +15,103 @@ class ShiftForm(forms.ModelForm):
             'postcode',
             'address_line1',
             'city',
+            'state',
+            'country',
+            'latitude',
+            'longitude',
             'shift_type',
             'hourly_rate',
             'notes'
         ]
         widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter shift name',
+                'id': 'name'
+            }),
             'start_time': forms.TimeInput(attrs={
                 'type': 'time',
-                'step': '60',  # Allows selection in 1-minute increments
-                'class': 'form-control'
+                'step': '60',  # To allow selection in 1-minute increments
+                'class': 'form-control',
+                'id': 'start_time'
             }),
             'end_time': forms.TimeInput(attrs={
                 'type': 'time',
-                'step': '60',  # Allows selection in 1-minute increments
-                'class': 'form-control'
+                'step': '60',
+                'class': 'form-control',
+                'id': 'end_time'
             }),
             'shift_date': forms.DateInput(attrs={
                 'type': 'date',
-                'class': 'form-control'
+                'class': 'form-control',
+                'id': 'shift_date'
             }),
             'capacity': forms.NumberInput(attrs={
                 'min': '1',
-                'class': 'form-control'
+                'class': 'form-control',
+                'placeholder': 'Enter capacity',
+                'id': 'capacity'
             }),
             'hourly_rate': forms.NumberInput(attrs={
                 'step': '0.01',
                 'min': '0.01',
-                'class': 'form-control'
+                'class': 'form-control',
+                'placeholder': 'Enter hourly rate',
+                'id': 'hourly_rate'
             }),
             'postcode': forms.TextInput(attrs={
-                'class': 'form-control'
+                'class': 'form-control',
+                'placeholder': 'Enter postcode',
+                'id': 'postcode'
             }),
             'address_line1': forms.TextInput(attrs={
-                'class': 'form-control'
+                'class': 'form-control',
+                'placeholder': 'Enter address line 1',
+                'id': 'address_line1'
             }),
             'city': forms.TextInput(attrs={
-                'class': 'form-control'
+                'class': 'form-control',
+                'placeholder': 'Enter city',
+                'id': 'city'
+            }),
+            'state': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter state',
+                'id': 'state'
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter country',
+                'id': 'country'
+            }),
+            'latitude': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'readonly': 'readonly',
+                'id': 'latitude'
+            }),
+            'longitude': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'readonly': 'readonly',
+                'id': 'longitude'
             }),
             'shift_type': forms.Select(attrs={
-                'class': 'form-control'
+                'class': 'form-control',
+                'id': 'shift_type'
             }),
             'notes': forms.Textarea(attrs={
                 'rows': 3,
-                'class': 'form-control'
+                'class': 'form-control',
+                'placeholder': 'Enter any additional notes (optional)',
+                'id': 'notes'
             }),
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        start_time = cleaned_data.get("start_time")
-        end_time = cleaned_data.get("end_time")
         shift_date = cleaned_data.get("shift_date")
         capacity = cleaned_data.get("capacity")
         hourly_rate = cleaned_data.get("hourly_rate")
 
-        # Validate that end time is after start time or spans into the next day
-        if start_time and end_time and end_time <= start_time:
-            raise ValidationError("End time must be after start time unless it spans into the next day.")
 
         # Ensure that shifts cannot be created in the past
         if shift_date and shift_date < timezone.now().date():
@@ -90,6 +129,6 @@ class ShiftForm(forms.ModelForm):
 
     def clean_name(self):
         name = self.cleaned_data.get('name')
-        if not name.replace(" ", "").isalpha():  # Allow spaces in shift names
+        if not all(part.isalpha() for part in name.split()):
             raise ValidationError("Shift name should only contain alphabetic characters and spaces.")
         return name
