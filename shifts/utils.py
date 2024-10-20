@@ -1,35 +1,36 @@
-from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderServiceError
+# shifts/utils.py
+
+import os
+import requests
 import logging
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 def get_address_from_postcode(postcode):
-    """
-    Fetches address details based on the provided postcode using Geopy's Nominatim geocoder.
-    
-    :param postcode: A valid UK postcode
-    :return: A dictionary containing address information (address_line1, city, state, country, latitude, longitude)
-    """
-    geolocator = Nominatim(user_agent="shiftwise_app")
-    try:
-        location = geolocator.geocode(postcode, exactly_one=True, timeout=10, country_codes='gb')
-        if location:
-            address = location.raw.get('address', {})
-            return {
-                'address_line1': f"{address.get('road', '')} {address.get('house_number', '')}".strip(),
-                'postcode': address.get('postcode', ''),
-                'city': address.get('city') or address.get('town') or address.get('village', ''),
-                'state': address.get('county', ''),
-                'country': address.get('country', 'UK'),
-                'latitude': location.latitude,
-                'longitude': location.longitude,
-            }
-        
-        logger.warning(f"No results found for postcode: {postcode}")
+    api_key = os.environ.get('PLACES_API_KEY')
+    if not api_key:
+        logger.error('PLACES_API_KEY not set in environment variables.')
         return None
 
-    except GeocoderServiceError as e:
-        logger.error(f"Error fetching address from postcode: {e}")
-        return None
+    url = f"https://api.os.uk/search/places/v1/postcode?postcode={postcode}&key={api_key}"
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        # Parse the data to extract address components
+        if data.get('results'):
+            address = data['results'][0].get('DPA', {})
+            return {
+                'address_line1': address.get('ADDRESS', ''),
+                'city': address.get('POST_TOWN', ''),
+                'state': address.get('COUNTY', ''),
+                'postcode': address.get('POSTCODE', ''),
+                'country': 'UK',
+                'latitude': address.get('LATITUDE', ''),
+                'longitude': address.get('LONGITUDE', ''),
+            }
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching address for postcode {postcode}: {e}")
+    except KeyError as e:
+        logger.error(f"Unexpected response structure: Missing key {e}")
+    return None
