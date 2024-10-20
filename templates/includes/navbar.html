@@ -1,4 +1,6 @@
 {% load static %}
+{% load group_filters %}
+
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <!-- Logo Image -->
     <a class="navbar-brand" href="{% url 'home:home' %}">
@@ -11,25 +13,30 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ml-auto">
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'home:home' %}">Home</a>
-            </li>
             {% if user.is_authenticated %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'shifts:shift_list' %}">Shifts</a>
                 </li>
+                {% if user.is_superuser or user|has_group:"Agency Managers" %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'shifts:staff_list' %}">Manage Staff</a>
+                    </li>
+                {% endif %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'accounts:account_profile' %}">Profile</a>
+                    <a class="nav-link" href="{% url 'accounts:profile' %}">Profile</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>
+                    <a class="nav-link" href="{% url 'accounts:logout_view' %}">Logout</a>
                 </li>
             {% else %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'account_login' %}">Login</a>
+                    <a class="nav-link" href="{% url 'accounts:agency_signup' %}">Agency Signup</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'account_signup' %}">Sign Up</a>
+                    <a class="nav-link" href="{% url 'accounts:signup_view' %}">Sign Up</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'accounts:login_view' %}">Login</a>
                 </li>
             {% endif %}
         </ul>
