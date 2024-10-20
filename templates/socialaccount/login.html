@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+{% load account %}
+
+{% block title %}Social Login{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if process == "connect" %}
+        <h2 class="mb-4">{% blocktrans with provider_name=provider.name %}Connect {{ provider_name }}{% endblocktrans %}</h2>
+        <p>
+            {% blocktrans with provider_name=provider.name %}
+                You are about to connect your {{ provider_name }} account.
+            {% endblocktrans %}
+        </p>
+    {% else %}
+        <h2 class="mb-4">{% blocktrans with provider_name=provider.name %}Sign In Via {{ provider_name }}{% endblocktrans %}</h2>
+        <p>
+            {% blocktrans with provider_name=provider.name %}
+                You are about to sign in using your {{ provider_name }} account.
+            {% endblocktrans %}
+        </p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+    </form>
+</div>
+{% endblock %}

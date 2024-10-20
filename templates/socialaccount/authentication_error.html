@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+{% load account %}
+
+{% block title %}Authentication Error{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">{% trans "Authentication Error" %}</h2>
+    <p class="text-danger">
+        {% trans "An error occurred during the authentication process. Please try again later." %}
+    </p>
+    <a href="{% url 'account_login' %}" class="btn btn-primary">{% trans "Return to Login" %}</a>
+</div>
+{% endblock %}

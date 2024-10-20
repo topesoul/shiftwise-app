@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+{% load account %}
+
+{% block title %}Account Connections{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">{% trans "Account Connections" %}</h2>
+    {% if form.accounts %}
+        <p>{% trans "You can sign in to your account using any of the following third-party accounts:" %}</p>
+        <form method="post" action="{% url 'socialaccount_connections' %}">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            {% for account in form.accounts %}
+                <div class="form-group">
+                    <label>
+                        <input type="radio" name="account" value="{{ account.id }}" />
+                        {{ account.get_provider_account.get_brand.name }} - {{ account.get_provider_account }}
+                    </label>
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-danger" name="action" value="disconnect">{% trans "Disconnect" %}</button>
+        </form>
+    {% else %}
+        <p>{% trans "You currently have no social network accounts connected to your account." %}</p>
+    {% endif %}
+    <h3>{% trans "Add a Social Account" %}</h3>
+    <ul class="socialaccount_providers">
+        {% include "socialaccount/snippets/provider_list.html" with process="connect" %}
+    </ul>
+</div>
+{% endblock %}
