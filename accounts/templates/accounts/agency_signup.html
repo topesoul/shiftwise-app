@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Agency Signup{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Sign Up Your Agency</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <!-- User Information -->
+        <h3>User Information</h3>
+        <div class="form-group">
+            {{ form.email.label_tag }}
+            {{ form.email }}
+            {{ form.email.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.password1.label_tag }}
+            {{ form.password1 }}
+            {{ form.password1.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.password2.label_tag }}
+            {{ form.password2 }}
+            {{ form.password2.errors }}
+        </div>
+
+        <!-- Agency Information -->
+        <h3>Agency Information</h3>
+        <div class="form-group">
+            {{ form.agency_name.label_tag }}
+            {{ form.agency_name }}
+            {{ form.agency_name.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.agency_postcode.label_tag }}
+            {{ form.agency_postcode }}
+            {{ form.agency_postcode.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.agency_address_line1.label_tag }}
+            {{ form.agency_address_line1 }}
+            {{ form.agency_address_line1.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.agency_city.label_tag }}
+            {{ form.agency_city }}
+            {{ form.agency_city.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.agency_state.label_tag }}
+            {{ form.agency_state }}
+            {{ form.agency_state.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.agency_country.label_tag }}
+            {{ form.agency_country }}
+            {{ form.agency_country.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.agency_phone_number.label_tag }}
+            {{ form.agency_phone_number }}
+            {{ form.agency_phone_number.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.agency_website.label_tag }}
+            {{ form.agency_website }}
+            {{ form.agency_website.errors }}
+        </div>
+        <button type="submit" class="btn btn-primary">Sign Up</button>
+        <a href="{% url 'home:home' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
