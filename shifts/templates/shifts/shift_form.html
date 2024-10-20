@@ -1,72 +1,112 @@
+<!-- shifts/templates/shifts/shift_form.html -->
+
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}{% if form.instance.pk %}Edit Shift{% else %}Create Shift{% endif %}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <h3>{% if form.instance.pk %}Edit Shift{% else %}Create Shift{% endif %}</h3>
-    </div>
-    <div class="card-body">
-        <form method="post" id="shiftForm">
-            {% csrf_token %}
-            {{ form.non_field_errors }}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h3>{% if form.instance.pk %}Edit Shift{% else %}Create Shift{% endif %}</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" id="shiftForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
 
-            <!-- Render form fields -->
-            <div class="form-row">
-                <div class="form-group col-md-6">
-                    {{ form.name.label_tag }}
-                    {{ form.name }}
-                    {{ form.name.errors }}
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        {{ form.name.label_tag }}
+                        {{ form.name }}
+                        {{ form.name.errors }}
+                    </div>
+                    <div class="form-group col-md-6">
+                        {{ form.shift_date.label_tag }}
+                        {{ form.shift_date }}
+                        {{ form.shift_date.errors }}
+                    </div>
                 </div>
-                <div class="form-group col-md-6">
-                    {{ form.shift_date.label_tag }}
-                    {{ form.shift_date }}
-                    {{ form.shift_date.errors }}
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        {{ form.start_time.label_tag }}
+                        {{ form.start_time }}
+                        {{ form.start_time.errors }}
+                    </div>
+                    <div class="form-group col-md-6">
+                        {{ form.end_time.label_tag }}
+                        {{ form.end_time }}
+                        {{ form.end_time.errors }}
+                    </div>
                 </div>
-            </div>
-            <!-- Add other fields similarly -->
-            <!-- ... -->
+                <div class="form-group">
+                    {{ form.capacity.label_tag }}
+                    {{ form.capacity }}
+                    {{ form.capacity.errors }}
+                </div>
+                <div class="form-group">
+                    {{ form.shift_type.label_tag }}
+                    {{ form.shift_type }}
+                    {{ form.shift_type.errors }}
+                </div>
+                <div class="form-group">
+                    {{ form.hourly_rate.label_tag }}
+                    {{ form.hourly_rate }}
+                    {{ form.hourly_rate.errors }}
+                </div>
+                <div class="form-group">
+                    {{ form.notes.label_tag }}
+                    {{ form.notes }}
+                    {{ form.notes.errors }}
+                </div>
+                <!-- Address Fields -->
+                <h4>Address Information</h4>
+                <div class="form-group">
+                    {{ form.postcode.label_tag }}
+                    {{ form.postcode }}
+                    {{ form.postcode.errors }}
+                </div>
+                <div class="form-group">
+                    {{ form.address_line1.label_tag }}
+                    {{ form.address_line1 }}
+                    {{ form.address_line1.errors }}
+                </div>
+                <div class="form-group">
+                    {{ form.city.label_tag }}
+                    {{ form.city }}
+                    {{ form.city.errors }}
+                </div>
+                <div class="form-group">
+                    {{ form.state.label_tag }}
+                    {{ form.state }}
+                    {{ form.state.errors }}
+                </div>
+                <div class="form-group">
+                    {{ form.country.label_tag }}
+                    {{ form.country }}
+                    {{ form.country.errors }}
+                </div>
+                <!-- Hidden Fields for Latitude and Longitude -->
+                {{ form.latitude }}
+                {{ form.longitude }}
 
-            <!-- Submit and Cancel Buttons -->
-            <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Update Shift{% else %}Create Shift{% endif %}</button>
-            <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary">Cancel</a>
-        </form>
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" style="display: none;">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Loading...
+                </div>
+
+                <!-- Submit and Cancel Buttons -->
+                <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Update Shift{% else %}Create Shift{% endif %}</button>
+                <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
     </div>
 </div>
 
-<script>
-    // JavaScript code to handle postcode lookup
-    document.getElementById('id_postcode').addEventListener('blur', function() {
-        const postcode = this.value;
-        if (postcode) {
-            // Show loading spinner
-            // ...
+{% endblock %}
 
-            fetch(`/shifts/get_address/?postcode=${encodeURIComponent(postcode)}`)
-                .then(response => response.json())
-                .then(data => {
-                    // Hide loading spinner
-                    // ...
-
-                    if (data.success) {
-                        const address = data.data;
-                        document.getElementById('id_address_line1').value = address.address_line1;
-                        document.getElementById('id_city').value = address.city;
-                        document.getElementById('id_state').value = address.state;
-                        document.getElementById('id_country').value = address.country;
-                        document.getElementById('id_latitude').value = address.latitude;
-                        document.getElementById('id_longitude').value = address.longitude;
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(error => {
-                    // Hide loading spinner
-                    // ...
-                    console.error('Error fetching address:', error);
-                    alert('An error occurred while fetching the address.');
-                });
-        }
-    });
-</script>
+{% block extra_js %}
+<script src="{% static 'js/scripts.js' %}"></script>
 {% endblock %}
