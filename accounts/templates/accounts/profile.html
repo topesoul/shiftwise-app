@@ -1,3 +1,5 @@
+<!-- /workspace/shiftwise/templates/accounts/profile.html -->
+
 {% extends 'base.html' %}
 {% block title %}Your Profile{% endblock %}
 
@@ -11,74 +13,20 @@
         <div class="card-body">
             <p><strong>Username:</strong> {{ user.username }}</p>
             <p><strong>Email:</strong> {{ user.email }}</p>
-            {% if user.profile %}
-                <p><strong>Full Name:</strong> {{ user.get_full_name }}</p>
-                <p><strong>Agency:</strong> {{ user.profile.agency.name }}</p>
-            {% endif %}
+            <p><strong>Full Name:</strong> {{ user.get_full_name }}</p>
         </div>
     </div>
 
     <h2>Upcoming Shifts</h2>
     {% if upcoming_shifts %}
-        <table class="table table-striped mb-4">
-            <thead>
-                <tr>
-                    <th>Shift Name</th>
-                    <th>Date</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Agency</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for shift in upcoming_shifts %}
-                    <tr>
-                        <td>{{ shift.name }}</td>
-                        <td>{{ shift.shift_date }}</td>
-                        <td>{{ shift.start_time }}</td>
-                        <td>{{ shift.end_time }}</td>
-                        <td>{{ shift.agency.name }}</td>
-                        <td>
-                            <a href="{% url 'shifts:shift_detail' shift.pk %}" class="btn btn-sm btn-info">Details</a>
-                            <a href="{% url 'shifts:unbook_shift' shift.pk %}" class="btn btn-sm btn-warning">Unbook</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Display upcoming shifts -->
     {% else %}
         <p>You have no upcoming shifts.</p>
     {% endif %}
 
     <h2>Past Shifts</h2>
     {% if past_shifts %}
-        <table class="table table-striped mb-4">
-            <thead>
-                <tr>
-                    <th>Shift Name</th>
-                    <th>Date</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Agency</th>
-                    <th>Details</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for shift in past_shifts %}
-                    <tr>
-                        <td>{{ shift.name }}</td>
-                        <td>{{ shift.shift_date }}</td>
-                        <td>{{ shift.start_time }}</td>
-                        <td>{{ shift.end_time }}</td>
-                        <td>{{ shift.agency.name }}</td>
-                        <td>
-                            <a href="{% url 'shifts:shift_detail' shift.pk %}" class="btn btn-sm btn-info">Details</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Display past shifts -->
     {% else %}
         <p>You have no past shifts.</p>
     {% endif %}
