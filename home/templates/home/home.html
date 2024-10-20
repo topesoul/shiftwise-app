@@ -5,20 +5,21 @@
 {% block content %}
 <div class="jumbotron text-center text-white py-5" style="background-color: #007bff;">
     <h1 class="display-3">Revolutionize Your Shift Management</h1>
-    <p class="lead">Effortlessly book, manage, and track shifts. ShiftWise App simplifies shift scheduling for managers and workers alike.</p>
+    <p class="lead">Effortlessly book, manage, and track shifts. ShiftWise App simplifies shift scheduling for managers
+        and workers alike.</p>
     <hr class="my-4">
     {% if user.is_authenticated %}
-        <p class="h5">Welcome back, {{ user.username }}!</p>
-        <a class="btn btn-light btn-lg mx-2 mt-3" href="{% url 'shifts:shift_list' %}" role="button">
-            <i class="fas fa-clipboard-list"></i> View Shifts
-        </a>
-        <a class="btn btn-outline-light btn-lg mx-2 mt-3" href="{% url 'accounts:account_profile' %}" role="button">
-            <i class="fas fa-user-circle"></i> View Profile
-        </a>
+    <p class="h5">Welcome back, {{ user.username }}!</p>
+    <a class="btn btn-light btn-lg mx-2 mt-3" href="{% url 'shifts:shift_list' %}" role="button">
+        <i class="fas fa-clipboard-list"></i> View Shifts
+    </a>
+    <a class="btn btn-outline-light btn-lg mx-2 mt-3" href="{% url 'accounts:profile' %}" role="button">
+        Go to Profile
+    </a>
     {% else %}
-        <p class="lead">Join thousands of users already optimizing their shift management process.</p>
-        <a class="btn btn-light btn-lg mx-2 mt-3" href="{% url 'account_signup' %}" role="button">Sign Up for Free</a>
-        <a class="btn btn-outline-light btn-lg mx-2 mt-3" href="{% url 'account_login' %}" role="button">Login</a>
+    <p class="lead">Join thousands of users already optimizing their shift management process.</p>
+    <a class="btn btn-light btn-lg mx-2 mt-3" href="{% url 'account_signup' %}" role="button">Sign Up for Free</a>
+    <a class="btn btn-outline-light btn-lg mx-2 mt-3" href="{% url 'account_login' %}" role="button">Login</a>
     {% endif %}
 </div>
 
@@ -49,7 +50,8 @@
                 <div class="card-body text-center">
                     <i class="fas fa-lock fa-3x mb-3"></i>
                     <h5 class="card-title">Secure and Reliable</h5>
-                    <p class="card-text">Your data is safe. We prioritize security, ensuring peace of mind for managers and employees.</p>
+                    <p class="card-text">Your data is safe. We prioritize security, ensuring peace of mind for managers
+                        and employees.</p>
                 </div>
             </div>
         </div>
@@ -111,8 +113,10 @@
     <div class="row">
         <div class="col-md-4">
             <blockquote class="blockquote text-center">
-                <p class="mb-0">"ShiftWise App transformed how we schedule shifts. It's fast, intuitive, and secure!"</p>
-                <footer class="blockquote-footer">Amanda Collins, <cite title="Source Title">Agency Manager</cite></footer>
+                <p class="mb-0">"ShiftWise App transformed how we schedule shifts. It's fast, intuitive, and secure!"
+                </p>
+                <footer class="blockquote-footer">Amanda Collins, <cite title="Source Title">Agency Manager</cite>
+                </footer>
             </blockquote>
         </div>
         <div class="col-md-4">
@@ -133,7 +137,8 @@
 <!-- Sharing Section -->
 <div class="container my-5 text-center">
     <h2>Share ShiftWise App with Your Team!</h2>
-    <p class="lead">Help your colleagues and friends simplify their shift management process. Spread the word on social media!</p>
+    <p class="lead">Help your colleagues and friends simplify their shift management process. Spread the word on social
+        media!</p>
     <div>
         <a href="#" class="btn btn-primary mx-2"><i class="fab fa-facebook-f"></i> Share on Facebook</a>
         <a href="#" class="btn btn-primary mx-2"><i class="fab fa-twitter"></i> Share on Twitter</a>
