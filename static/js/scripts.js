@@ -1,5 +1,7 @@
+// static/js/scripts.js
+
 document.addEventListener('DOMContentLoaded', function() {
-    const postcodeInput = document.getElementById('postcode');
+    const postcodeInput = document.getElementById('id_postcode');
 
     if (postcodeInput) {
         postcodeInput.addEventListener('change', function() {
@@ -7,12 +9,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (postcode === "") {
                 console.warn('Postcode field is empty.');
                 // Clear address fields
-                document.getElementById('address_line1').value = '';
-                document.getElementById('city').value = '';
-                document.getElementById('state').value = '';
-                document.getElementById('country').value = '';
-                document.getElementById('latitude').value = '';
-                document.getElementById('longitude').value = '';
+                ['id_address_line1', 'id_city', 'id_state', 'id_country', 'id_latitude', 'id_longitude'].forEach(id => {
+                    const field = document.getElementById(id);
+                    if (field) field.value = '';
+                });
                 return;
             }
 
@@ -44,14 +44,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     // Populate address fields
-                    document.getElementById('address_line1').value = data.address.address_line1 || '';
-                    document.getElementById('city').value = data.address.city || '';
-                    document.getElementById('state').value = data.address.state || '';
-                    document.getElementById('country').value = data.address.country || '';
-                    document.getElementById('latitude').value = data.address.latitude || '';
-                    document.getElementById('longitude').value = data.address.longitude || '';
+                    const address = data.address;
+                    document.getElementById('id_address_line1').value = address.address_line1 || '';
+                    document.getElementById('id_city').value = address.city || '';
+                    document.getElementById('id_state').value = address.state || '';
+                    document.getElementById('id_country').value = address.country || '';
+                    document.getElementById('id_latitude').value = address.latitude || '';
+                    document.getElementById('id_longitude').value = address.longitude || '';
                 } else {
-                    alert('Unable to fetch address details. Please check the postcode and try again.');
+                    alert(data.message);
                 }
             })
             .catch(error => {
