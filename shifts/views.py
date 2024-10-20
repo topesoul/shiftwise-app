@@ -1,18 +1,85 @@
+# shifts/views.py
+
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from .models import Shift, ShiftAssignment
-from .forms import ShiftForm
-from .mixins import AgencyManagerRequiredMixin
+from .forms import ShiftForm, StaffCreationForm, StaffUpdateForm
+from .mixins import SubscriptionRequiredMixin, AgencyManagerRequiredMixin
 from django.db.models import Prefetch
 from django.http import JsonResponse
 from .utils import get_address_from_postcode
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.utils import timezone
+from django.contrib.gis.db.models.functions import Distance as DistanceFunc  # Renamed to avoid conflict
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D  # Distance object for specifying units
+
+User = get_user_model()
+
+
+def is_agency_manager(user):
+    return user.is_authenticated and (user.is_superuser or user.groups.filter(name='Agency Managers').exists())
+
+
+@login_required
+@user_passes_test(is_agency_manager)
+def staff_list(request):
+    agency = request.user.profile.agency
+    staff_members = User.objects.filter(profile__agency=agency, groups__name='Agency Staff')
+    return render(request, 'shifts/staff_list.html', {'staff_members': staff_members})
+
+
+@login_required
+@user_passes_test(is_agency_manager)
+def add_staff(request):
+    if request.method == 'POST':
+        form = StaffCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Assign the user to the 'Agency Staff' group
+            agency_staff_group, created = Group.objects.get_or_create(name='Agency Staff')
+            user.groups.add(agency_staff_group)
+            # Associate the user with the agency
+            user.profile.agency = request.user.profile.agency
+            user.profile.save()
+            messages.success(request, "Staff member added successfully.")
+            return redirect('shifts:staff_list')
+    else:
+        form = StaffCreationForm()
+    return render(request, 'shifts/add_staff.html', {'form': form})
+
+
+@login_required
+@user_passes_test(is_agency_manager)
+def edit_staff(request, user_id):
+    staff_member = get_object_or_404(User, id=user_id, profile__agency=request.user.profile.agency)
+    if request.method == 'POST':
+        form = StaffUpdateForm(request.POST, instance=staff_member)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Staff member updated successfully.")
+            return redirect('shifts:staff_list')
+    else:
+        form = StaffUpdateForm(instance=staff_member)
+    return render(request, 'shifts/edit_staff.html', {'form': form, 'staff_member': staff_member})
+
+
+@login_required
+@user_passes_test(is_agency_manager)
+def delete_staff(request, user_id):
+    staff_member = get_object_or_404(User, id=user_id, profile__agency=request.user.profile.agency)
+    if request.method == 'POST':
+        staff_member.is_active = False
+        staff_member.save()
+        messages.success(request, "Staff member deactivated successfully.")
+        return redirect('shifts:staff_list')
+    return render(request, 'shifts/delete_staff.html', {'staff_member': staff_member})
 
 
 class ShiftListView(LoginRequiredMixin, ListView):
@@ -26,23 +93,29 @@ class ShiftListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         """
-        Customize the queryset based on user permissions.
+        Customize the queryset based on user permissions and proximity.
         """
         user = self.request.user
-        queryset = Shift.objects.select_related('agency').order_by('shift_date', 'start_time')
+        profile = user.profile
 
-        if user.is_superuser:
-            # Superusers see all shifts
-            pass
-        elif user.groups.filter(name='Agency Managers').exists():
-            # Agency Managers see shifts within their agency
-            queryset = queryset.filter(agency=user.profile.agency)
-        elif user.groups.filter(name='Agency Staff').exists():
-            # Agency Staff see shifts within their agency
-            queryset = queryset.filter(agency=user.profile.agency)
-        else:
-            # Other users see no shifts
+        if not profile.location:
             queryset = Shift.objects.none()
+        else:
+            queryset = Shift.objects.annotate(
+                distance=DistanceFunc('location', profile.location, spheroid=True)
+            ).filter(
+                distance__lte=D(mi=profile.travel_radius)  # Changed from meters to miles
+            ).order_by('shift_date', 'start_time')
+
+            # Filter based on user role
+            if user.is_superuser:
+                pass  # Superusers see all shifts
+            elif user.groups.filter(name='Agency Managers').exists():
+                queryset = queryset.filter(agency=profile.agency)
+            elif user.groups.filter(name='Agency Staff').exists():
+                queryset = queryset.filter(agency=profile.agency)
+            else:
+                queryset = Shift.objects.none()
 
         # Prefetch assignments and annotate shifts
         queryset = queryset.prefetch_related(
@@ -61,7 +134,9 @@ class ShiftListView(LoginRequiredMixin, ListView):
                 not shift.is_assigned
             )
             shift.can_unbook = user.groups.filter(name='Agency Staff').exists() and shift.is_assigned
-            shift.can_edit = user.is_superuser or user.groups.filter(name='Agency Managers').exists()
+            shift.can_edit = user.is_superuser or (
+                user.groups.filter(name='Agency Managers').exists() and shift.agency == profile.agency
+            )
             shift.assigned_workers = shift.assignments.all()
 
         return queryset
@@ -85,6 +160,9 @@ class ShiftCreateView(LoginRequiredMixin, AgencyManagerRequiredMixin, CreateView
             # If the user doesn't have an agency, raise an error
             messages.error(self.request, "You do not have an agency associated with your profile.")
             return redirect('shifts:shift_list')
+        # Convert latitude and longitude to Point
+        if shift.latitude and shift.longitude:
+            shift.location = Point(float(shift.longitude), float(shift.latitude), srid=4326)
         shift.save()
         messages.success(self.request, "Shift created successfully.")
         return redirect(self.success_url)
@@ -107,6 +185,11 @@ class ShiftUpdateView(LoginRequiredMixin, AgencyManagerRequiredMixin, UpdateView
 
     def form_valid(self, form):
         messages.success(self.request, "Shift updated successfully.")
+        shift = form.save(commit=False)
+        # Update location if latitude and longitude are provided
+        if shift.latitude and shift.longitude:
+            shift.location = Point(float(shift.longitude), float(shift.latitude), srid=4326)
+        shift.save()
         return super().form_valid(form)
 
 
@@ -125,7 +208,7 @@ class ShiftDeleteView(LoginRequiredMixin, AgencyManagerRequiredMixin, DeleteView
         return Shift.objects.filter(agency=self.request.user.profile.agency)
 
     def delete(self, request, *args, **kwargs):
-        messages.success(self.request, "Shift deleted successfully.")
+        messages.success(request, "Shift deleted successfully.")
         return super().delete(request, *args, **kwargs)
 
 
@@ -164,15 +247,18 @@ class ShiftDetailView(LoginRequiredMixin, DetailView):
             not context['is_assigned']
         )
         context['can_unbook'] = user.groups.filter(name='Agency Staff').exists() and context['is_assigned']
-        context['can_edit'] = user.is_superuser or user.groups.filter(name='Agency Managers').exists()
+        context['can_edit'] = user.is_superuser or (
+            user.groups.filter(name='Agency Managers').exists() and shift.agency == user.profile.agency
+        )
         context['assigned_workers'] = shift.assignments.all()
 
         # Provide list of available workers for assignment
-        if user.is_superuser or user.groups.filter(name='Agency Managers').exists():
+        if user.is_superuser or (user.groups.filter(name='Agency Managers').exists() and shift.agency == user.profile.agency):
             assigned_worker_ids = shift.assignments.values_list('worker_id', flat=True)
             context['available_workers'] = User.objects.filter(
                 profile__agency=shift.agency,
-                groups__name='Agency Staff'
+                groups__name='Agency Staff',
+                is_active=True
             ).exclude(id__in=assigned_worker_ids)
             # Permission to assign workers
             context['can_assign_workers'] = True
@@ -238,47 +324,61 @@ def get_address(request):
     if postcode:
         address_data = get_address_from_postcode(postcode)
         if address_data:
-            return JsonResponse({'success': True, 'data': address_data})
+            return JsonResponse({'success': True, 'address': address_data})
         else:
             return JsonResponse({'success': False, 'message': 'Address not found for the provided postcode.'})
     else:
         return JsonResponse({'success': False, 'message': 'No postcode provided.'})
 
 
-@login_required
-def assign_worker(request, pk):
+class ShiftCompleteView(LoginRequiredMixin, View):
     """
-    Allows managers to assign a worker to a shift.
+    Allows staff to mark a shift as completed with a digital signature and geolocation verification.
     """
-    shift = get_object_or_404(Shift, pk=pk)
-    user = request.user
 
-    if not (user.is_superuser or user.groups.filter(name='Agency Managers').exists()):
-        messages.error(request, "You do not have permission to assign workers.")
-        return redirect('shifts:shift_detail', pk=pk)
+    def post(self, request, shift_id):
+        shift = get_object_or_404(Shift, id=shift_id)
+        user = request.user
 
-    if request.method == 'POST':
-        worker_id = request.POST.get('worker_id')
-        worker = get_object_or_404(User, id=worker_id)
+        # Check if user is assigned to the shift
+        assignment = ShiftAssignment.objects.filter(shift=shift, worker=user).first()
+        if not assignment:
+            return JsonResponse({'success': False, 'message': 'You are not assigned to this shift.'}, status=403)
 
-        # Check if worker belongs to the same agency
-        if worker.profile.agency != shift.agency:
-            messages.error(request, "Worker does not belong to your agency.")
-            return redirect('shifts:shift_detail', pk=pk)
+        # Get geolocation data from the request
+        latitude = request.POST.get('latitude')
+        longitude = request.POST.get('longitude')
 
-        # Check if shift is full
-        if shift.is_full:
-            messages.error(request, "This shift is already full.")
-            return redirect('shifts:shift_detail', pk=pk)
+        if not latitude or not longitude:
+            return JsonResponse({'success': False, 'message': 'Geolocation data is required.'}, status=400)
 
-        # Check if worker is already assigned
-        if ShiftAssignment.objects.filter(shift=shift, worker=worker).exists():
-            messages.info(request, f"{worker.get_full_name()} is already assigned to this shift.")
-            return redirect('shifts:shift_detail', pk=pk)
+        try:
+            user_location = Point(float(longitude), float(latitude), srid=4326)
+        except ValueError:
+            return JsonResponse({'success': False, 'message': 'Invalid geolocation data.'}, status=400)
 
-        # Assign worker
-        ShiftAssignment.objects.create(shift=shift, worker=worker)
-        messages.success(request, f"{worker.get_full_name()} has been assigned to the shift.")
-        return redirect('shifts:shift_detail', pk=pk)
-    else:
-        return redirect('shifts:shift_detail', pk=pk)
+        shift_location = shift.location
+
+        # Transform both points to SRID 3857 (meters) for distance calculation
+        user_location.transform(3857)
+        shift_location.transform(3857)
+
+        distance_meters = user_location.distance(shift_location)
+        distance_miles = distance_meters / 1609.34  # Convert meters to miles
+
+        # Define acceptable proximity in miles
+        if distance_miles > 0.9:
+            return JsonResponse({'success': False, 'message': 'You are not at the shift location.'}, status=403)
+
+        # Handle signature upload
+        signature = request.FILES.get('signature')
+        if not signature:
+            return JsonResponse({'success': False, 'message': 'Signature is required.'}, status=400)
+
+        shift.signature = signature
+        shift.is_completed = True
+        shift.completion_time = timezone.now()
+        shift.save()
+
+        messages.success(request, "Shift marked as completed successfully.")
+        return JsonResponse({'success': True, 'message': 'Shift completed.'})
