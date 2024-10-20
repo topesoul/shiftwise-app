@@ -1,17 +1,19 @@
+<!-- shifts/templates/shifts/shift_confirm_delete.html -->
+
 {% extends 'base.html' %}
 
 {% block title %}Delete Shift{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <h2>Delete Shift</h2>
-        <p>Are you sure you want to delete the shift "{{ object.name }}" scheduled on {{ object.shift_date }}?</p>
-        <form method="post">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger">Yes, Delete</button>
-            <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary">Cancel</a>
-        </form>
+<div class="container">
+    <h2>Delete Shift: {{ shift.name }}</h2>
+    <div class="alert alert-danger">
+        <p>Are you sure you want to delete this shift? This action cannot be undone.</p>
     </div>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete Shift</button>
+        <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
 </div>
 {% endblock %}
