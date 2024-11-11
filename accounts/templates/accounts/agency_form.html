@@ -1,0 +1,20 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/agency_form.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
+{% block title %}{% if form.instance.pk %}Edit Agency{% else %}Add New Agency{% endif %} | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">{% if form.instance.pk %}Edit Agency{% else %}Add New Agency{% endif %}</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Update{% else %}Create{% endif %}</button>
+        <a href="{% url 'accounts:manage_agencies' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
