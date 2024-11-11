@@ -1,33 +1,183 @@
-# accounts/models.py
+# /workspace/shiftwise/accounts/models.py
 
-from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.contrib.gis.db import models as gis_models
+from django.contrib.auth.models import AbstractUser
+from encrypted_model_fields.fields import EncryptedCharField
+import uuid
+import hashlib
+from django.utils import timezone
+
+from subscriptions.models import Subscription, Plan
+
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class User(AbstractUser):
     ROLE_CHOICES = (
-        ('agency_manager', 'Agency Manager'),
-        ('staff', 'Staff'),
+        ("staff", "Staff"),
+        ("agency_manager", "Agency Manager"),
+        ("agency_owner", "Agency Owner"),
     )
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='staff')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="staff")
 
     def __str__(self):
         return self.username
 
 
+class Agency(models.Model):
+    """
+    Represents an agency managing multiple shifts.
+    """
+
+    name = models.CharField(max_length=255, unique=True)
+    agency_code = models.CharField(max_length=50, unique=True, blank=True)
+    agency_type = models.CharField(
+        max_length=100,
+        choices=[
+            ("staffing", "Staffing"),
+            ("healthcare", "Healthcare"),
+        ],
+        default="staffing",
+    )
+    is_active = models.BooleanField(default=True)
+    address_line1 = models.CharField(max_length=255, default="Unknown Address")
+    address_line2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100, default="Unknown City")
+    county = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, default="UK")
+    postcode = models.CharField(max_length=20)
+    email = models.EmailField(max_length=254, unique=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    owner = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="owned_agency",
+        null=True,
+        blank=True,
+    )
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)  # **Added Field**
+
+    class Meta:
+        verbose_name_plural = "Agencies"
+
+    def __str__(self):
+        return f"{self.agency_code} - {self.name}"
+
+    def save(self, *args, **kwargs):
+        if not self.agency_code:
+            self.agency_code = f"AG-{str(uuid.uuid4())[:8].upper()}"
+        super().save(*args, **kwargs)
+
+
 class Profile(models.Model):
-    user = models.OneToOneField('accounts.User', on_delete=models.CASCADE, related_name='profile')
-    agency = models.ForeignKey('shifts.Agency', on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    agency = models.ForeignKey(Agency, on_delete=models.SET_NULL, null=True, blank=True)
     address_line1 = models.CharField(max_length=255, blank=True, null=True)
     address_line2 = models.CharField(max_length=255, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
+    county = models.CharField(max_length=100, blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
-    country = models.CharField(max_length=100, default='UK')
+    country = models.CharField(max_length=100, default="UK")
     postcode = models.CharField(max_length=20, blank=True, null=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
-    travel_radius = models.IntegerField(default=10, help_text="Travel radius in kilometers")
-    location = gis_models.PointField(geography=True, null=True, blank=True)
+    travel_radius = models.FloatField(default=0.0)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    profile_picture = models.ImageField(
+        upload_to="profile_pictures/", null=True, blank=True
+    )
+    totp_secret = EncryptedCharField(max_length=32, null=True, blank=True)
+    recovery_codes = EncryptedCharField(
+        max_length=500, null=True, blank=True
+    )  # To store hashed codes
+    monthly_view_count = models.PositiveIntegerField(default=0)
+    view_count_reset_date = models.DateField(null=True, blank=True)
+
+    def generate_recovery_codes(self, num_codes=5):
+        """
+        Generates a list of unique recovery codes, hashes them, stores them in the profile,
+        and returns the plain codes to display to the user.
+        """
+        codes = []
+        plain_codes = []
+        for _ in range(num_codes):
+            # Generate a unique 8-character code
+            code = uuid.uuid4().hex[:8].upper()
+            plain_codes.append(code)
+            # Hash the code using SHA-256
+            hashed_code = hashlib.sha256(code.encode()).hexdigest()
+            codes.append(hashed_code)
+        # Store the hashed codes as a comma-separated string
+        self.recovery_codes = ",".join(codes)
+        self.save()
+        # Return the plain codes to be shown to the user
+        return plain_codes
+
+    def reset_view_count_if_needed(self):
+        """
+        Resets the monthly view count if the reset date has passed.
+        """
+        if (
+            self.view_count_reset_date
+            and timezone.now().date() >= self.view_count_reset_date
+        ):
+            self.monthly_view_count = 0
+            self.view_count_reset_date = timezone.now().date().replace(
+                day=1
+            ) + timezone.timedelta(days=32)
+            self.view_count_reset_date = self.view_count_reset_date.replace(day=1)
+            self.save()
 
     def __str__(self):
-        return f"{self.user.username}'s Profile"
+        return f"Profile of {self.user.username}"
+
+
+class Invitation(models.Model):
+    """
+    Represents an invitation sent to a staff member.
+    """
+
+    email = models.EmailField(unique=True)
+    invited_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="invitations"
+    )
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    invited_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    agency = models.ForeignKey(Agency, on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        agency_name = self.agency.name if self.agency else "No Agency"
+        return f"Invitation for {self.email} by {self.invited_by.username} at {agency_name}"
+
+    def is_expired(self):
+        """
+        Checks if the invitation is older than 7 days.
+        """
+        expiration_date = self.invited_at + timezone.timedelta(days=7)
+        return timezone.now() > expiration_date
+
+
+class Notification(models.Model):
+    """
+    Represents a notification for a user.
+    """
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="notifications"
+    )
+    message = models.CharField(max_length=255)
+    icon = models.CharField(max_length=50, default="fas fa-info-circle")
+    url = models.URLField(blank=True, null=True)
+    read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.username}: {self.message}"
