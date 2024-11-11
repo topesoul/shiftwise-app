@@ -1,36 +1,22 @@
-<!-- /workspace/shiftwise/accounts/templates/accounts/login.html -->
-
+<!-- templates/account/login.html -->
 {% extends "base.html" %}
-
-{% load i18n %}
-{% load account %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
 
 {% block title %}Login{% endblock %}
 
 {% block content %}
-
-<div class="container">
-    <h2 class="mb-4">{% trans "Login" %}</h2>
+<div class="container mt-4">
+    <h2>Login</h2>
     <form method="post" action="{% url 'accounts:login_view' %}">
         {% csrf_token %}
-        {{ form.non_field_errors }}
-        <div class="form-group">
-            {{ form.username.label_tag }}
-            {{ form.username }}
-            {{ form.username.errors }}
-        </div>
-        <div class="form-group">
-            {{ form.password.label_tag }}
-            {{ form.password }}
-            {{ form.password.errors }}
-        </div>
-        {% if redirect_field_value %}
-            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
-        {% endif %}
-        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
-        <a href="{% url 'accounts:password_reset' %}" class="btn btn-link">{% trans "Forgot Password?" %}</a>
+        {{ form|crispy }}
+        <button type="submit" class="btn btn-primary">Login</button>
     </form>
-    <p class="mt-3">{% trans "Don't have an account?" %} <a href="{% url 'accounts:signup_view' %}">{% trans "Sign Up" %}</a></p>
-</div>
-
+    
+    <div class="mt-3">
+        <a href="{% url 'account_reset_password' %}">Forgot Password?</a>
+    </div>
+    <p>Don't have an account? <a href="{% url 'accounts:signup_selection' %}">Sign up</a></p>
 {% endblock %}
