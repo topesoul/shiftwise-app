@@ -1,44 +1,221 @@
-{% load static %}
-{% load group_filters %}
+<!-- /workspace/shiftwise/templates/includes/navbar.html -->
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <!-- Logo Image -->
-    <a class="navbar-brand" href="{% url 'home:home' %}">
-        <img src="{% static 'images/logo.png' %}" alt="ShiftWise" height="30" class="d-inline-block align-top">
-        ShiftWise
+{% load static %}
+{% load custom_filters %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container">
+    <!-- Brand -->
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'home:home' %}">
+      <img src="{% static 'images/logo.png' %}" alt="ShiftWise Logo" class="logo mr-2" style="height: 40px;" />
+      <span class="font-weight-bold">ShiftWise</span>
     </a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
-            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
+
+    <!-- Toggler for Mobile View -->
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarShiftWise" aria-controls="navbarShiftWise" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ml-auto">
-            {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'shifts:shift_list' %}">Shifts</a>
-                </li>
-                {% if user.is_superuser or user|has_group:"Agency Managers" %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'shifts:staff_list' %}">Manage Staff</a>
-                    </li>
-                {% endif %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'accounts:profile' %}">Profile</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'accounts:logout_view' %}">Logout</a>
-                </li>
-            {% else %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'accounts:agency_signup' %}">Agency Signup</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'accounts:signup_view' %}">Sign Up</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'accounts:login_view' %}">Login</a>
-                </li>
+
+    <!-- Navbar Links -->
+    <div class="collapse navbar-collapse" id="navbarShiftWise">
+      <ul class="navbar-nav mr-auto">
+        <!-- Common Links -->
+        <li class="nav-item {% if request.resolver_match.url_name == 'home:home' %}active{% endif %}">
+          <a class="nav-link" href="{% url 'home:home' %}">
+            <i class="fas fa-home"></i> Home
+            {% if request.resolver_match.url_name == 'home:home' %}
+              <span class="sr-only">(current)</span>
             {% endif %}
-        </ul>
+          </a>
+        </li>
+        <li class="nav-item {% if request.resolver_match.url_name == 'contact:contact' %}active{% endif %}">
+          <a class="nav-link" href="{% url 'contact:contact' %}">
+            <i class="fas fa-envelope"></i> Contact
+            {% if request.resolver_match.url_name == 'contact:contact' %}
+              <span class="sr-only">(current)</span>
+            {% endif %}
+          </a>
+        </li>
+
+        <!-- Role-Based Links -->
+        {% if user.is_authenticated %}
+          {% if is_superuser %}
+            <!-- Superuser Dashboard -->
+            <li class="nav-item {% if request.resolver_match.url_name == 'accounts:superuser_dashboard' %}active{% endif %}">
+              <a class="nav-link" href="{% url 'accounts:superuser_dashboard' %}">
+                <i class="fas fa-user-shield"></i> Dashboard
+                {% if request.resolver_match.url_name == 'accounts:superuser_dashboard' %}
+                  <span class="sr-only">(current)</span>
+                {% endif %}
+              </a>
+            </li>
+          {% elif is_agency_owner %}
+            <!-- Agency Owner Dashboard -->
+            <li class="nav-item {% if request.resolver_match.url_name == 'accounts:agency_dashboard' %}active{% endif %}">
+              <a class="nav-link" href="{% url 'accounts:agency_dashboard' %}">
+                <i class="fas fa-building"></i> Dashboard
+                {% if request.resolver_match.url_name == 'accounts:agency_dashboard' %}
+                  <span class="sr-only">(current)</span>
+                {% endif %}
+              </a>
+            </li>
+          {% elif is_agency_manager %}
+            <!-- Agency Manager Dashboard -->
+            <li class="nav-item {% if request.resolver_match.url_name == 'accounts:agency_dashboard' %}active{% endif %}">
+              <a class="nav-link" href="{% url 'accounts:agency_dashboard' %}">
+                <i class="fas fa-building"></i> Dashboard
+                {% if request.resolver_match.url_name == 'accounts:agency_dashboard' %}
+                  <span class="sr-only">(current)</span>
+                {% endif %}
+              </a>
+            </li>
+          {% elif is_agency_staff %}
+            <!-- Agency Staff Dashboard -->
+            <li class="nav-item {% if request.resolver_match.url_name == 'accounts:staff_dashboard' %}active{% endif %}">
+              <a class="nav-link" href="{% url 'accounts:staff_dashboard' %}">
+                <i class="fas fa-user-tie"></i> Dashboard
+                {% if request.resolver_match.url_name == 'accounts:staff_dashboard' %}
+                  <span class="sr-only">(current)</span>
+                {% endif %}
+              </a>
+            </li>
+          {% endif %}
+
+          <!-- Manage Shifts (Visible to Superusers and Agency Managers with 'shift_management' feature) -->
+          {% if is_superuser or is_agency_manager %}
+            {% if 'shift_management' in subscription_features %}
+              <li class="nav-item {% if request.resolver_match.url_name == 'shifts:shift_list' %}active{% endif %}">
+                <a class="nav-link" href="{% url 'shifts:shift_list' %}">
+                  <i class="fas fa-clipboard-list"></i> Manage Shifts
+                  {% if request.resolver_match.url_name == 'shifts:shift_list' %}
+                    <span class="sr-only">(current)</span>
+                  {% endif %}
+                </a>
+              </li>
+            {% endif %}
+          {% endif %}
+
+          <!-- Manage Staff (Visible to users with 'notifications_enabled' feature) -->
+          {% if has_active_subscription and 'notifications_enabled' in subscription_features %}
+            <li class="nav-item {% if request.resolver_match.url_name == 'shifts:staff_list' %}active{% endif %}">
+              <a class="nav-link" href="{% url 'shifts:staff_list' %}">
+                <i class="fas fa-users"></i> Manage Staff
+                {% if request.resolver_match.url_name == 'shifts:staff_list' %}
+                  <span class="sr-only">(current)</span>
+                {% endif %}
+              </a>
+            </li>
+          {% endif %}
+
+          <!-- Notifications Dropdown (Visible to users with 'notifications_enabled' feature) -->
+          {% if has_active_subscription and 'notifications_enabled' in subscription_features %}
+            <!-- Notification Container -->
+            <div id="notification-container"></div>
+            <li class="nav-item dropdown {% if 'notifications' in request.resolver_match.url_name %}active{% endif %}">
+              <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-bell"></i> Notifications
+                {% if notifications|length > 0 %}
+                  <span class="badge badge-danger">{{ notifications|length }}</span>
+                {% endif %}
+              </a>
+              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="notificationsDropdown">
+                {% if notifications %}
+                  {% for notification in notifications %}
+                    <a class="dropdown-item" href="{{ notification.url }}">
+                      <i class="{{ notification.icon }} mr-2"></i> {{ notification.message }}
+                    </a>
+                  {% endfor %}
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item text-center" href="{% url 'notifications:list' %}">View All Notifications</a>
+                {% else %}
+                  <a class="dropdown-item disabled" href="#">
+                    <i class="fas fa-info-circle mr-2"></i> No new notifications
+                  </a>
+                {% endif %}
+              </div>
+            </li>
+          {% endif %}
+
+          <!-- Subscription Management (Visible to Superusers and Agency Owners) -->
+          {% if is_superuser or is_agency_owner %}
+            <li class="nav-item dropdown {% if 'subscriptions' in request.resolver_match.url_name %}active{% endif %}">
+              <a class="nav-link dropdown-toggle" href="#" id="subscriptionDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-credit-card"></i> Subscriptions
+              </a>
+              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="subscriptionDropdown">
+                {% if has_active_subscription %}
+                  <a class="dropdown-item" href="{% url 'subscriptions:manage_subscription' %}">
+                    <i class="fas fa-cogs mr-2"></i> Manage Subscription
+                  </a>
+                  <a class="dropdown-item" href="{% url 'subscriptions:cancel_subscription' %}">
+                    <i class="fas fa-ban mr-2"></i> Cancel Subscription
+                  </a>
+                {% else %}
+                  {% for plan in available_plans %}
+                    {% for plan_option in plan.plans %}
+                      <a class="dropdown-item" href="{% url 'subscriptions:subscribe' plan_option.id %}">
+                        <i class="fas fa-plus mr-2"></i> Subscribe to {{ plan.name }} ({{ plan_option.view_limit }} Views)
+                      </a>
+                    {% endfor %}
+                  {% empty %}
+                    <a class="dropdown-item disabled" href="#">
+                      <i class="fas fa-exclamation-circle mr-2"></i> No Plans Available
+                    </a>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </li>
+          {% endif %}
+
+          <!-- User Profile Dropdown -->
+          <li class="nav-item dropdown {% if request.resolver_match.url_name == 'accounts:profile' %}active{% endif %}">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              {% if user.profile.profile_picture %}
+                <img src="{{ user.profile.profile_picture.url }}" alt="{{ user.username }}'s Profile Picture" class="rounded-circle mr-2" style="height:30px; width:30px;">
+              {% else %}
+                <i class="fas fa-user-circle mr-2"></i>
+              {% endif %}
+              {{ user.username }}
+            </a>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown">
+              <a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                <i class="fas fa-user-circle mr-2"></i> Profile
+              </a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="{% url 'accounts:logout_view' %}">
+                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+              </a>
+            </div>
+          </li>
+        {% else %}
+          <!-- Unauthenticated Users -->
+          <li class="nav-item {% if request.resolver_match.url_name == 'accounts:login_view' %}active{% endif %}">
+            <a class="nav-link" href="{% url 'accounts:login_view' %}">
+              <i class="fas fa-sign-in-alt"></i> Login
+              {% if request.resolver_match.url_name == 'accounts:login_view' %}
+                <span class="sr-only">(current)</span>
+              {% endif %}
+            </a>
+          </li>
+          <li class="nav-item {% if request.resolver_match.url_name == 'accounts:signup_selection' %}active{% endif %}">
+            <a class="nav-link" href="{% url 'accounts:signup_selection' %}">
+              <i class="fas fa-user-plus"></i> Sign Up
+              {% if request.resolver_match.url_name == 'accounts:signup_selection' %}
+                <span class="sr-only">(current)</span>
+              {% endif %}
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+
+      <!-- Right Side Navbar Items -->
+      <ul class="navbar-nav">
+        <!-- Dark Mode Toggle -->
+        <li class="nav-item">
+          <a class="nav-link" href="#" id="darkModeToggle">
+            <i class="fas fa-moon"></i> Dark Mode
+          </a>
+        </li>
+      </ul>
     </div>
+  </div>
 </nav>
