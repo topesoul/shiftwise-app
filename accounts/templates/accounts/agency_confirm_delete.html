@@ -1,0 +1,16 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/agency_confirm_delete.html -->
+
+{% extends 'base.html' %}
+{% block title %}Delete Agency | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Delete Agency</h1>
+    <p>Are you sure you want to delete the agency "<strong>{{ object.name }}</strong>"?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'accounts:manage_agencies' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
