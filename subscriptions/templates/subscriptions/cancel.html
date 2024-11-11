@@ -1,0 +1,13 @@
+<!-- /workspace/shiftwise/templates/subscriptions/cancel.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="container my-5 text-center">
+    <h2>Subscription Canceled</h2>
+    <p>Your subscription process was canceled. You can try subscribing again.</p>
+    <a href="{% url 'subscriptions:subscription_home' %}" class="btn btn-primary">Choose a Plan</a>
+</div>
+{% endblock %}
