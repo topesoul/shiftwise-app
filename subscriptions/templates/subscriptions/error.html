@@ -1,0 +1,18 @@
+<!-- /workspace/shiftwise/subscriptions/templates/subscriptions/error.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="card text-center shadow">
+        <div class="card-header bg-danger text-white">
+            <h4>Error</h4>
+        </div>
+        <div class="card-body">
+            <p>There was an error processing your subscription: {{ error }}</p>
+            <a href="{% url 'subscriptions:subscription_home' %}" class="btn btn-primary mt-3">Return to Subscription Plans</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
