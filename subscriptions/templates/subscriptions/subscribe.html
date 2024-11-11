@@ -1,0 +1,25 @@
+<!-- /workspace/shiftwise/templates/subscriptions/subscribe.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="card shadow">
+        <div class="card-header text-center">
+            <h4>Confirm Subscription</h4>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">{{ plan.name }} - {% if plan.billing_cycle == 'yearly' %}Yearly{% else %}Monthly{% endif %}</h5>
+            <p class="card-text">{{ plan.description }}</p>
+            <h3>£{{ plan.price }}{% if plan.billing_cycle == 'yearly' %} /yr{% else %} /mo{% endif %}</h3>
+            <form method="post" action="{% url 'subscriptions:subscribe' plan.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="billing_cycle" value="{{ request.POST.billing_cycle }}">
+                <button type="submit" class="btn btn-primary btn-block">Proceed to Subscribe</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
