@@ -1,0 +1,345 @@
+/* /workspace/shiftwise/static/css/components.css */
+
+/* Wrapper around hero section */
+.hero-section-wrapper {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem; /* Increased margin to separate from the next section */
+}
+
+/* Background Image Styling with padding */
+.hero-background-image {
+    position: relative;
+    width: 100%;
+    height: 470px;
+    background-size: cover;
+    background-position: center;
+    padding-top: 20px; /* Adding padding */
+}
+
+/* Hero Section Styling */
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-gradient-start), var(--primary-gradient-end));
+    color: var(--light-color);
+    padding: 4rem 1rem;
+    text-align: center;
+    position: relative;
+    margin-bottom: 2rem; /* Ensuring separation */
+}
+
+.hero-overlay {
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 3rem;
+    border-radius: var(--border-radius);
+}
+
+.hero-section h1, .hero-section p {
+    color: #ffffff;
+    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Button Hover and Focus Effects */
+.btn-primary {
+    background-color: var(--primary-gradient-end);
+    border: none;
+    color: #fff;
+    padding: 0.8rem 1.2rem;
+    border-radius: var(--border-radius);
+    transition: all var(--transition-speed);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-gradient-start);
+    transform: translateY(-2px);
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Secondary Button */
+.btn-outline-primary {
+    border: 2px solid var(--primary-gradient-end);
+    color: var(--primary-gradient-end);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-gradient-end);
+    color: #fff;
+}
+
+/* Interactive Icons */
+.social-button {
+    font-size: 1.2rem;
+    color: var(--light-color);
+    transition: background-color var(--transition-speed), transform var(--transition-speed);
+    padding: 0.75rem 1.2rem;
+    margin: 0.5rem;
+    border-radius: var(--border-radius);
+}
+.social-button:hover {
+    background-color: var(--accent-color);
+    color: var(--light-color);
+    transform: scale(1.05);
+}
+
+/* Card Component */
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-gradient-start), var(--primary-gradient-end));
+    color: var(--light-color);
+    font-weight: bold;
+}
+
+.card-title {
+    font-size: 1.3rem;
+    color: var(--dark-color);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Section Dividers with Gradient Background */
+.section-divider {
+    background: linear-gradient(135deg, #e1f5fe, #e0f7fa);
+    padding: 4rem 0;
+    border-radius: var(--border-radius);
+}
+
+/* Testimonials Section */
+#testimonials {
+    background: linear-gradient(135deg, #e1f5fe, #e0f7fa); /* Soft background gradient */
+    padding: 4rem 0;
+    text-align: center;
+}
+
+#testimonials h2 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-gradient-end);
+    margin-bottom: 2rem;
+}
+
+#testimonials .blockquote {
+    background-color: #ffffff;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    margin: 1rem;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+#testimonials .blockquote:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+#testimonials .blockquote p {
+    font-size: 1.1rem;
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+}
+
+#testimonials .blockquote-footer {
+    font-style: italic;
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+}
+
+/* Smaller screen adjustments */
+@media (max-width: 768px) {
+    #testimonials h2 {
+        font-size: 1.75rem;
+    }
+
+    #testimonials .blockquote {
+        padding: 1.5rem;
+        margin: 0.5rem;
+    }
+
+    #testimonials .blockquote p {
+        font-size: 1rem;
+    }
+}
+
+/* Social Sharing Section */
+#social-share {
+    padding: 3rem 0;
+    text-align: center;
+}
+
+.social-button {
+    background: linear-gradient(135deg, #3b5998, #1da1f2);
+    color: #fff;
+    border-radius: var(--border-radius);
+    transition: transform 0.2s;
+}
+
+.social-button:hover {
+    transform: translateY(-3px);
+    opacity: 0.9;
+}
+
+/* Table Styling */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: var(--font-size-base);
+    background-color: var(--light-color);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.table th, .table td {
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.table thead th {
+    background-color: var(--primary-gradient-start);
+    color: #fff;
+    font-weight: 600;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Consistent Form Button Styling */
+.form-group .btn {
+    padding: 0.5rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-base);
+    background-color: var(--primary-gradient-end);
+    color: #fff;
+    border: none;
+    transition: all var(--transition-speed);
+}
+
+.form-group .btn:hover {
+    background-color: var(--primary-gradient-start);
+    color: #fff;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Table Action Button Styling */
+.table-action-button {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: var(--border-radius);
+    transition: all var(--transition-speed);
+}
+
+.table-action-button i {
+    margin-right: 0.3rem;
+}
+
+.table-action-button.btn-warning {
+    background-color: #f39c12;
+    color: #fff;
+    border: none;
+}
+
+.table-action-button.btn-warning:hover {
+    background-color: #e67e22;
+    color: #fff;
+}
+
+.table-action-button.btn-danger {
+    background-color: #e74c3c;
+    color: #fff;
+    border: none;
+}
+
+.table-action-button.btn-danger:hover {
+    background-color: #c0392b;
+    color: #fff;
+}
+
+/* Small Button Shadow and Hover Effects */
+.table-action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* /workspace/shiftwise/static/css/components.css */
+
+/* Toggle Buttons Styling */
+#monthly-toggle, #yearly-toggle {
+    min-width: 120px;
+    margin: 0 5px;
+    transition: all var(--transition-speed);
+}
+
+#monthly-toggle.active, #yearly-toggle.active {
+    background-color: var(--primary-gradient-end);
+    color: #fff;
+}
+
+#monthly-toggle:not(.active), #yearly-toggle:not(.active) {
+    background-color: #fff;
+    color: var(--primary-gradient-end);
+}
+
+/* Badge Styling */
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+/* Pricing Card Title */
+.card-title.pricing-card-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color); /* Ensure you have a primary color defined */
+}
+
+.card-title.pricing-card-title small.text-muted {
+    font-size: 1rem;
+}
+
+/* Features List Styling */
+.card-body ul {
+    list-style: none;
+    padding: 0;
+}
+
+.card-body ul li {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.card-body ul li i {
+    margin-right: 0.5rem;
+}
+
+/* Button Hover and Focus Effects */
+.btn-primary, .btn-success {
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover, .btn-success:hover {
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
