@@ -1,0 +1,20 @@
+<!-- /workspace/shiftwise/templates/includes/sections/hero.html -->
+{% load static %}
+<div class="hero-section">
+    <div class="hero-overlay">
+        <h1 class="display-3">Revolutionize Your Shift Management</h1>
+        <p class="lead">Effortlessly book, manage, and track shifts. ShiftWise App simplifies shift scheduling for managers and workers alike.</p>
+        <hr class="my-4">
+        {% if user.is_authenticated %}
+            <p class="h5">Welcome back, {{ user.username }}!</p>
+            <a href="{% url 'shifts:shift_list' %}" class="btn btn-light btn-lg mx-2 mt-3" role="button">
+                <i class="fas fa-clipboard-list"></i> View Shifts
+            </a>
+            <a href="{% url 'accounts:profile' %}" class="btn btn-outline-light btn-lg mx-2 mt-3" role="button">Go to Profile</a>
+        {% else %}
+            <p class="lead">Join thousands of users already optimizing their shift management process.</p>
+            <a href="{% url 'accounts:signup_selection' %}" class="btn btn-light btn-lg mx-2 mt-3" role="button">Sign Up for Free</a>
+            <a href="{% url 'accounts:login_view' %}" class="btn btn-outline-light btn-lg mx-2 mt-3" role="button">Login</a>
+        {% endif %}
+    </div>
+</div>
