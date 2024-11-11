@@ -1,0 +1,129 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/superuser_dashboard.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
+{% block title %}Superuser Dashboard | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Superuser Dashboard</h1>
+    
+    <!-- Manage Agencies Section -->
+    <div class="mb-5">
+        <h2 class="h5 mb-3">Manage Agencies</h2>
+        <a href="{% url 'accounts:manage_agencies_create' %}" class="btn btn-primary mb-3">
+            <i class="fas fa-plus"></i> Add New Agency
+        </a>
+        {% if agencies %}
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Agency Name</th>
+                            <th>Agency Code</th>
+                            <th>Type</th>
+                            <th>Address</th>
+                            <th>Email</th>
+                            <th>Phone Number</th>
+                            <th>Website</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for agency in agencies %}
+                            <tr>
+                                <td>{{ agency.name }}</td>
+                                <td>{{ agency.agency_code }}</td>
+                                <td>{{ agency.get_agency_type_display }}</td>
+                                <td>
+                                    {{ agency.address_line1 }}, 
+                                    {% if agency.address_line2 %}{{ agency.address_line2 }}, {% endif %}
+                                    {{ agency.city }}, {{ agency.county }}, {{ agency.country }}, {{ agency.postcode }}
+                                </td>
+                                <td><a href="mailto:{{ agency.email }}">{{ agency.email }}</a></td>
+                                <td><a href="tel:{{ agency.phone_number }}">{{ agency.phone_number }}</a></td>
+                                <td>
+                                    {% if agency.website %}
+                                        <a href="{{ agency.website }}" target="_blank">{{ agency.website }}</a>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'accounts:manage_agencies_edit' agency.id %}" class="btn btn-sm btn-info" title="Edit Agency">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="{% url 'accounts:manage_agencies_delete' agency.id %}" class="btn btn-sm btn-danger" title="Delete Agency" onclick="return confirm('Are you sure you want to delete this agency?');">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No agencies available.</p>
+        {% endif %}
+    </div>
+    
+    <!-- Manage Users Section -->
+    <div>
+        <h2 class="h5 mb-3">Manage Users</h2>
+        <a href="{% url 'accounts:manage_users_create' %}" class="btn btn-primary mb-3">
+            <i class="fas fa-user-plus"></i> Add New User
+        </a>
+        {% if users %}
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Agency</th>
+                            <th>Groups</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.get_full_name }}</td>
+                                <td><a href="mailto:{{ user.email }}">{{ user.email }}</a></td>
+                                <td>
+                                    {% if user.profile.agency %}
+                                        {{ user.profile.agency.name }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% for group in user.groups.all %}
+                                        <span class="badge badge-secondary">{{ group.name }}</span>
+                                    {% empty %}
+                                        <span class="badge badge-secondary">No Groups</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'accounts:manage_users_edit' user.id %}" class="btn btn-sm btn-info" title="Edit User">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="{% url 'accounts:manage_users_delete' user.id %}" class="btn btn-sm btn-danger" title="Delete User" onclick="return confirm('Are you sure you want to delete this user?');">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No users available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
