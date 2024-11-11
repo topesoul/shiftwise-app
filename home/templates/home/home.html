@@ -1,148 +1,61 @@
-{% extends 'base.html' %}
+<!-- /workspace/shiftwise/home/templates/home/home.html -->
 
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
 {% block title %}ShiftWise App - Manage Shifts Effortlessly{% endblock %}
 
 {% block content %}
-<div class="jumbotron text-center text-white py-5" style="background-color: #007bff;">
-    <h1 class="display-3">Revolutionize Your Shift Management</h1>
-    <p class="lead">Effortlessly book, manage, and track shifts. ShiftWise App simplifies shift scheduling for managers
-        and workers alike.</p>
-    <hr class="my-4">
-    {% if user.is_authenticated %}
-    <p class="h5">Welcome back, {{ user.username }}!</p>
-    <a class="btn btn-light btn-lg mx-2 mt-3" href="{% url 'shifts:shift_list' %}" role="button">
-        <i class="fas fa-clipboard-list"></i> View Shifts
-    </a>
-    <a class="btn btn-outline-light btn-lg mx-2 mt-3" href="{% url 'accounts:profile' %}" role="button">
-        Go to Profile
-    </a>
-    {% else %}
-    <p class="lead">Join thousands of users already optimizing their shift management process.</p>
-    <a class="btn btn-light btn-lg mx-2 mt-3" href="{% url 'account_signup' %}" role="button">Sign Up for Free</a>
-    <a class="btn btn-outline-light btn-lg mx-2 mt-3" href="{% url 'account_login' %}" role="button">Login</a>
-    {% endif %}
+<!-- Main Content -->
+
+<!-- Hero Section -->
+<div class="hero-section-wrapper">
+    {% include 'includes/sections/hero.html' %}
 </div>
 
-<!-- Why ShiftWise Section -->
-<div class="container my-5 text-center">
-    <h2>Why Choose ShiftWise App?</h2>
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body text-center">
-                    <i class="fas fa-bolt fa-3x mb-3"></i>
-                    <h5 class="card-title">Instant Shift Scheduling</h5>
-                    <p class="card-text">Plan and manage shifts in seconds. Stay ahead with real-time updates.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body text-center">
-                    <i class="fas fa-mobile-alt fa-3x mb-3"></i>
-                    <h5 class="card-title">Mobile-Friendly</h5>
-                    <p class="card-text">Manage your shifts on-the-go. ShiftWise is optimized for all devices.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body text-center">
-                    <i class="fas fa-lock fa-3x mb-3"></i>
-                    <h5 class="card-title">Secure and Reliable</h5>
-                    <p class="card-text">Your data is safe. We prioritize security, ensuring peace of mind for managers
-                        and employees.</p>
-                </div>
-            </div>
-        </div>
-    </div>
+{% include 'includes/sections/why_shiftwise.html' %}
+
+<!-- Background Image Section -->
+<div class="hero-background-image" style="background-image: url('{% static 'images/hero-background.jpg' %}');">
+    <div class="hero-image-overlay"></div>
 </div>
 
 <!-- Subscription Tiers Section -->
-<div class="container my-5 text-center">
-    <h2>Choose the Perfect Plan</h2>
-    <p class="lead">Whether you're a small team or a large organization, ShiftWise App has a plan for you.</p>
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Free Plan</h5>
-                    <p class="card-text">Basic features for managing shifts with limited access to advanced tools.</p>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-check"></i> Manage up to 10 Shifts</li>
-                        <li><i class="fas fa-check"></i> Basic Shift Scheduling</li>
-                    </ul>
-                    <a href="{% url 'account_signup' %}" class="btn btn-outline-primary">Get Started</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Pro Plan</h5>
-                    <p class="card-text">Advanced shift management tools with more flexibility.</p>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-check"></i> Unlimited Shift Scheduling</li>
-                        <li><i class="fas fa-check"></i> Team Collaboration Features</li>
-                        <li><i class="fas fa-check"></i> Priority Support</li>
-                    </ul>
-                    <a href="#" class="btn btn-primary">Upgrade to Pro</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Enterprise Plan</h5>
-                    <p class="card-text">Best for large organizations. Includes everything in Pro, plus more.</p>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-check"></i> Customized Reporting</li>
-                        <li><i class="fas fa-check"></i> Dedicated Account Manager</li>
-                        <li><i class="fas fa-check"></i> Enterprise Security</li>
-                    </ul>
-                    <a href="#" class="btn btn-outline-primary">Contact Sales</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'includes/sections/subscription_tiers.html' %}
 
-<!-- Testimonials Section -->
-<div class="container my-5">
-    <h2 class="text-center mb-4">What Our Users Say</h2>
-    <div class="row">
-        <div class="col-md-4">
-            <blockquote class="blockquote text-center">
-                <p class="mb-0">"ShiftWise App transformed how we schedule shifts. It's fast, intuitive, and secure!"
-                </p>
-                <footer class="blockquote-footer">Amanda Collins, <cite title="Source Title">Agency Manager</cite>
-                </footer>
-            </blockquote>
-        </div>
-        <div class="col-md-4">
-            <blockquote class="blockquote text-center">
-                <p class="mb-0">"The best shift management tool I've ever used. I love the mobile-friendly design!"</p>
-                <footer class="blockquote-footer">Carlos Rivera, <cite title="Source Title">Freelancer</cite></footer>
-            </blockquote>
-        </div>
-        <div class="col-md-4">
-            <blockquote class="blockquote text-center">
-                <p class="mb-0">"Since using ShiftWise, I've saved countless hours managing shift schedules."</p>
-                <footer class="blockquote-footer">Diana Moore, <cite title="Source Title">HR Executive</cite></footer>
-            </blockquote>
-        </div>
-    </div>
-</div>
+{% include 'includes/sections/testimonials.html' %}
+{% include 'includes/sections/social_media.html' %}
 
-<!-- Sharing Section -->
-<div class="container my-5 text-center">
-    <h2>Share ShiftWise App with Your Team!</h2>
-    <p class="lead">Help your colleagues and friends simplify their shift management process. Spread the word on social
-        media!</p>
-    <div>
-        <a href="#" class="btn btn-primary mx-2"><i class="fab fa-facebook-f"></i> Share on Facebook</a>
-        <a href="#" class="btn btn-primary mx-2"><i class="fab fa-twitter"></i> Share on Twitter</a>
-        <a href="#" class="btn btn-primary mx-2"><i class="fab fa-linkedin-in"></i> Share on LinkedIn</a>
-    </div>
-</div>
+{% if available_plans %}
+    <!-- Display Available Plans -->
+    <section id="subscription-plans">
+        <div class="container">
+            <h2 class="text-center">Choose Your Plan</h2>
+            <div class="row">
+                {% for plan in available_plans %}
+                    <div class="col-md-4">
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ plan.name }}</h5>
+                                <p class="card-text">{{ plan.description }}</p>
+                                <ul>
+                                    {% for plan_option in plan.plans %}
+                                        <li>{{ plan_option.view_limit }} Views - {{ plan_option.price }} {{ plan_option.currency }}</li>
+                                    {% endfor %}
+                                </ul>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="btn-group">
+                                        {% for plan_option in plan.plans %}
+                                            <a href="{% url 'subscriptions:subscribe' plan_option.id %}" class="btn btn-sm btn-outline-secondary">Subscribe</a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}
 {% endblock %}
