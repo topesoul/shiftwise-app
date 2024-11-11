@@ -1,77 +1,54 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/agency_signup.html -->
+
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 {% load static %}
 
 {% block title %}Agency Signup{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>Sign Up Your Agency</h2>
-    <form method="post">
+<div class="container mt-5">
+    <h2 class="mb-4">Sign Up Your Agency</h2>
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.non_field_errors }}
 
-        <!-- User Information -->
-        <h3>User Information</h3>
-        <div class="form-group">
-            {{ form.email.label_tag }}
-            {{ form.email }}
-            {{ form.email.errors }}
-        </div>
-        <div class="form-group">
-            {{ form.password1.label_tag }}
-            {{ form.password1 }}
-            {{ form.password1.errors }}
-        </div>
-        <div class="form-group">
-            {{ form.password2.label_tag }}
-            {{ form.password2 }}
-            {{ form.password2.errors }}
-        </div>
+        <!-- Render Form Fields -->
+        {{ form|crispy }}
 
-        <!-- Agency Information -->
-        <h3>Agency Information</h3>
-        <div class="form-group">
-            {{ form.agency_name.label_tag }}
-            {{ form.agency_name }}
-            {{ form.agency_name.errors }}
-        </div>
-        <div class="form-group">
-            {{ form.agency_postcode.label_tag }}
-            {{ form.agency_postcode }}
-            {{ form.agency_postcode.errors }}
-        </div>
-        <div class="form-group">
-            {{ form.agency_address_line1.label_tag }}
-            {{ form.agency_address_line1 }}
-            {{ form.agency_address_line1.errors }}
-        </div>
-        <div class="form-group">
-            {{ form.agency_city.label_tag }}
-            {{ form.agency_city }}
-            {{ form.agency_city.errors }}
-        </div>
-        <div class="form-group">
-            {{ form.agency_state.label_tag }}
-            {{ form.agency_state }}
-            {{ form.agency_state.errors }}
-        </div>
-        <div class="form-group">
-            {{ form.agency_country.label_tag }}
-            {{ form.agency_country }}
-            {{ form.agency_country.errors }}
-        </div>
+        <!-- Include Address Fields Partial -->
+        {% include 'includes/address_fields.html' %}
+
+        <!-- Additional Agency Information -->
         <div class="form-group">
             {{ form.agency_phone_number.label_tag }}
             {{ form.agency_phone_number }}
-            {{ form.agency_phone_number.errors }}
+            {% for error in form.agency_phone_number.errors %}
+                <small class="text-danger">{{ error }}</small>
+            {% endfor %}
         </div>
         <div class="form-group">
             {{ form.agency_website.label_tag }}
             {{ form.agency_website }}
-            {{ form.agency_website.errors }}
+            {% for error in form.agency_website.errors %}
+                <small class="text-danger">{{ error }}</small>
+            {% endfor %}
         </div>
+
+        <!-- Submit and Cancel Buttons -->
         <button type="submit" class="btn btn-primary">Sign Up</button>
         <a href="{% url 'home:home' %}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include the Google Maps JavaScript API with Places and Geocoding Libraries -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
+
+<!-- Include the Address Autocomplete JavaScript -->
+<script src="{% static 'js/address_autocomplete.js' %}"></script>
+
+<!-- Include the General Scripts -->
+<script src="{% static 'js/scripts.js' %}"></script>
 {% endblock %}
