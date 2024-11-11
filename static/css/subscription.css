@@ -1,0 +1,97 @@
+/* /workspace/shiftwise/static/css/subscription.css */
+
+/* Subscription Toggle Button Spacing */
+.subscription-toggle .btn {
+    margin-right: 10px; /* Adjust the spacing as needed */
+}
+
+/* Optional: Enhance the appearance of the toggle buttons */
+.subscription-toggle .btn-outline-primary {
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.subscription-toggle .btn-outline-primary.active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+/* Subscription Card Enhancements */
+.subscription-card {
+    transition: transform 0.3s;
+}
+
+.subscription-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Badge Positioning */
+.subscription-card .badge {
+    font-size: 0.9rem;
+    padding: 0.5em 0.75em;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 576px) {
+    .subscription-toggle .btn {
+        margin-right: 5px;
+    }
+}
+
+/* /workspace/shiftwise/static/css/subscription.css */
+
+/* Ensure card backgrounds and text adapt to dark mode */
+.subscription-card {
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.dark-mode .subscription-card {
+    background-color: #2c2c2c;
+    color: #ffffff;
+}
+
+.dark-mode .subscription-card .card-header {
+    background-color: #3a3a3a;
+}
+
+.dark-mode .subscription-card .card-header .text-white {
+    color: #ffffff !important;
+}
+
+.dark-mode .subscription-card .card-body {
+    background-color: #2c2c2c;
+}
+
+.dark-mode .subscription-card .pricing-card-title {
+    color: #ffffff;
+}
+
+.dark-mode .subscription-card .features-list .feature-item {
+    color: #ffffff;
+}
+
+.dark-mode .subscription-card .features-list .text-success {
+    color: #28a745 !important;
+}
+
+.dark-mode .subscription-card .features-list .text-danger {
+    color: #dc3545 !important;
+}
+
+/* Badge Adjustments for Dark Mode */
+.dark-mode .badge-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+/* Ensure buttons adapt to dark mode */
+.dark-mode .subscribe-form .btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.dark-mode .subscribe-form .btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+/* Additional styling for dark mode if necessary */
