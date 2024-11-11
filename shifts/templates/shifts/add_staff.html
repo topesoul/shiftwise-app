@@ -1,53 +1,26 @@
-<!-- shifts/templates/shifts/add_staff.html -->
+<!-- /workspace/shiftwise/shifts/templates/shifts/add_staff.html -->
 
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
 
 {% block title %}Add Staff Member{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>Add Staff Member</h2>
-    <div class="card">
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                {{ form.non_field_errors }}
-                
-                <div class="form-group">
-                    {{ form.username.label_tag }}
-                    {{ form.username }}
-                    {{ form.username.errors }}
-                </div>
-                <div class="form-group">
-                    {{ form.email.label_tag }}
-                    {{ form.email }}
-                    {{ form.email.errors }}
-                </div>
-                <div class="form-group">
-                    {{ form.first_name.label_tag }}
-                    {{ form.first_name }}
-                    {{ form.first_name.errors }}
-                </div>
-                <div class="form-group">
-                    {{ form.last_name.label_tag }}
-                    {{ form.last_name }}
-                    {{ form.last_name.errors }}
-                </div>
-                <div class="form-group">
-                    {{ form.password1.label_tag }}
-                    {{ form.password1 }}
-                    {{ form.password1.errors }}
-                </div>
-                <div class="form-group">
-                    {{ form.password2.label_tag }}
-                    {{ form.password2 }}
-                    {{ form.password2.errors }}
-                </div>
-                
-                <button type="submit" class="btn btn-success">Add Staff</button>
-                <a href="{% url 'shifts:staff_list' %}" class="btn btn-secondary">Cancel</a>
-            </form>
-        </div>
-    </div>
+<div class="container mt-5">
+    <h2 class="mb-4">Add Staff Member</h2>
+    <form method="post" enctype="multipart/form-data" class="postcode-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {{ form|crispy }}
+
+        <button type="submit" class="btn btn-success">Add Staff Member</button>
+        <a href="{% url 'shifts:staff_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/scripts.js' %}"></script>
 {% endblock %}

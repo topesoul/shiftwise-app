@@ -1,0 +1,15 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/staff_performance_detail.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Staff Performance Detail</h1>
+<p><strong>Worker:</strong> {{ performance.worker.get_full_name }}</p>
+<p><strong>Shift:</strong> {{ performance.shift.name }} on {{ performance.shift.shift_date }}</p>
+<p><strong>Wellness Score:</strong> {{ performance.wellness_score }}</p>
+<p><strong>Performance Rating:</strong> {{ performance.performance_rating }}</p>
+<p><strong>Comments:</strong> {{ performance.comments }}</p>
+
+<a href="{% url 'shifts:staff_performance_update' performance.id %}">Edit</a> |
+<a href="{% url 'shifts:staff_performance_delete' performance.id %}">Delete</a>
+{% endblock %}

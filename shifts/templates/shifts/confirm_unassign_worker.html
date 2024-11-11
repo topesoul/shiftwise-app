@@ -1,0 +1,20 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/confirm_unassign_worker.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
+
+{% block title %}Confirm Unassignment{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Confirm Unassignment</h2>
+    <p>Are you sure you want to unassign <strong>{{ assignment.worker.get_full_name }}</strong> from shift <strong>{{ shift.name }}</strong>?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Unassign</button>
+        <a href="{% url 'shifts:shift_detail' shift.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

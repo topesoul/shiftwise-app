@@ -1,59 +1,95 @@
-<!-- shifts/templates/shifts/staff_list.html -->
+<!-- /workspace/shiftwise/shifts/templates/shifts/staff_list.html -->
 
 {% extends 'base.html' %}
-{% load group_filters %}
-
+{% load crispy_forms_tags %}
+{% load static %}
 {% block title %}Manage Staff{% endblock %}
 
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Manage Staff</h2>
-        <a href="{% url 'shifts:add_staff' %}" class="btn btn-primary">
-            <i class="fas fa-user-plus"></i> Add Staff Member
-        </a>
+    <h2 class="mb-4">Manage Staff</h2>
+    
+    <!-- Action Buttons -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div class="mb-2">
+            <a href="{% url 'shifts:add_staff' %}" class="btn btn-success">
+                <i class="fas fa-user-plus"></i> Add Staff Member
+            </a>
+            <a href="{% url 'accounts:invite_staff' %}" class="btn btn-primary">
+                <i class="fas fa-envelope-open-text"></i> Invite Staff
+            </a>
+        </div>
+        <!-- Search and Filter Form -->
+        <form method="get" class="form-inline mb-2">
+            <div class="form-group mr-2">
+                <label for="search" class="sr-only">Search Staff</label>
+                <input type="text" name="search" id="search" class="form-control" placeholder="Search Staff" value="{{ search_query }}">
+            </div>
+            <div class="form-group mr-2">
+                <label for="status" class="sr-only">Shift Status</label>
+                <select name="status" id="status" class="form-control">
+                    <option value="">All Shift Statuses</option>
+                    {% for key, value in Shift.STATUS_CHOICES %}
+                        <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group mr-2">
+                <label for="date_from" class="mr-2">From:</label>
+                <input type="date" name="date_from" id="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="form-group mr-2">
+                <label for="date_to" class="mr-2">To:</label>
+                <input type="date" name="date_to" id="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <button type="submit" class="btn btn-outline-secondary mr-2">Filter</button>
+            <a href="{% url 'shifts:download_timesheet' %}?search={{ search_query }}&status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline-success">Download Timesheet</a>
+        </form>
     </div>
 
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Agency</th>
-                <th>Address</th>
-                <th>Travel Radius (km)</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for staff in staff_members %}
-                <tr>
-                    <td>{{ staff.username }}</td>
-                    <td>{{ staff.get_full_name }}</td>
-                    <td>{{ staff.email }}</td>
-                    <td>{{ staff.profile.agency.name }}</td>
-                    <td>
-                        {% if staff.profile.address_line1 %}
-                            {{ staff.profile.address_line1 }},
-                            {% if staff.profile.address_line2 %}{{ staff.profile.address_line2 }}, {% endif %}
-                            {{ staff.profile.city }}, {{ staff.profile.state }}, {{ staff.profile.postcode }}
-                        {% else %}
-                            <span class="text-muted">No Address Provided</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ staff.profile.travel_radius }}</td>
-                    <td>
-                        <a href="{% url 'shifts:edit_staff' staff.id %}" class="btn btn-sm btn-secondary">Edit</a>
-                        <a href="{% url 'shifts:delete_staff' staff.id %}" class="btn btn-sm btn-danger">Deactivate</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center">No staff members found.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if staff_members %}
+        <!-- Responsive Table Wrapper -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Total Shifts</th>
+                        <th>Completed Shifts</th>
+                        <th>Pending Shifts</th>
+                        <th>Total Hours</th>
+                        <th>Total Pay (£)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for staff in staff_members %}
+                        <tr>
+                            <td>{{ staff.username }}</td>
+                            <td>{{ staff.get_full_name }}</td>
+                            <td>{{ staff.email }}</td>
+                            <td>{{ staff.total_shifts }}</td>
+                            <td>{{ staff.completed_shifts }}</td>
+                            <td>{{ staff.pending_shifts }}</td>
+                            <td>{{ staff.total_hours|default:0 }}</td>
+                            <td>{{ staff.total_pay|floatformat:2|default:"0.00" }}</td>
+                            <td class="d-flex justify-content-start flex-wrap">
+                                <a href="{% url 'shifts:edit_staff' staff.id %}" class="btn btn-sm btn-warning mr-2 mb-2">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="{% url 'shifts:delete_staff' staff.id %}" class="btn btn-sm btn-danger mb-2">
+                                    <i class="fas fa-trash-alt"></i> Deactivate
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>No staff members found.</p>
+    {% endif %}
 </div>
 {% endblock %}

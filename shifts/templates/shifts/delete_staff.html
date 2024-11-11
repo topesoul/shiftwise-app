@@ -1,10 +1,15 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/delete_staff.html -->
+
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+
 {% block title %}Deactivate Staff Member{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h1 class="mb-4">Deactivate Staff Member</h1>
-    <p>Are you sure you want to deactivate <strong>{{ staff_member.get_full_name }}</strong> ({{ staff_member.username }})?</p>
+    <h2>Deactivate Staff Member</h2>
+    <p>Are you sure you want to deactivate <strong>{{ staff_member.get_full_name }}</strong>?</p>
     <form method="post">
         {% csrf_token %}
         <button type="submit" class="btn btn-danger">Yes, Deactivate</button>

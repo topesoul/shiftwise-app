@@ -1,6 +1,30 @@
-<h2>Book Shift: {{ shift.name }}</h2>
-<form method="POST">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Book Shift</button>
-</form>
+<!-- /workspace/shiftwise/shifts/templates/shifts/book_shift.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
+
+{% block title %}Book Shift: {{ shift.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Book Shift: {{ shift.name }}</h2>
+    <div class="card">
+        <div class="card-body">
+            <p><strong>Date:</strong> {{ shift.shift_date }}</p>
+            <p><strong>Time:</strong> {{ shift.start_time }} - {{ shift.end_time }}</p>
+            <p><strong>Duration:</strong> {{ shift.duration }} hours</p>
+            <p><strong>Location:</strong> {{ shift.address_line1 }}, {{ shift.city }}, {{ shift.county }}, {{ shift.country }}, {{ shift.postcode }}</p>
+            <p><strong>Hourly Rate:</strong> £{{ shift.hourly_rate }}</p>
+            <p><strong>Available Slots:</strong> {{ shift.available_slots }}</p>
+            <hr>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">Confirm Booking</button>
+                <a href="{% url 'shifts:shift_detail' shift.pk %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,7 +1,15 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/shift_list.html -->
 {% extends 'base.html' %}
-{% load group_filters %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}Available Shifts{% endblock %}
+
+{% block extra_css %}
+<!-- Bootstrap Datepicker CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -15,63 +23,121 @@
     {% endif %}
 </div>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Date</th>
-            <th>Start Time</th>
-            <th>End Time</th>
-            <th>Agency</th>
-            <th>Status</th>
-            <th>Available Slots</th>
-            <th>Assigned Workers</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for shift in shifts %}
+<!-- Search and Filter Bar -->
+<form method="get" class="form-inline mb-3">
+    {{ filter.form|crispy }}
+    <button type="submit" class="btn btn-primary ml-2">Search</button>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
             <tr>
-                <td>{{ shift.name }}</td>
-                <td>{{ shift.shift_date }}</td>
-                <td>{{ shift.start_time }}</td>
-                <td>{{ shift.end_time }}</td>
-                <td>{{ shift.agency.name }}</td>
-                <td>{{ shift.get_status_display }}</td>
-                <td>{{ shift.available_slots }}</td>
-                <td>
-                    {% if shift.assigned_workers %}
-                        {% for assignment in shift.assigned_workers %}
-                            {{ assignment.worker.get_full_name }}{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        <span class="text-muted">No assignments</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if user.is_authenticated %}
-                        {% if shift.can_edit %}
-                            <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-sm btn-secondary">Edit</a>
-                            <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-sm btn-danger">Delete</a>
-                        {% endif %}
-                        {% if shift.can_book %}
-                            <a href="{% url 'shifts:book_shift' shift.id %}" class="btn btn-sm btn-primary">Book</a>
-                        {% elif shift.can_unbook %}
-                            <a href="{% url 'shifts:unbook_shift' shift.id %}" class="btn btn-sm btn-warning">Unbook</a>
-                        {% elif shift.is_full %}
-                            <span class="text-muted">Full</span>
-                        {% endif %}
-                        <a href="{% url 'shifts:shift_detail' shift.pk %}" class="btn btn-sm btn-info">Details</a>
-                    {% else %}
-                        <a href="{% url 'account_login' %}?next={{ request.path }}" class="btn btn-sm btn-primary">Login to Book</a>
-                    {% endif %}
-                </td>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Duration (hrs)</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th class="d-none d-lg-table-cell">Distance (miles)</th>
+                <th class="d-none d-lg-table-cell">Rate (£/hr)</th>
+                <th class="d-none d-md-table-cell">Address</th>
+                <th>Agency</th>
+                <th>Status</th>
+                <th>Available Slots</th>
+                <th>Actions</th>
             </tr>
-        {% empty %}
-            <tr>
-                <td colspan="9" class="text-center">No shifts available.</td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            {% for shift in shifts %}
+                <tr>
+                    <td>{{ shift.name }}</td>
+                    <td>{{ shift.shift_date }}</td>
+                    <td>{{ shift.duration }}</td>
+                    <td>{{ shift.start_time }}</td>
+                    <td>{{ shift.end_time }}</td>
+                    <td class="d-none d-lg-table-cell">
+                        {% if shift.distance_to_user %}
+                            {{ shift.distance_to_user|floatformat:2 }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-lg-table-cell">
+                        £{{ shift.hourly_rate|floatformat:2 }}
+                    </td>
+                    <td class="d-none d-md-table-cell text-truncate" style="max-width: 200px;">
+                        {{ shift.address_line1 }}, {{ shift.city }}, {{ shift.county }}, {{ shift.country }}, {{ shift.postcode }}
+                    </td>
+                    <td>{{ shift.agency.name }}</td>
+                    <td>{{ shift.get_status_display }}</td>
+                    <td>{{ shift.available_slots }}</td>
+                    <td>
+                        {% if user.is_authenticated %}
+                            {% if shift.can_edit %}
+                                <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+                                <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                            {% endif %}
+                            {% if shift.can_book %}
+                                <a href="{% url 'shifts:book_shift' shift.id %}" class="btn btn-sm btn-success">Book</a>
+                            {% elif shift.can_unbook %}
+                                <a href="{% url 'shifts:unbook_shift' shift.id %}" class="btn btn-sm btn-warning">Unbook</a>
+                            {% elif shift.is_full %}
+                                <span class="text-muted">Full</span>
+                            {% endif %}
+                            <a href="{% url 'shifts:shift_detail' shift.pk %}" class="btn btn-sm btn-info">Details</a>
+                        {% else %}
+                            <a href="{% url 'account_login' %}?next={{ request.path }}" class="btn btn-sm btn-primary">Login to Book</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="12" class="text-center">No shifts available.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ request.GET.urlencode|cut:'page=' }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </span>
+                </li>
+            {% endif %}
+
+            {% for num in paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page=' }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{{ request.GET.urlencode|cut:'page=' }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
 {% endblock %}

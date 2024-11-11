@@ -1,0 +1,31 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/assign_worker_modal.html -->
+
+<div class="modal fade" id="assignWorkerModal" tabindex="-1" role="dialog" aria-labelledby="assignWorkerModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form method="post" action="{% url 'shifts:assign_worker' shift.id %}">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="assignWorkerModalLabel">Assign Worker</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="workerSelect">Select Worker</label>
+              <select name="worker_id" id="workerSelect" class="form-control">
+                {% for worker in available_workers %}
+                  <option value="{{ worker.id }}">{{ worker.get_full_name }} ({{ worker.email }})</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Assign Worker</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>  

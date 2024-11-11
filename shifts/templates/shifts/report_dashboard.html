@@ -1,0 +1,59 @@
+<!-- shifts/templates/shifts/report_dashboard.html -->
+
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Shift Reports</h2>
+<canvas id="shiftsChart" width="400" height="200"></canvas>
+<canvas id="performanceChart" width="400" height="200"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Shift Chart
+    const ctx = document.getElementById('shiftsChart').getContext('2d');
+    const shiftsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ labels|safe }},
+            datasets: [{
+                label: '# of Shifts',
+                data: {{ shift_data|safe }},
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Performance Chart
+    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+    const performanceChart = new Chart(performanceCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Average Wellness Score', 'Average Performance Rating'],
+            datasets: [{
+                data: [{{ avg_wellness }}, {{ avg_rating }}],
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(255, 206, 86, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+        }
+    });
+</script>
+{% endblock %}

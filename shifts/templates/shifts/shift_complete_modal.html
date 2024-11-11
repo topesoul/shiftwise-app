@@ -1,0 +1,66 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/shift_complete_modal.html -->
+
+{% load static %}
+<div class="modal fade" id="completeShiftModal" tabindex="-1" role="dialog" aria-labelledby="completeShiftModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <form id="completeShiftForm" enctype="multipart/form-data" action="{% url 'shifts:complete_shift' shift.id %}" method="post" class="complete-shift-form">
+            {% csrf_token %}
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="completeShiftModalLabel">Complete Shift: {{ shift.name }}</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Please provide a signature and confirm your current location to complete the shift.</p>
+                    
+                    <!-- Signature Pad -->
+                    <div class="form-group">
+                        <label for="signaturePad">Signature:</label>
+                        <canvas id="signaturePad" class="signaturePad mb-2" width="400" height="200"></canvas>
+                        <button type="button" class="btn btn-secondary btn-sm clearSignature mt-2">Clear Signature</button>
+                        <input type="hidden" name="signature" class="signatureInput">
+                    </div>
+
+                    <!-- Geolocation Capture -->
+                    <div class="form-group">
+                        <button type="button" class="btn btn-info btn-sm getLocation">Get Current Location</button>
+                        <small class="form-text text-muted">Your location is required to verify shift completion.</small>
+                        <div id="locationStatus" class="mt-2"></div>
+                    </div>
+
+                    <!-- Hidden Fields for Latitude and Longitude -->
+                    <input type="hidden" name="latitude" class="latitude" id="id_latitude">
+                    <input type="hidden" name="longitude" class="longitude" id="id_longitude">
+
+                    <!-- Address Confirmation -->
+                    <div class="form-group">
+                        <label for="id_confirm_address">Confirm Address:</label>
+                        <input type="text" id="id_confirm_address" class="form-control" readonly>
+                        <small class="form-text text-muted">Address based on your current location.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Submit Completion</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Signature Pad Library -->
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<!-- Google Maps JavaScript API with Places and Geocoding Libraries -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_GEOCODING_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
+
+<!-- Include the Address Autocomplete JavaScript -->
+<script src="{% static 'js/address_autocomplete.js' %}"></script>
+
+<!-- Include the Shift Complete JavaScript -->
+<script src="{% static 'js/shift_complete.js' %}"></script>
+
+<!-- Include the General Scripts -->
+<script src="{% static 'js/scripts.js' %}"></script>
