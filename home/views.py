@@ -1,8 +1,15 @@
-from django.shortcuts import render
-from django.utils import timezone
+# /workspace/shiftwise/home/views.py
 
-def home_view(request):
+from django.views.generic import TemplateView
+
+class HomeView(TemplateView):
     """
-    Renders the homepage.
+    Home view for the application, displaying subscription plans.
+    Accessible to all users.
     """
-    return render(request, 'home/home.html')
+
+    template_name = "home/home.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
