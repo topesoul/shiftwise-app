@@ -1,0 +1,12 @@
+Hello,
+
+You have been invited to join ShiftWise as a staff member by {{ agency_name }}.
+
+Please click the link below to accept the invitation and set up your account:
+
+{{ invite_link }}
+
+This invitation will expire in 7 days.
+
+Best regards,
+ShiftWise Team
