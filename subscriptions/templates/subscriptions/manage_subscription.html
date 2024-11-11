@@ -1,0 +1,79 @@
+<!-- /workspace/shiftwise/templates/subscriptions/manage_subscription.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="container my-5">
+    <h2>Manage Subscription</h2>
+    {% if user.is_superuser %}
+        <div class="card shadow">
+            <div class="card-header">
+                <h4>All Subscriptions</h4>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Agency</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Next Billing Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subscription in subscriptions %}
+                            <tr>
+                                <td>{{ subscription.agency.name }}</td>
+                                <td>
+                                    {% if subscription.plan %}
+                                        {{ subscription.plan.name }}
+                                    {% else %}
+                                        No Plan
+                                    {% endif %}
+                                </td>
+                                <td>{% if subscription.is_active %}Active{% else %}Inactive{% endif %}</td>
+                                <td>{{ subscription.current_period_end|date:"F j, Y, g:i a" }}</td>
+                                <td>
+                                    <a href="{% url 'subscriptions:manage_subscription_detail' subscription.id %}" class="btn btn-sm btn-primary">View</a>
+                                    <!-- Add more actions as needed -->
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5">No subscriptions found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        {% if subscription %}
+            <div class="card shadow">
+                <div class="card-header">
+                    <h4>{{ subscription.plan.name }} - {% if subscription.plan.billing_cycle == 'yearly' %}Yearly{% else %}Monthly{% endif %}</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> {{ subscription.plan.description }}</p>
+                    <p><strong>Price:</strong> £{{ subscription.plan.price }}{% if subscription.plan.billing_cycle == 'yearly' %} /yr{% else %} /mo{% endif %}</p>
+                    <p><strong>Next Billing Date:</strong> {{ subscription.current_period_end|date:"F j, Y, g:i a" }}</p>
+                    <p><strong>Status:</strong> {% if subscription.is_active %}Active{% else %}Inactive{% endif %}</p>
+                    <a href="https://dashboard.stripe.com/subscriptions/{{ subscription.stripe_subscription_id }}" target="_blank" class="btn btn-outline-primary">View in Stripe</a>
+                    {% if subscription.is_active %}
+                        <form method="post" action="{% url 'subscriptions:cancel_subscription' %}" class="mt-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-block">Cancel Subscription</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p>You do not have an active subscription.</p>
+            <a href="{% url 'subscriptions:subscription_home' %}" class="btn btn-primary">Subscribe Now</a>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
