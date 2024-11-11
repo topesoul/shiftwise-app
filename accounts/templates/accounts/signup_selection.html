@@ -1,0 +1,27 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/signup_selection.html -->
+
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Create an Account</h2>
+  <p>Please select the type of account you'd like to create:</p>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <a href="{% url 'accounts:agency_signup' %}" class="btn btn-primary btn-lg w-100">
+        <i class="fas fa-building"></i> Agency Manager Sign Up
+      </a>
+    </div>
+    <div class="col-md-6 mb-3">
+      <a href="{% url 'accounts:invite_staff' %}" class="btn btn-secondary btn-lg w-100">
+        <i class="fas fa-envelope-open-text"></i> Invite Staff
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
