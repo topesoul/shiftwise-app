@@ -1,0 +1,16 @@
+<!-- /workspace/shiftwise/templates/contact/contact.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <h2>Contact Us</h2>
+    <p>Have questions or want to book a demo? Fill out the form below.</p>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Send Message</button>
+    </form>
+</div>
+{% endblock %}
