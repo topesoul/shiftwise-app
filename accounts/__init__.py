@@ -1,1 +1,3 @@
-default_app_config = 'accounts.apps.AccountsConfig'
+# /workspace/shiftwise/accounts/__init__.py
+
+default_app_config = "accounts.apps.AccountsConfig"
