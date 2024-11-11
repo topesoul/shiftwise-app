@@ -1,0 +1,19 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/user_confirm_delete.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
+{% block title %}Delete User | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Delete User</h1>
+    <p>Are you sure you want to delete the user "<strong>{{ object.username }}</strong>"?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'accounts:manage_users' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
