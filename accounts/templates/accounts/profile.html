@@ -1,34 +1,172 @@
-<!-- /workspace/shiftwise/templates/accounts/profile.html -->
+<!-- /workspace/shiftwise/accounts/templates/accounts/profile.html -->
 
 {% extends 'base.html' %}
-{% block title %}Your Profile{% endblock %}
+{% load crispy_forms_tags %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Your Profile | ShiftWise{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mb-4">Your Profile</h1>
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3>Personal Information</h3>
+<div class="container my-5">
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Personal Information</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" alt="Profile Picture" class="rounded-circle img-fluid" width="150" height="150">
+                        {% else %}
+                            <img src="{% static 'images/default_profile.png' %}" alt="Default Profile Picture" class="rounded-circle img-fluid" width="150" height="150">
+                        {% endif %}
+                    </div>
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Full Name:</strong> {{ user.get_full_name }}</p>
+                    <p><strong>Role:</strong> {{ user.get_role_display }}</p>
+                    <p><strong>Country:</strong> {{ user.profile.country }}</p>
+                    <p><strong>Agency:</strong> {% if user.profile.agency %}{{ user.profile.agency.name }}{% else %}N/A{% endif %}</p>
+                    <button class="btn btn-outline-primary btn-block mt-3" data-toggle="modal" data-target="#updateProfileModal">
+                        <i class="fas fa-edit"></i> Update Profile
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <p><strong>Username:</strong> {{ user.username }}</p>
-            <p><strong>Email:</strong> {{ user.email }}</p>
-            <p><strong>Full Name:</strong> {{ user.get_full_name }}</p>
+
+    <!-- MFA Settings Section -->
+    <div class="col-lg-8">
+        <div class="mt-5">
+            <h3>Multi-Factor Authentication</h3>
+            {% if user.profile.totp_secret %}
+                <p>Multi-Factor Authentication is currently <strong>enabled</strong>.</p>
+                <a href="{% url 'accounts:disable_totp' %}" class="btn btn-danger">Disable MFA</a>
+            {% else %}
+                <p>Multi-Factor Authentication is currently <strong>disabled</strong>.</p>
+                <a href="{% url 'accounts:activate_totp' %}" class="btn btn-success">Enable MFA</a>
+            {% endif %}
         </div>
     </div>
 
-    <h2>Upcoming Shifts</h2>
-    {% if upcoming_shifts %}
-        <!-- Display upcoming shifts -->
-    {% else %}
-        <p>You have no upcoming shifts.</p>
-    {% endif %}
+    <!-- Shift Information -->
+    <div class="row mt-4">
+        <div class="col-lg-12">
+            <!-- Upcoming Shifts -->
+            <div class="mb-4">
+                <h2 class="h5 mb-3">Upcoming Shifts</h2>
+                {% if upcoming_shifts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Shift Date</th>
+                                    <th>Shift Name</th>
+                                    <th>Agency</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in upcoming_shifts %}
+                                    <tr>
+                                        <td>{{ assignment.shift.shift_date|date:"D, d M Y" }}</td>
+                                        <td>{{ assignment.shift.name }}</td>
+                                        <td>{{ assignment.shift.agency.name }}</td>
+                                        <td>
+                                            <a href="{% url 'shifts:shift_detail' assignment.shift.pk %}" class="btn btn-sm btn-info" title="View Shift Details">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                            {% if not assignment.shift.is_full and assignment.shift.id not in assigned_shift_ids %}
+                                                <a href="{% url 'shifts:book_shift' assignment.shift.pk %}" class="btn btn-sm btn-success" title="Book Shift">
+                                                    <i class="fas fa-bookmark"></i> Book Shift
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">You have no upcoming shifts.</p>
+                {% endif %}
+            </div>
 
-    <h2>Past Shifts</h2>
-    {% if past_shifts %}
-        <!-- Display past shifts -->
-    {% else %}
-        <p>You have no past shifts.</p>
-    {% endif %}
+            <!-- Past Shifts -->
+            <div>
+                <h2 class="h5 mb-3">Past Shifts</h2>
+                {% if past_shifts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Shift Date</th>
+                                    <th>Shift Name</th>
+                                    <th>Agency</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in past_shifts %}
+                                    <tr>
+                                        <td>{{ assignment.shift.shift_date|date:"D, d M Y" }}</td>
+                                        <td>{{ assignment.shift.name }}</td>
+                                        <td>{{ assignment.shift.agency.name }}</td>
+                                        <td>
+                                            {% if assignment.shift.is_completed %}
+                                                <span class="badge badge-success">Completed</span>
+                                            {% else %}
+                                                <span class="badge badge-warning">Incomplete</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">You have no past shifts.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Update Profile Modal -->
+<div class="modal fade" id="updateProfileModal" tabindex="-1" role="dialog" aria-labelledby="updateProfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="updateProfileModalLabel">Update Your Profile</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          {{ form.non_field_errors }}
+          {{ form|crispy }}
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include the Google Places API -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
+
+<!-- Include the Address Autocomplete JavaScript -->
+<script src="{% static 'shifts/js/address_autocomplete.js' %}"></script>
+
+<!-- Include the General Scripts -->
+<script src="{% static 'js/scripts.js' %}"></script>
 {% endblock %}
