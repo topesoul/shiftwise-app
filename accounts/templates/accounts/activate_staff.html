@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
+
+{% block title %}Activate Account{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Activate Your Account</h2>
+    <p>Please set your password to activate your account.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-group">
+            {{ form.password1.label_tag }}
+            {{ form.password1 }}
+            {{ form.password1.errors }}
+        </div>
+        <div class="form-group">
+            {{ form.password2.label_tag }}
+            {{ form.password2 }}
+            {{ form.password2.errors }}
+        </div>
+        <button type="submit" class="btn btn-primary">Activate</button>
+    </form>
+</div>
+{% endblock %}
