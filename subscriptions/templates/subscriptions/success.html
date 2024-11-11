@@ -1,0 +1,13 @@
+<!-- /workspace/shiftwise/templates/subscriptions/success.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="container my-5 text-center">
+    <h2>Subscription Successful!</h2>
+    <p>Thank you for subscribing to the {{ subscription.plan.name }} plan.</p>
+    <a href="{% url 'subscriptions:manage_subscription' %}" class="btn btn-primary">Manage Subscription</a>
+</div>
+{% endblock %}
