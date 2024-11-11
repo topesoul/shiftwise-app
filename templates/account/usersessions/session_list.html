@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Active Sessions{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Active Sessions</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>User Agent</th>
+                <th>Last Activity</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in sessions %}
+            <tr>
+                <td>{{ session.ip_address }}</td>
+                <td>{{ session.user_agent }}</td>
+                <td>{{ session.last_activity|naturaltime }}</td>
+                <td>
+                    {% if session != current_session %}
+                    <form method="post" action="{% url 'allauth.usersessions:session_logout' session.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">Current Session</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No active sessions found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
