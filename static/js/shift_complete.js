@@ -1,78 +1,69 @@
-// /workspace/shiftwise/static/js/shift_complete.js
+// /workspace/shiftwise/shifts/static/shifts/js/shift_complete_modal.js
 
-/**
- * Handle Shift Completion Features:
- * - Initialize Signature Pad
- * - Clear Signature
- * - Capture Signature on Form Submit
- * - Get Current Location and Populate Latitude and Longitude
- */
+document.addEventListener("DOMContentLoaded", function () {
+    const signaturePadCanvas = document.getElementById("signaturePad");
+    const signatureInput = document.querySelector(".signatureInput");
+    const clearSignatureButton = document.querySelector(".clearSignature");
+    const getLocationButton = document.querySelector(".getLocation");
+    const locationStatus = document.getElementById("locationStatus");
+    const confirmAddressInput = document.getElementById("id_confirm_address");
+    const latitudeInput = document.getElementById("id_latitude");
+    const longitudeInput = document.getElementById("id_longitude");
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Initialize Signature Pad
-    const signatureCanvas = document.getElementById('signaturePad');
-    if (signatureCanvas) {
-        const signaturePad = new SignaturePad(signatureCanvas, {
-            penColor: '#000',
-            backgroundColor: '#fff'
-        });
+    const signaturePad = new SignaturePad(signaturePadCanvas, {
+        backgroundColor: "rgba(255, 255, 255, 0)", // Transparent background
+    });
 
-        const clearButton = document.querySelector('.clearSignature');
-        const signatureInput = document.querySelector('.signatureInput');
+    // Clear Signature
+    clearSignatureButton.addEventListener("click", function () {
+        signaturePad.clear();
+        signatureInput.value = "";
+    });
 
-        // Clear Signature
-        if (clearButton) {
-            clearButton.addEventListener('click', function () {
-                signaturePad.clear();
-                if (signatureInput) {
-                    signatureInput.value = '';
-                }
-            });
+    // Capture Signature on Form Submission
+    const completeShiftForm = document.getElementById("completeShiftForm");
+    completeShiftForm.addEventListener("submit", function (e) {
+        if (signaturePad.isEmpty()) {
+            e.preventDefault();
+            alert("Please provide a signature before submitting.");
+        } else {
+            const dataURL = signaturePad.toDataURL("image/png");
+            signatureInput.value = dataURL;
         }
-
-        // Capture Signature on Form Submit
-        const completeShiftForm = document.getElementById('completeShiftForm');
-        if (completeShiftForm) {
-            completeShiftForm.addEventListener('submit', function (e) {
-                if (signaturePad.isEmpty()) {
-                    e.preventDefault();
-                    alert('Please provide a signature.');
-                    return;
-                }
-                const dataURL = signaturePad.toDataURL();
-                if (signatureInput) {
-                    signatureInput.value = dataURL;
-                }
-            });
-        }
-    } else {
-        console.error("Signature Pad canvas with id 'signaturePad' not found.");
-    }
+    });
 
     // Get Current Location
-    const getLocationButton = document.querySelector('.getLocation');
-    const locationStatus = document.getElementById('locationStatus');
-    const latitudeInput = document.getElementById('id_latitude');
-    const longitudeInput = document.getElementById('id_longitude');
+    getLocationButton.addEventListener("click", function () {
+        if (!navigator.geolocation) {
+            locationStatus.innerHTML = "<span class='text-danger'>Geolocation is not supported by your browser.</span>";
+            return;
+        }
 
-    if (getLocationButton && latitudeInput && longitudeInput && locationStatus) {
-        getLocationButton.addEventListener('click', function () {
-            if (navigator.geolocation) {
-                locationStatus.innerHTML = '<span class="text-info">Fetching location...</span>';
-                navigator.geolocation.getCurrentPosition(function (position) {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-                    latitudeInput.value = latitude;
-                    longitudeInput.value = longitude;
-                    locationStatus.innerHTML = `<span class="text-success">Location acquired: (${latitude.toFixed(5)}, ${longitude.toFixed(5)})</span>`;
-                }, function (error) {
-                    locationStatus.innerHTML = '<span class="text-danger">Unable to retrieve your location.</span>';
-                });
-            } else {
-                locationStatus.innerHTML = '<span class="text-danger">Geolocation is not supported by your browser.</span>';
+        locationStatus.innerHTML = "<span class='text-info'>Locating...</span>";
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const latitude = position.coords.latitude.toFixed(6);
+                const longitude = position.coords.longitude.toFixed(6);
+                latitudeInput.value = latitude;
+                longitudeInput.value = longitude;
+                locationStatus.innerHTML = `<span class='text-success'>Location captured: (${latitude}, ${longitude})</span>`;
+
+                // Fetch address using reverse geocoding (optional)
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const address = data.display_name || "Address not found.";
+                        confirmAddressInput.value = address;
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching address:", error);
+                        confirmAddressInput.value = "Unable to retrieve address.";
+                    });
+            },
+            () => {
+                locationStatus.innerHTML = "<span class='text-danger'>Unable to retrieve your location.</span>";
             }
-        });
-    } else {
-        console.error("Required elements for geolocation are missing.");
-    }
+        );
+    });
 });
