@@ -1,178 +1,122 @@
 # /workspace/shiftwise/shifts/urls.py
 
 from django.urls import path
-from . import views
+from shifts.views import (
+    # Staff Management Views
+    StaffListView,
+    StaffCreateView,
+    StaffUpdateView,
+    StaffDeleteView,
 
-app_name = "shifts"
+    # Shift Management Views
+    ShiftListView,
+    ShiftDetailView,
+    ShiftCreateView,
+    ShiftUpdateView,
+    ShiftDeleteView,
+
+    # Shift Completion Views
+    ShiftCompleteView,
+    ShiftCompleteForUserView,
+    ShiftCompleteAjaxView,
+
+    # Shift Booking and Unbooking Views
+    ShiftBookView,
+    ShiftUnbookView,
+
+    # Timesheet and Reporting Views
+    TimesheetDownloadView,
+    ReportDashboardView,
+
+    # Staff Performance Views
+    StaffPerformanceView,
+    StaffPerformanceDetailView,
+    StaffPerformanceCreateView,
+    StaffPerformanceUpdateView,
+    StaffPerformanceDeleteView,
+
+    # API Views
+    ShiftDetailsAPIView,
+
+    # Notification Views
+    NotificationListView,
+    MarkNotificationReadView,
+
+    # Dashboard View
+    DashboardView,
+
+    # Worker Assignment Views
+    AssignWorkerView,
+    UnassignWorkerView,
+)
+
+app_name = 'shifts'  # Namespace for the shifts app
 
 urlpatterns = [
     # ---------------------------
-    # Shift List and Detail Views
+    # Staff Management URLs
     # ---------------------------
-    
-    path(
-        "",
-        views.ShiftListView.as_view(),
-        name="shift_list"
-    ),
-    path(
-        "shift/<int:pk>/",
-        views.ShiftDetailView.as_view(),
-        name="shift_detail"
-    ),
-    
+    path('staff/', StaffListView.as_view(), name='staff_list'),
+    path('staff/create/', StaffCreateView.as_view(), name='staff_create'),
+    path('staff/<int:pk>/update/', StaffUpdateView.as_view(), name='staff_update'),
+    path('staff/<int:pk>/delete/', StaffDeleteView.as_view(), name='staff_delete'),
+
     # ---------------------------
-    # Shift CRUD Operations
+    # Shift Management URLs
     # ---------------------------
-    
-    path(
-        "shift/create/",
-        views.ShiftCreateView.as_view(),
-        name="shift_create"
-    ),
-    path(
-        "shift/<int:pk>/update/",
-        views.ShiftUpdateView.as_view(),
-        name="shift_update"
-    ),
-    path(
-        "shift/<int:pk>/delete/",
-        views.ShiftDeleteView.as_view(),
-        name="shift_delete"
-    ),
-    
+    path('', ShiftListView.as_view(), name='shift_list'),
+    path('shift/<int:pk>/', ShiftDetailView.as_view(), name='shift_detail'),
+    path('shift/create/', ShiftCreateView.as_view(), name='shift_create'),
+    path('shift/<int:pk>/update/', ShiftUpdateView.as_view(), name='shift_update'),
+    path('shift/<int:pk>/delete/', ShiftDeleteView.as_view(), name='shift_delete'),
+
     # ---------------------------
-    # Shift Assignment and Unassignment
+    # Shift Completion URLs
     # ---------------------------
-    
-    path(
-        "shift/<int:shift_id>/assign_worker/",
-        views.AssignWorkerView.as_view(),
-        name="assign_worker"
-    ),
-    path(
-        "shift/<int:shift_id>/unassign_worker/<int:worker_id>/",
-        views.UnassignWorkerView.as_view(),
-        name="unassign_worker"
-    ),
-    
+    path('shift/<int:shift_id>/complete/', ShiftCompleteView.as_view(), name='complete_shift'),
+    path('shift/<int:shift_id>/complete/user/<int:user_id>/', ShiftCompleteForUserView.as_view(), name='complete_shift_for_user'),
+    path('api/shift/<int:shift_id>/complete/', ShiftCompleteAjaxView.as_view(), name='complete_shift_ajax'),
+
     # ---------------------------
-    # Shift Completion
+    # Shift Booking and Unbooking URLs
     # ---------------------------
-    
-    path(
-        "shift/<int:shift_id>/complete/",
-        views.ShiftCompleteView.as_view(),
-        name="shift_complete"
-    ),
-    path(
-        "shift/<int:shift_id>/complete/<int:user_id>/",
-        views.ShiftCompleteForUserView.as_view(),
-        name="shift_complete_for_user"
-    ),
-    path(
-        "shift/<int:shift_id>/complete_ajax/",
-        views.ShiftCompleteAjaxView.as_view(),
-        name="shift_complete_ajax"
-    ),
-    
+    path('shift/<int:shift_id>/book/', ShiftBookView.as_view(), name='book_shift'),
+    path('shift/<int:shift_id>/unbook/', ShiftUnbookView.as_view(), name='unbook_shift'),
+
     # ---------------------------
-    # Shift Booking and Unbooking
+    # Timesheet and Reporting URLs
     # ---------------------------
-    
-    path(
-        "shift/<int:shift_id>/book/",
-        views.ShiftBookView.as_view(),
-        name="shift_book"
-    ),
-    path(
-        "shift/<int:shift_id>/unbook/",
-        views.ShiftUnbookView.as_view(),
-        name="shift_unbook"
-    ),
-    
+    path('timesheet/download/', TimesheetDownloadView.as_view(), name='download_timesheet'),
+    path('reports/dashboard/', ReportDashboardView.as_view(), name='report_dashboard'),
+
     # ---------------------------
-    # Timesheet Download
+    # Staff Performance URLs
     # ---------------------------
-    
-    path(
-        "timesheet/download/",
-        views.TimesheetDownloadView.as_view(),
-        name="timesheet_download"
-    ),
-    
+    path('performance/', StaffPerformanceView.as_view(), name='staff_performance_list'),
+    path('performance/<int:pk>/', StaffPerformanceDetailView.as_view(), name='staff_performance_detail'),
+    path('performance/create/', StaffPerformanceCreateView.as_view(), name='staff_performance_create'),
+    path('performance/<int:pk>/update/', StaffPerformanceUpdateView.as_view(), name='staff_performance_update'),
+    path('performance/<int:pk>/delete/', StaffPerformanceDeleteView.as_view(), name='staff_performance_delete'),
+
     # ---------------------------
-    # Report Dashboard
+    # API URLs
     # ---------------------------
-    
-    path(
-        "report_dashboard/",
-        views.ReportDashboardView.as_view(),
-        name="report_dashboard"
-    ),
-    
+    path('api/shift/<int:shift_id>/', ShiftDetailsAPIView.as_view(), name='shift_details_api'),
+
     # ---------------------------
-    # Staffing Forecast
+    # Notification URLs
     # ---------------------------
-    
-    path(
-        "staffing_forecast/",
-        views.StaffingForecastView.as_view(),
-        name="staffing_forecast"
-    ),
-    
+    path('notifications/', NotificationListView.as_view(), name='notification_list'),
+    path('notifications/<int:notification_id>/read/', MarkNotificationReadView.as_view(), name='mark_notification_read'),
+
     # ---------------------------
-    # Staff Performance
+    # Dashboard URL
     # ---------------------------
-    
-    path(
-        "staff_performance/",
-        views.StaffPerformanceView.as_view(),
-        name="staff_performance_list"
-    ),
-    path(
-        "staff_performance/create/",
-        views.StaffPerformanceCreateView.as_view(),
-        name="staff_performance_create"
-    ),
-    path(
-        "staff_performance/<int:pk>/update/",
-        views.StaffPerformanceUpdateView.as_view(),
-        name="staff_performance_update"
-    ),
-    path(
-        "staff_performance/<int:pk>/delete/",
-        views.StaffPerformanceDeleteView.as_view(),
-        name="staff_performance_delete"
-    ),
-    path(
-        "staff_performance/<int:pk>/detail/",
-        views.StaffPerformanceDetailView.as_view(),
-        name="staff_performance_detail"
-    ),
-    
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
+
     # ---------------------------
-    # Shift Details API
+    # Worker Assignment URLs
     # ---------------------------
-    
-    path(
-        "api/shift/<int:shift_id>/details/",
-        views.ShiftDetailsAPIView.as_view(),
-        name="shift_details_api"
-    ),
-    
-    # ---------------------------
-    # Notifications
-    # ---------------------------
-    
-    path(
-        "notifications/",
-        views.NotificationListView.as_view(),
-        name="notification_list"
-    ),
-    path(
-        "notifications/mark_read/<int:notification_id>/",
-        views.MarkNotificationReadView.as_view(),
-        name="mark_notification_read"
-    ),
+    path('shift/<int:shift_id>/assign/', AssignWorkerView.as_view(), name='assign_worker'),
+    path('shift/<int:shift_id>/unassign/<int:assignment_id>/', UnassignWorkerView.as_view(), name='unassign_worker'),
 ]
