@@ -1,15 +1,11 @@
 <!-- /workspace/shiftwise/shifts/templates/shifts/shift_list.html -->
+
 {% extends 'base.html' %}
 {% load custom_tags %}
 {% load crispy_forms_tags %}
 {% load static %}
 
 {% block title %}Available Shifts{% endblock %}
-
-{% block extra_css %}
-<!-- Bootstrap Datepicker CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
-{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -52,7 +48,7 @@
                 <tr>
                     <td>{{ shift.name }}</td>
                     <td>{{ shift.shift_date }}</td>
-                    <td>{{ shift.duration }}</td>
+                    <td>{{ shift.duration|floatformat:2 }}</td>
                     <td>{{ shift.start_time }}</td>
                     <td>{{ shift.end_time }}</td>
                     <td class="d-none d-lg-table-cell">
@@ -86,7 +82,7 @@
                             {% endif %}
                             <a href="{% url 'shifts:shift_detail' shift.pk %}" class="btn btn-sm btn-info">Details</a>
                         {% else %}
-                            <a href="{% url 'account_login' %}?next={{ request.path }}" class="btn btn-sm btn-primary">Login to Book</a>
+                            <a href="{% url 'accounts:login_view' %}?next={{ request.path }}" class="btn btn-sm btn-primary">Login to Book</a>
                         {% endif %}
                     </td>
                 </tr>
