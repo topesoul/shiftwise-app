@@ -6,34 +6,42 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Initialize Stripe with the Secret Key
-stripe.api_key = settings.STRIPE_SECRET_KEY
+# Initialize Stripe with the secret key from settings
+stripe.api_key = settings.STRIPE_SECRET_KEY  # Ensure STRIPE_SECRET_KEY is set in settings.py
 
 
 def create_stripe_customer(agency):
     """
     Creates a Stripe customer for the given agency.
+    If a customer with the same email exists, returns the existing customer.
 
-    Args:
-        agency (Agency): The agency instance for which to create the Stripe customer.
+    Parameters:
+    - agency (Agency): The agency instance for which to create a Stripe customer.
 
     Returns:
-        stripe.Customer: The created Stripe customer object.
+    - stripe.Customer: The created or existing Stripe customer.
     """
     try:
+        # Search for existing customer by email
+        customers = stripe.Customer.list(email=agency.email, limit=1)
+        if customers.data:
+            customer = customers.data[0]
+            logger.info(f"Existing Stripe customer found: {customer.id} for agency: {agency.name}")
+            return customer
+
+        # Create new customer if none exists
         customer = stripe.Customer.create(
-            email=agency.email,
             name=agency.name,
+            email=agency.email,
             metadata={
                 "agency_id": agency.id,
-                "agency_code": agency.agency_code,
-            },
+            }
         )
-        logger.info(f"Stripe customer created for agency {agency.name} with ID {customer.id}.")
+        logger.info(f"Stripe customer created: {customer.id} for agency: {agency.name}")
         return customer
     except stripe.error.StripeError as e:
-        logger.exception(f"Stripe error while creating customer for agency {agency.name}: {e}")
-        raise e
+        logger.exception(f"Stripe error while creating customer: {e}")
+        raise
     except Exception as e:
-        logger.exception(f"Unexpected error while creating Stripe customer for agency {agency.name}: {e}")
-        raise e
+        logger.exception(f"Unexpected error while creating Stripe customer: {e}")
+        raise
