@@ -67,7 +67,7 @@ class Shift(TimestampedModel):
     start_time = models.TimeField()
     end_time = models.TimeField()
     end_date = models.DateField(
-        help_text="Specify the date when the shift ends.", default=timezone.now
+        help_text="Specify the date when the shift ends.", null=True, blank=True
     )
     is_overnight = models.BooleanField(
         default=False, help_text="Check this box if the shift spans into the next day."
@@ -107,54 +107,65 @@ class Shift(TimestampedModel):
     def __str__(self):
         return f"{self.name} on {self.shift_date} for {self.agency.name}"
 
-    def clean(self, skip_date_validation=False):
-        """
-        Validates the Shift instance before saving.
-        Allows shifts to span into the next day within a 24-hour period.
-        The 'skip_date_validation' flag allows bypassing date checks when completing a shift.
-        """
-        super().clean()
 
-        # Ensure shift date is not in the past unless skipping validation
-        if not skip_date_validation:
-            if self.shift_date and self.shift_date < timezone.now().date():
-                raise ValidationError("Shift date cannot be in the past.")
+def clean(self, skip_date_validation=False):
+    """
+    Validates the Shift instance before saving.
+    Allows shifts to span into the next day within a 24-hour period.
+    The 'skip_date_validation' flag allows bypassing date checks when completing a shift.
+    """
+    super().clean()
 
-        # Ensure end date is not before shift date
-        if self.end_date and self.end_date < self.shift_date:
-            raise ValidationError("End date cannot be before shift date.")
+    # Ensure shift date is not in the past unless skipping validation
+    if not skip_date_validation:
+        if self.shift_date and self.shift_date < timezone.now().date():
+            raise ValidationError("Shift date cannot be in the past.")
 
-        # Ensure all date and time fields are provided
-        if (
-            not self.shift_date
-            or not self.end_date
-            or not self.start_time
-            or not self.end_time
-        ):
-            raise ValidationError("All date and time fields must be provided.")
+    # Ensure end date is provided
+    if not self.end_date:
+        raise ValidationError("End date must be provided.")
 
-        # Combine start and end datetime objects
-        start_dt = timezone.make_aware(
-            timezone.datetime.combine(self.shift_date, self.start_time),
-            timezone.get_current_timezone(),
-        )
-        end_dt = timezone.make_aware(
-            timezone.datetime.combine(self.end_date, self.end_time),
-            timezone.get_current_timezone(),
-        )
+    # Ensure end date is not before shift date
+    if self.end_date < self.shift_date:
+        raise ValidationError("End date cannot be before shift date.")
 
-        # If is_overnight is true, consider end_dt as the next day if end_time is earlier
-        if self.is_overnight and end_dt <= start_dt:
+    # Ensure all date and time fields are provided
+    if (
+        not self.shift_date
+        or not self.end_date
+        or not self.start_time
+        or not self.end_time
+    ):
+        raise ValidationError("All date and time fields must be provided.")
+
+    # Combine start and end datetime objects
+    start_dt = timezone.make_aware(
+        timezone.datetime.combine(self.shift_date, self.start_time),
+        timezone.get_current_timezone(),
+    )
+    end_dt = timezone.make_aware(
+        timezone.datetime.combine(self.end_date, self.end_time),
+        timezone.get_current_timezone(),
+    )
+
+    # Handle overnight shifts
+    if self.is_overnight:
+        if end_dt <= start_dt:
             end_dt += timezone.timedelta(days=1)
+    else:
+        # Non-overnight shifts: end_dt should be after start_dt
+        if end_dt <= start_dt:
+            raise ValidationError("End time must be after start time for non-overnight shifts.")
 
-        # Calculate duration in hours
-        duration = (end_dt - start_dt).total_seconds() / 3600
+    # Calculate duration in hours
+    duration = (end_dt - start_dt).total_seconds() / 3600
 
-        # Validate duration does not exceed 24 hours
-        if duration > 24:
-            raise ValidationError("Shift duration cannot exceed 24 hours.")
+    # Validate duration does not exceed 24 hours
+    if duration > 24:
+        raise ValidationError("Shift duration cannot exceed 24 hours.")
 
-        self.duration = duration
+    self.duration = duration
+
 
     def save(self, *args, **kwargs):
         """
