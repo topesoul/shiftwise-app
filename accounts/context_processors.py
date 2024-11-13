@@ -4,6 +4,10 @@ from subscriptions.models import Plan, Subscription
 from django.utils import timezone
 from django.contrib.auth.models import Group
 from collections import defaultdict
+from django.conf import settings
+from accounts.models import Notification
+from django.core.exceptions import ObjectDoesNotExist
+
 
 def user_roles_and_subscriptions(request):
     user = request.user
@@ -29,7 +33,11 @@ def user_roles_and_subscriptions(request):
     current_plan = None
     subscription_features = []
 
-    can_manage_shifts = False  # New Flag
+    can_manage_shifts = False
+
+    google_places_api_key = settings.GOOGLE_PLACES_API_KEY
+
+    notifications = []  # Initialize notifications
 
     if user.is_authenticated:
         try:
@@ -43,17 +51,19 @@ def user_roles_and_subscriptions(request):
                     has_active_subscription = True
                     current_plan = subscription.plan
                     # Collect features
-                    if hasattr(subscription.plan, 'notifications_enabled') and subscription.plan.notifications_enabled:
+                    if subscription.plan.notifications_enabled:
                         subscription_features.append("notifications_enabled")
-                    if hasattr(subscription.plan, 'advanced_reporting') and subscription.plan.advanced_reporting:
+                    if subscription.plan.advanced_reporting:
                         subscription_features.append("advanced_reporting")
-                    if hasattr(subscription.plan, 'priority_support') and subscription.plan.priority_support:
+                    if subscription.plan.priority_support:
                         subscription_features.append("priority_support")
-                    if hasattr(subscription.plan, 'shift_management') and subscription.plan.shift_management:
+                    if subscription.plan.shift_management:
                         subscription_features.append("shift_management")
                         # Update can_manage_shifts
                         can_manage_shifts = is_superuser or is_agency_manager
-        except AttributeError:
+                    if subscription.plan.staff_performance:
+                        subscription_features.append("staff_performance")
+        except ObjectDoesNotExist:
             # User does not have a profile or agency
             pass
 
@@ -77,6 +87,9 @@ def user_roles_and_subscriptions(request):
                 "yearly_plan": plans.get('yearly_plan'),
             })
 
+        # Fetch unread notifications for the user
+        notifications = Notification.objects.filter(user=user, read=False).order_by('-created_at')
+
     return {
         "is_superuser": is_superuser,
         "is_agency_owner": is_agency_owner,
@@ -87,4 +100,6 @@ def user_roles_and_subscriptions(request):
         "current_plan": current_plan,
         "subscription_features": subscription_features,
         "can_manage_shifts": can_manage_shifts,
+        "GOOGLE_PLACES_API_KEY": google_places_api_key,
+        "notifications": notifications,
     }
