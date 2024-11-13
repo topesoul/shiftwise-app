@@ -7,6 +7,7 @@ from django.contrib.messages import get_messages
 import logging
 from subscriptions.models import Subscription
 from django.utils import timezone
+from django.core.exceptions import PermissionDenied
 
 logger = logging.getLogger(__name__)
 
@@ -136,25 +137,6 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
                 "You do not have the necessary subscription to access this page.",
             )
             return redirect("subscriptions:subscription_home")
-
-    def dispatch(self, request, *args, **kwargs):
-        if self.test_func():
-            # Increment view count if applicable
-            user = request.user
-            if not user.is_superuser:
-                try:
-                    profile = user.profile
-                    agency = profile.agency
-                    subscription = agency.subscription
-                    plan = subscription.plan
-                    if plan and plan.view_limit is not None:
-                        profile.monthly_view_count += 1
-                        profile.save()
-                except AttributeError:
-                    pass
-            return super().dispatch(request, *args, **kwargs)
-        else:
-            return self.handle_no_permission()
 
 
 class FeatureRequiredMixin(UserPassesTestMixin):
