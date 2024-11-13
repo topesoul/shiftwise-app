@@ -1177,7 +1177,6 @@ class TimesheetDownloadView(
     Superusers can download timesheets for all agencies.
     Utilizes StreamingHttpResponse for efficient large file handling and robust error handling.
     """
-
     def get(self, request, *args, **kwargs):
         try:
             agency = (
@@ -1446,32 +1445,6 @@ class StaffPerformanceDeleteView(LoginRequiredMixin, AgencyManagerRequiredMixin,
 
 
 # ---------------------------
-# Staffing Forecast View
-# ---------------------------
-
-
-class StaffingForecastView(
-    LoginRequiredMixin,
-    AgencyManagerRequiredMixin,
-    SubscriptionRequiredMixin,
-    TemplateView,
-):
-    template_name = "shifts/staffing_forecast.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Predict staffing for the next week
-        from datetime import datetime, timedelta
-
-        forecast = {}
-        for i in range(7):
-            date = datetime.now() + timedelta(days=i)
-            forecast[date.strftime("%Y-%m-%d")] = predict_staffing_needs(date)
-        context["forecast"] = forecast
-        return context
-
-
-# ---------------------------
 # Shift Details API View
 # ---------------------------
 
@@ -1605,41 +1578,58 @@ class AssignWorkerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return context
 
 
-class UnassignWorkerView(LoginRequiredMixin, UserPassesTestMixin, View):
+class UnassignWorkerView(LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, View):
     """
     Allows agency managers or superusers to unassign a worker from a specific shift.
+    Superusers can unassign any worker, while agency managers can unassign workers within their agency.
     """
-    def test_func(self):
-        user = self.request.user
-        shift_id = self.kwargs.get('shift_id')
+
+    def post(self, request, shift_id, assignment_id, *args, **kwargs):
+        user = request.user
         shift = get_object_or_404(Shift, id=shift_id)
-        # Superusers can unassign any worker
+        assignment = get_object_or_404(ShiftAssignment, id=assignment_id, shift=shift)
+
+        # Permission Checks
         if user.is_superuser:
-            return True
-        # Agency Managers can unassign workers within their agency
-        if user.groups.filter(name="Agency Managers").exists():
-            return shift.agency == user.profile.agency
-        return False
-
-    def post(self, request, shift_id, *args, **kwargs):
-        shift = get_object_or_404(Shift, id=shift_id)
-        form = UnassignWorkerForm(request.POST)
-        if form.is_valid():
-            worker_id = form.cleaned_data['worker_id']
-            worker = get_object_or_404(User, id=worker_id, groups__name="Agency Staff", is_active=True)
-
-            # Check if the worker is assigned to the shift
-            assignment = ShiftAssignment.objects.filter(shift=shift, worker=worker).first()
-            if not assignment:
-                messages.error(request, "This worker is not assigned to this shift.")
-                logger.info(f"Attempt to unassign worker {worker.username} from shift {shift.id} failed - not assigned.")
-                return redirect("shifts:shift_detail", pk=shift.id)
-
-            # Delete the ShiftAssignment
-            assignment.delete()
-            messages.success(request, f"Worker {worker.username} has been unassigned from the shift.")
-            logger.info(f"Worker {worker.username} unassigned from shift {shift.id} by {request.user.username}.")
-            return redirect("shifts:shift_detail", pk=shift.id)
+            # Superusers can unassign any worker
+            pass
+        elif user.groups.filter(name="Agency Managers").exists():
+            # Agency Managers can unassign workers within their agency
+            if shift.agency != user.profile.agency:
+                messages.error(request, "You do not have permission to unassign workers from this shift.")
+                logger.warning(
+                    f"User {user.username} attempted to unassign worker from shift {shift.id} outside their agency."
+                )
+                return redirect("shifts:shift_detail", pk=shift_id)
+        elif user.groups.filter(name="Agency Staff").exists():
+            # Agency Staff can only unassign themselves
+            if assignment.worker != user:
+                messages.error(request, "You do not have permission to unassign this worker.")
+                logger.warning(
+                    f"User {user.username} attempted to unassign worker {assignment.worker.username} from shift {shift.id}."
+                )
+                return redirect("shifts:shift_detail", pk=shift_id)
         else:
-            messages.error(request, "Invalid unassignment request.")
-            return redirect("shifts:shift_detail", pk=shift.id)
+            messages.error(request, "You do not have permission to unassign shifts.")
+            logger.warning(
+                f"User {user.username} attempted to unassign shift {shift.id} without proper permissions."
+            )
+            return redirect("shifts:shift_list")
+
+        # Perform Unassignment
+        try:
+            assignment.delete()
+            messages.success(request, f"Worker {assignment.worker.get_full_name()} has been unassigned from the shift.")
+            logger.info(f"Worker {assignment.worker.username} unassigned from shift {shift.id} by {user.username}.")
+        except Exception as e:
+            messages.error(request, "An error occurred while unassigning the worker. Please try again.")
+            logger.exception(f"Error unassigning worker {assignment.worker.username} from shift {shift.id}: {e}")
+            return redirect("shifts:shift_detail", pk=shift_id)
+
+        return redirect("shifts:shift_detail", pk=shift_id)
+
+    def get(self, request, shift_id, assignment_id, *args, **kwargs):
+        """
+        Redirect GET requests to the shift detail page.
+        """
+        return redirect("shifts:shift_detail", pk=shift_id)
