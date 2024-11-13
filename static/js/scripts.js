@@ -1,11 +1,5 @@
 // /workspace/shiftwise/static/js/scripts.js
 
-/**
- * Main JavaScript File
- * Handles plugin initializations, billing cycle toggles, dark mode preferences,
- * and notifications using WebSockets.
- */
-
 document.addEventListener('DOMContentLoaded', function () {
     if (window.jQuery) {
         // Plugins Initialization
