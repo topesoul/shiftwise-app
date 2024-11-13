@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     "django_extensions",
     "django_filters",
     "debug_toolbar",
-    "channels",
     # django-allauth apps
     "django.contrib.sites",
     "allauth",
@@ -72,25 +71,6 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
 ]
 
-ASGI_APPLICATION = "shiftwise.asgi.application"
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
-        },
-    },
-}
-
-# Celery Configuration Options
-CELERY_BROKER_URL = "redis://localhost:6379/0"
-CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = "Europe/London"
-
 # Crispy Forms Configuration
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 
@@ -98,7 +78,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    # Debug Toolbar Middleware (must be first after session)
+    # Debug Toolbar Middleware
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     # Allauth Account Middleware
     "allauth.account.middleware.AccountMiddleware",
@@ -118,6 +98,10 @@ INTERNAL_IPS = [
 
 # Root URL configuration
 ROOT_URLCONF = "shiftwise.urls"
+
+
+# SITE_URL for constructing absolute URLs in notifications
+SITE_URL = os.getenv("SITE_URL")
 
 # Google Location Services API Keys
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
