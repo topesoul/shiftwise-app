@@ -1,24 +1,23 @@
-# /workspace/shiftwise/shifts/utils.py
+# /workspace/shifts/utils.py
 
 from django.db.models import F, FloatField
 from django.db.models.functions import Cast
 from django.db.models import Q
 from django.conf import settings
 from django.core.cache import cache
-import logging, requests
-from shifts.models import Shift
+import logging, requests, uuid
+from shifts.models import Shift, ShiftAssignment
 from accounts.models import User
 
-logger = logging.getLogger(__name__)
+from math import radians, sin, cos, sqrt, atan2
 
+logger = logging.getLogger(__name__)
 
 def haversine_distance(lat1, lon1, lat2, lon2, unit="miles"):
     """
     Calculates the great-circle distance between two points
     on the Earth specified by latitude/longitude using the Haversine formula.
     """
-    from math import radians, sin, cos, sqrt, atan2
-
     # Convert latitude and longitude from degrees to radians
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
 
@@ -30,7 +29,6 @@ def haversine_distance(lat1, lon1, lat2, lon2, unit="miles"):
     r = 3956 if unit == "miles" else 6371  # Radius of Earth in miles or kilometers
     return c * r
 
-
 def predict_staffing_needs(date):
     """
     Function for predicting staffing needs.
@@ -38,13 +36,11 @@ def predict_staffing_needs(date):
     """
     return 5
 
-
 def generate_shift_code():
     """
     Generates a unique shift code using UUID4.
     """
     return f"SHIFT-{uuid.uuid4().hex[:8].upper()}"
-
 
 def get_shift_assignment_queryset(user):
     """
@@ -58,7 +54,6 @@ def get_shift_assignment_queryset(user):
         return ShiftAssignment.objects.filter(worker=user)
     else:
         return ShiftAssignment.objects.none()
-
 
 def auto_assign_shifts():
     """
@@ -105,7 +100,6 @@ def auto_assign_shifts():
         else:
             logger.warning(f"No suitable workers found for Shift ID {shift.id}.")
 
-
 def get_address_from_address_line1(address_line1):
     """
     Fetches address details based on the given address line 1 using Google Geocoding API.
@@ -116,8 +110,8 @@ def get_address_from_address_line1(address_line1):
     Returns:
         list: A list of address dictionaries containing address components, latitude, and longitude.
     """
-    GOOGLE_GEOCODING_API_KEY = settings.GOOGLE_GEOCODING_API_KEY
-    if not GOOGLE_GEOCODING_API_KEY:
+    GOOGLE_PLACES_API_KEY = settings.GOOGLE_PLACES_API_KEY
+    if not GOOGLE_PLACES_API_KEY:
         logger.error("Google Geocoding API key not found in environment variables.")
         raise ValueError("Google Geocoding API key not found in environment variables.")
 
@@ -131,7 +125,7 @@ def get_address_from_address_line1(address_line1):
     url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {
         "address": address_line1,
-        "key": GOOGLE_GEOCODING_API_KEY,
+        "key": GOOGLE_PLACES_API_KEY,
     }
 
     try:
