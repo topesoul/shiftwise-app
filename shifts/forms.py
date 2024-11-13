@@ -324,8 +324,9 @@ class AssignWorkerForm(forms.Form):
     worker = forms.ModelChoiceField(
         queryset=User.objects.filter(groups__name="Agency Staff", is_active=True),
         label="Select Worker",
-        required=True
+        widget=forms.Select(attrs={'class': 'form-control'}),
     )
+
 
 class UnassignWorkerForm(forms.Form):
     worker_id = forms.IntegerField(widget=forms.HiddenInput())
