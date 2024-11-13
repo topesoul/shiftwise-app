@@ -3,6 +3,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 
 class Plan(models.Model):
@@ -93,10 +94,9 @@ class Plan(models.Model):
         default=False,
         help_text="Enable staff performance tracking for this plan.",
     )
-    max_staff_members = models.PositiveIntegerField(
-        default=10,
-        validators=[MinValueValidator(1)],
-        help_text="Maximum number of staff members allowed for this plan.",
+    custom_integrations = models.BooleanField(
+        default=False,
+        help_text="Enable custom integrations for this plan.",
     )
 
     class Meta:
@@ -170,7 +170,6 @@ class Subscription(models.Model):
         """
         Placeholder method to handle subscription renewal logic.
         """
-        # Implement renewal logic here
         pass
 
     def cancel_subscription(self):
@@ -193,14 +192,8 @@ class Subscription(models.Model):
         """
         Custom validation to ensure subscription aligns with plan's constraints.
         """
-        from django.core.exceptions import ValidationError
         if self.plan and self.agency:
-            current_staff_count = self.agency.users.filter(groups__name="Agency Staff", is_active=True).count()
-            if current_staff_count > self.plan.max_staff_members:
-                raise ValidationError(
-                    f"The selected plan allows a maximum of {self.plan.max_staff_members} staff members. "
-                    f"Current staff count is {current_staff_count}."
-                )
+            pass
 
     def save(self, *args, **kwargs):
         self.clean()
