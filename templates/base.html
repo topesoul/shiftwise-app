@@ -1,10 +1,12 @@
 <!-- /workspace/shiftwise/templates/base.html -->
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light" data-user-id="{% if user.is_authenticated %}{{ user.id }}{% else %}0{% endif %}">
 <head>
     {% load static %}
     {% load custom_filters %}
+    {% load custom_tags %}
+    {% load crispy_forms_tags %}
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,8 +30,6 @@
     {% block extra_css %}
     <!-- Bootstrap Datepicker CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
-    <!-- Remove Dark Mode CSS if not needed -->
-    <!-- <link rel="stylesheet" href="{% static 'css/dark_mode.css' %}"> -->
     {% endblock %}
 
     <!-- Custom CSS Files -->
@@ -37,11 +37,15 @@
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
     <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
     <link rel="stylesheet" href="{% static 'css/subscription.css' %}">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 </head>
 <body class="d-flex flex-column min-vh-100">
 
     <!-- Navbar -->
     {% include 'includes/navbar.html' %}
+
+    <!-- Notification Container -->
+    <div id="notification-container"></div> <!-- Ensure this exists for notifications -->
 
     <!-- Main Content Area with User Feedback Messages -->
     <main class="container my-4">
@@ -70,5 +74,10 @@
     <!-- Font Awesome JS -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+    <!-- Bootstrap Datepicker JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="{% static 'js/scripts.js' %}"></script>
 </body>
 </html>
