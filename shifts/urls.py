@@ -50,7 +50,7 @@ from shifts.views import (
     UnassignWorkerView,
 )
 
-app_name = 'shifts'  # Namespace for the shifts app
+app_name = 'shifts'
 
 urlpatterns = [
     # ---------------------------
