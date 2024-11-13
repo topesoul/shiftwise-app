@@ -44,9 +44,6 @@
     <!-- Navbar -->
     {% include 'includes/navbar.html' %}
 
-    <!-- Notification Container -->
-    <div id="notification-container"></div> <!-- Ensure this exists for notifications -->
-
     <!-- Main Content Area with User Feedback Messages -->
     <main class="container my-4">
         {% if messages %}
@@ -63,7 +60,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-light text-center py-3 mt-auto">
+    <footer class="footer text-center py-3 mt-auto">
         <p>&copy; {% now "Y" %} ShiftWise App</p>
     </footer>
 
