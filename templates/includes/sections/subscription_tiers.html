@@ -1,6 +1,7 @@
 <!-- /workspace/shiftwise/templates/includes/sections/subscription_tiers.html -->
 
 {% load static %}
+{% load custom_tags %} <!-- Ensure custom_tags are loaded -->
 {% load custom_filters %}
 
 <div class="container my-5">
@@ -87,7 +88,26 @@
                                         Priority Support
                                     </li>
                                     <li class="feature-item">
+                                        {% if plan.shift_management %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                        {% else %}
+                                            <i class="fas fa-times-circle text-danger"></i>
+                                        {% endif %}
+                                        Shift Management
+                                    </li>
+                                    <li class="feature-item">
+                                        {% if plan.staff_performance %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                        {% else %}
+                                            <i class="fas fa-times-circle text-danger"></i>
+                                        {% endif %}
+                                        Staff Performance Tracking
+                                    </li>
+                                    <li class="feature-item">
                                         View Limit: {{ plan.view_limit|default:"Unlimited" }}
+                                    </li>
+                                    <li class="feature-item">
+                                        Max Staff Members: {{ plan.max_staff_members }}
                                     </li>
                                 {% else %}
                                     <li class="feature-item">No features available.</li>
@@ -118,74 +138,3 @@
         {% endfor %}
     </div>
 </div>
-
-<!-- JavaScript to Handle Billing Cycle Toggle -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const monthlyToggle = document.getElementById('monthlyToggle');
-    const yearlyToggle = document.getElementById('yearlyToggle');
-    const priceValues = document.querySelectorAll('.price-value');
-    const subscribeForms = document.querySelectorAll('.subscribe-form');
-
-    function updatePricingAndActions(isMonthly) {
-        priceValues.forEach(function(span) {
-            if (isMonthly) {
-                const monthlyPrice = span.getAttribute('data-monthly-price');
-                if (monthlyPrice) {
-                    span.textContent = monthlyPrice;
-                    span.nextElementSibling.textContent = '/mo';
-                } else {
-                    span.textContent = 'N/A';
-                    span.nextElementSibling.textContent = '/n/a';
-                }
-            } else {
-                const yearlyPrice = span.getAttribute('data-yearly-price');
-                if (yearlyPrice) {
-                    span.textContent = yearlyPrice;
-                    span.nextElementSibling.textContent = '/yr';
-                } else {
-                    span.textContent = 'N/A';
-                    span.nextElementSibling.textContent = '/n/a';
-                }
-            }
-        });
-
-        subscribeForms.forEach(function(form) {
-            if (isMonthly) {
-                const monthlyPlanId = form.getAttribute('data-monthly-plan-id');
-                if (monthlyPlanId) {
-                    form.action = "/subscriptions/subscribe/" + monthlyPlanId + "/";
-                    form.querySelector('button').disabled = false;
-                } else {
-                    form.action = "#";
-                    form.querySelector('button').disabled = true;
-                }
-            } else {
-                const yearlyPlanId = form.getAttribute('data-yearly-plan-id');
-                if (yearlyPlanId) {
-                    form.action = "/subscriptions/subscribe/" + yearlyPlanId + "/";
-                    form.querySelector('button').disabled = false;
-                } else {
-                    form.action = "#";
-                    form.querySelector('button').disabled = true;
-                }
-            }
-        });
-    }
-
-    monthlyToggle.addEventListener('change', function() {
-        if (this.checked) {
-            updatePricingAndActions(true);
-        }
-    });
-
-    yearlyToggle.addEventListener('change', function() {
-        if (this.checked) {
-            updatePricingAndActions(false);
-        }
-    });
-
-    // Initialize based on the default checked toggle
-    updatePricingAndActions(monthlyToggle.checked);
-});
-</script>
