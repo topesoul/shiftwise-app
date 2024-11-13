@@ -1,99 +1,67 @@
 /* /workspace/shiftwise/static/css/custom.css */
 
+/* General Footer Styles */
+.footer {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+.footer a {
+    color: #007bff;
+}
+
+.footer a:hover {
+    color: #0056b3;
+}
+
 /* Dark Mode Styles */
 .dark-mode {
     background-color: #121212;
     color: #ffffff;
 }
 
-/* Dark Mode Navbar */
-.dark-mode .navbar {
-    background-color: #1f1f1f !important;
-}
-
-/* Dark Mode Card */
-.dark-mode .card {
+.dark-mode .navbar, .dark-mode .footer {
     background-color: #1f1f1f;
-    color: #ffffff;
-    border: 1px solid #333333;
 }
 
-/* Dark Mode Dropdown */
-.dark-mode .dropdown-menu {
-    background-color: #1f1f1f;
-    color: #ffffff;
-}
-
-/* Dark Mode Buttons */
-.dark-mode .btn-primary {
+.dark-mode .table thead {
     background-color: #333333;
-    border-color: #444444;
-}
-
-.dark-mode .btn-outline-primary {
     color: #ffffff;
-    border-color: #ffffff;
 }
 
-.dark-mode .btn-outline-primary.active, 
-.dark-mode .btn-outline-primary:active, 
-.dark-mode .btn-outline-primary:focus, 
-.dark-mode .btn-outline-primary:hover {
-    color: #333333;
-    background-color: #ffffff;
-    border-color: #ffffff;
+.dark-mode .btn {
+    background-color: #444;
+    color: #fff;
+    border-color: #555;
 }
 
-.dark-mode a {
+.dark-mode .btn:hover {
+    background-color: #555;
+    border-color: #666;
+}
+
+.dark-mode footer {
+    background-color: #1f1f1f;
+    color: #ffffff;
+}
+
+.dark-mode footer a {
     color: #bb86fc;
 }
 
-.dark-mode .badge-danger {
-    background-color: #cf6679;
-}
-
-/* Adjust text color for forms and inputs */
-.dark-mode .form-control {
-    background-color: #2c2c2c;
-    color: #ffffff;
-    border-color: #555555;
-}
-
-.dark-mode .form-control::placeholder {
-    color: #cccccc;
-}
-
-/* Adjust table styles */
-.dark-mode table {
-    background-color: #1f1f1f;
-    color: #ffffff;
-}
-
-.dark-mode table thead {
+.dark-mode .alert {
     background-color: #333333;
-}
-
-.dark-mode table tbody tr:nth-child(even) {
-    background-color: #2c2c2c;
-}
-
-
-/* Adjust footer styles */
-.dark-mode .footer {
-    background-color: #212529;
-}
-
-.dark-mode .footer a {
     color: #ffffff;
 }
 
-.dark-mode .footer a:hover {
+.dark-mode .alert .close {
     color: #ffffff;
 }
 
-.dark-mode .footer p {
-    color: #cccccc;
+.dark-mode .navbar-light .navbar-nav .nav-link {
+    color: #ffffff;
 }
 
-
-
+.dark-mode .navbar-light .navbar-nav .nav-link:hover {
+    color: #bb86fc;
+}
