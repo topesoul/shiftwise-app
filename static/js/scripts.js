@@ -12,14 +12,16 @@ document.addEventListener('DOMContentLoaded', function () {
         initBootstrapTooltips();
         initCustomSelect();
         initTimepicker();
-        initSignaturePad();
         initDatepicker();
 
         // Billing Cycle Toggle Functionality
         initBillingCycleToggle();
 
         // Dark Mode Preference
-        checkThemePreference();
+        initDarkModeToggle();
+
+        // Notifications Setup
+        initNotifications();
     } else {
         console.error("jQuery is missing.");
     }
@@ -53,31 +55,6 @@ function initTimepicker() {
         });
     } else {
         console.error("Timepicker plugin is not loaded.");
-    }
-}
-
-function initSignaturePad() {
-    // Initialize signature pad if the element is available
-    const signatureCanvas = document.querySelector('.signature-pad');
-    if (signatureCanvas) {
-        const signaturePad = new SignaturePad(signatureCanvas, {
-            penColor: '#000',
-            backgroundColor: '#fff'
-        });
-
-        const clearButton = document.querySelector('.clearSignature');
-        const signatureInput = document.querySelector('.signatureInput');
-
-        if (clearButton) {
-            clearButton.addEventListener('click', function () {
-                signaturePad.clear();
-                if (signatureInput) {
-                    signatureInput.value = '';
-                }
-            });
-        }
-    } else {
-        console.warn("Signature Pad element not found.");
     }
 }
 
@@ -132,60 +109,91 @@ function initBillingCycleToggle() {
         yearlyToggle.addEventListener('change', function() {
             if (this.checked) updatePricingAndActions(false);
         });
+        // Initialize based on the default checked toggle
         updatePricingAndActions(monthlyToggle.checked);
     } else {
         console.warn("Billing cycle toggle elements are missing.");
     }
 }
 
-// Dark Mode Functionality
-function checkThemePreference() {
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
+// Dark Mode Toggle Functionality
+function initDarkModeToggle() {
     const darkModeToggle = document.getElementById('darkModeToggle');
+
+    // Apply saved theme preference on load
+    applySavedTheme();
+
     if (darkModeToggle) {
         darkModeToggle.addEventListener('click', function (e) {
             e.preventDefault();
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+            toggleDarkMode();
         });
+    } else {
+        console.warn("Dark mode toggle element is missing.");
     }
-});
+}
 
-// Notifications using WebSockets
-document.addEventListener('DOMContentLoaded', function() {
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    // Save preference in localStorage
+    if (document.body.classList.contains('dark-mode')) {
+        localStorage.setItem('theme', 'dark');
+    } else {
+        localStorage.setItem('theme', 'light');
+    }
+}
+
+function applySavedTheme() {
+    const theme = localStorage.getItem('theme');
+    if (theme === 'dark') {
+        document.body.classList.add('dark-mode');
+    } else if (theme === 'light') {
+        document.body.classList.remove('dark-mode');
+    }
+}
+
+// Notifications Setup using WebSockets
+function initNotifications() {
+    const userId = document.documentElement.getAttribute('data-user-id');
     const notificationContainer = document.getElementById('notification-container');
-    const userId = "{{ request.user.id }}";
 
-    if (userId) {
+    if (userId && userId !== "0") {
         const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const socket = new WebSocket(protocol + window.location.host + '/ws/notifications/');
+        const socketUrl = protocol + window.location.host + '/ws/notifications/';
+        const socket = new WebSocket(socketUrl);
 
         socket.onmessage = function (e) {
             const data = JSON.parse(e.data);
             const message = data.message;
-            const icon = data.icon;
-            const url = data.url;
+            const icon = data.icon || 'fas fa-info-circle';
+            const url = data.url || '#';
 
             const notification = document.createElement('div');
             notification.classList.add('notification', 'alert', 'alert-info', 'alert-dismissible', 'fade', 'show');
             notification.innerHTML = `
                 <i class="${icon}"></i> ${message}
-                ${url ? `<a href="${url}" class="alert-link">View</a>` : ''}
+                ${url !== '#' ? `<a href="${url}" class="alert-link">View</a>` : ''}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             `;
             notificationContainer.appendChild(notification);
+
+            // Optionally, auto-dismiss the notification after a few seconds
+            setTimeout(() => {
+                $(notification).alert('close');
+            }, 5000);
+        };
+
+        socket.onerror = function (error) {
+            console.error('WebSocket Error:', error);
         };
 
         socket.onclose = function (e) {
-            console.error('Notification socket closed unexpectedly');
+            console.error('Notification socket closed unexpectedly:', e);
+            // Optionally, attempt to reconnect after some time
         };
+    } else {
+        console.warn("User is not authenticated. Notifications will not be initialized.");
     }
-});
+}
