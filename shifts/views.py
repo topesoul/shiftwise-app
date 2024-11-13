@@ -358,7 +358,6 @@ class ShiftListView(LoginRequiredMixin, AgencyManagerRequiredMixin, AgencyOwnerR
         context["filter"] = self.filterset
         return context
 
-
 class ShiftDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """
     Displays details of a specific shift, including distance from the user's location.
@@ -1395,6 +1394,7 @@ class StaffPerformanceCreateView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
     CreateView,
 ):
     model = StaffPerformance
