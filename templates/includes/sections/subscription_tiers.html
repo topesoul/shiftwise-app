@@ -104,10 +104,21 @@
                                         Staff Performance Tracking
                                     </li>
                                     <li class="feature-item">
-                                        View Limit: {{ plan.view_limit|default:"Unlimited" }}
+                                        {% if plan.custom_integrations %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                        {% else %}
+                                            <i class="fas fa-times-circle text-danger"></i>
+                                        {% endif %}
+                                        Custom Integrations
                                     </li>
                                     <li class="feature-item">
-                                        Max Staff Members: {{ plan.max_staff_members }}
+                                        {% if plan.shift_limit %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            {{ plan.shift_limit }} Shifts per Month
+                                        {% else %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            Unlimited Shifts
+                                        {% endif %}
                                     </li>
                                 {% else %}
                                     <li class="feature-item">No features available.</li>
