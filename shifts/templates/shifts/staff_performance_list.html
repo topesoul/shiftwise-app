@@ -1,0 +1,46 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/staff_performance_list.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Staff Performance{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Staff Performance</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Staff Member</th>
+                <th>Performance Metrics</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for performance in performances %}
+                <tr>
+                    <td>{{ performance.date }}</td>
+                    <td>{{ performance.staff_member.username }}</td>
+                    <td>{{ performance.metrics }}</td>
+                    <td>
+                        <a href="{% url 'shifts:staff_performance_detail' performance.id %}" class="btn btn-sm btn-info table-action-button">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <a href="{% url 'shifts:staff_performance_update' performance.id %}" class="btn btn-sm btn-warning table-action-button">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a href="{% url 'shifts:staff_performance_delete' performance.id %}" class="btn btn-sm btn-danger table-action-button">
+                            <i class="fas fa-trash"></i> Delete
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">No performance records found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
