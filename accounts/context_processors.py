@@ -40,6 +40,8 @@ def user_roles_and_subscriptions(request):
 
     needs_upgrade = False  # Flag to indicate if an upgrade is needed
 
+    unread_notifications_count = 0  # Initialize unread notifications count
+
     if user.is_authenticated:
         try:
             profile = user.profile
@@ -69,7 +71,7 @@ def user_roles_and_subscriptions(request):
 
                     # Implement Usage Limit Check based on number of shifts
                     current_shift_count = agency.shifts.count()
-                    if hasattr(subscription.plan, 'shift_limit') and subscription.plan.shift_limit:
+                    if subscription.plan.shift_management and subscription.plan.shift_limit:
                         if current_shift_count >= subscription.plan.shift_limit:
                             needs_upgrade = True
                             logger.debug(
@@ -104,6 +106,7 @@ def user_roles_and_subscriptions(request):
 
         # Fetch unread notifications for the user
         notifications = Notification.objects.filter(user=user, read=False).order_by('-created_at')
+        unread_notifications_count = notifications.count()
 
         # Add all features if user is superuser
         if is_superuser:
@@ -133,5 +136,6 @@ def user_roles_and_subscriptions(request):
         "can_manage_shifts": can_manage_shifts,
         "GOOGLE_PLACES_API_KEY": google_places_api_key,
         "notifications": notifications,
+        "unread_notifications_count": unread_notifications_count,
         "needs_upgrade": needs_upgrade,  # Pass the upgrade flag to templates
     }
