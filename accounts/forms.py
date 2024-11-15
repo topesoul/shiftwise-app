@@ -29,7 +29,7 @@ class AgencyForm(forms.ModelForm):
 
     class Meta:
         model = Agency
-        fields = "__all__"  # Include all fields from the Agency model
+        fields = "__all__"
         widgets = {
             "name": forms.TextInput(
                 attrs={
@@ -128,7 +128,7 @@ class AgencyForm(forms.ModelForm):
             Row(
                 Column("city", css_class="form-group col-md-4 mb-0"),
                 Column("county", css_class="form-group col-md-4 mb-0"),
-                Column("postcode", css_class="form-group col-md-4 mb-0"),  # Correctly placed
+                Column("postcode", css_class="form-group col-md-4 mb-0"),
             ),
             Row(
                 Column("country", css_class="form-group col-md-6 mb-0"),
@@ -207,11 +207,11 @@ class AgencyForm(forms.ModelForm):
     def save(self, commit=True):
         """
         Saves the user and creates an associated Agency and Profile.
+        Assigns the user to both 'Agency Managers' and 'Agency Owners' groups.
         """
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"].strip().lower()
-        # If 'role' is not a field in your User model, you may remove this
-        user.role = "agency_manager"  # Ensure your User model has a 'role' field or adjust accordingly
+        user.role = "agency_manager"
 
         if commit:
             user.save()
@@ -241,6 +241,12 @@ class AgencyForm(forms.ModelForm):
             )
             user.groups.add(agency_managers_group)
 
+            # Assign user to 'Agency Owners' group
+            agency_owners_group, created = Group.objects.get_or_create(
+                name="Agency Owners"
+            )
+            user.groups.add(agency_owners_group)
+
             # Associate user with the agency and update profile
             profile, created = Profile.objects.get_or_create(user=user)
             profile.agency = agency
@@ -248,9 +254,9 @@ class AgencyForm(forms.ModelForm):
             profile.longitude = self.cleaned_data.get("longitude")
             profile.save()
 
-            # Log the creation of a new agency manager
+            # Log the creation of a new agency manager and owner
             logger.info(
-                f"New agency manager created: {user.username}, Agency: {agency.name}"
+                f"New agency manager and owner created: {user.username}, Agency: {agency.name}"
             )
 
         return user
@@ -343,7 +349,7 @@ class SignUpForm(UserCreationForm):
         user.email = self.cleaned_data.get("email", "").strip().lower()
 
         user.role = (
-            "staff"  # Ensure your User model has a 'role' field or adjust accordingly
+            "staff"
         )
 
         if commit:
@@ -416,7 +422,7 @@ class AgencySignUpForm(UserCreationForm):
         max_length=255,
         widget=forms.TextInput(
             attrs={
-                "class": "form-control address-autocomplete",  # Added 'address-autocomplete' class
+                "class": "form-control address-autocomplete",
                 "placeholder": "Enter agency address line 1",
                 "required": True,
                 "id": "id_address_line1",
@@ -630,8 +636,7 @@ class AgencySignUpForm(UserCreationForm):
         """
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"].strip().lower()
-        # If 'role' is not a field in your User model, you may remove this
-        user.role = "agency_manager"  # Ensure your User model has a 'role' field or adjust accordingly
+        user.role = "agency_manager"
 
         if commit:
             user.save()
