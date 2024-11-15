@@ -88,10 +88,10 @@ class StaffListView(
 ):
     """
     Displays a list of staff members.
-    Only accessible to users with 'notifications_enabled' feature (Enterprise Plan).
+    Only accessible to users with 'custom_integrations' feature.
     """
 
-    required_features = ["notifications_enabled"]
+    required_features = ["custom_integrations"]
     model = User
     template_name = "shifts/staff_list.html"
     context_object_name = "staff_members"
@@ -175,6 +175,7 @@ class StaffCreateView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
     CreateView,
 ):
     """
@@ -182,6 +183,7 @@ class StaffCreateView(
     Superusers can add staff without being associated with any agency.
     """
 
+    required_features = ["custom_integrations"]
     model = User
     form_class = StaffCreationForm
     template_name = "shifts/add_staff.html"
@@ -216,6 +218,7 @@ class StaffUpdateView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
     UpdateView,
 ):
     """
@@ -223,6 +226,7 @@ class StaffUpdateView(
     Superusers can edit any staff member regardless of agency association.
     """
 
+    required_features = ["custom_integrations"]
     model = User
     form_class = StaffUpdateForm
     template_name = "shifts/edit_staff.html"
@@ -254,6 +258,7 @@ class StaffDeleteView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
     DeleteView,
 ):
     """
@@ -261,6 +266,7 @@ class StaffDeleteView(
     Superusers can deactivate any staff member regardless of agency association.
     """
 
+    required_features = ["custom_integrations"]
     model = User
     template_name = "shifts/delete_staff.html"
     success_url = reverse_lazy("shifts:staff_list")
@@ -284,7 +290,7 @@ class StaffDeleteView(
         staff_member.save()
         messages.success(request, "Staff member deactivated successfully.")
         logger.info(
-            f"Staff member {staff_member.username} deactivated by {request.user.username}."
+            f"Staff member {staff_member.username} deactivated by user {request.user.username}."
         )
         return redirect(self.success_url)
 
@@ -294,19 +300,24 @@ class StaffDeleteView(
 # ---------------------------
 
 
-class ShiftListView(LoginRequiredMixin, AgencyManagerRequiredMixin, AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, ListView):
+class ShiftListView(
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    ListView
+):
     """
     Displays a list of shifts available to the user with search and filter capabilities.
     Includes distance calculations based on user's registered address.
     Superusers see all shifts without agency restrictions.
     """
 
+    required_features = ['shift_management']
     model = Shift
     template_name = "shifts/shift_list.html"
     context_object_name = "shifts"
     paginate_by = 10
-
-    required_features = ['shift_management']
 
     def get_queryset(self):
         user = self.request.user
@@ -358,6 +369,7 @@ class ShiftListView(LoginRequiredMixin, AgencyManagerRequiredMixin, AgencyOwnerR
         context["filter"] = self.filterset
         return context
 
+
 class ShiftDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """
     Displays details of a specific shift, including distance from the user's location.
@@ -373,10 +385,7 @@ class ShiftDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         shift = self.get_object()
         if user.is_superuser:
             return True
-        elif (
-            user.groups.filter(name="Agency Managers").exists()
-            or user.groups.filter(name="Agency Staff").exists()
-        ):
+        elif user.groups.filter(name="Agency Managers").exists() or user.groups.filter(name="Agency Staff").exists():
             return shift.agency == user.profile.agency
         return False
 
@@ -457,6 +466,7 @@ class ShiftCreateView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
     CreateView,
 ):
     """
@@ -464,6 +474,7 @@ class ShiftCreateView(
     Superusers can assign shifts to any agency or without an agency.
     """
 
+    required_features = ['shift_management']
     model = Shift
     form_class = ShiftForm
     template_name = "shifts/shift_form.html"
@@ -497,7 +508,27 @@ class ShiftCreateView(
                 return redirect("accounts:profile")
             shift.agency = agency
 
-        # Optionally, generate a unique shift code
+        # Check shift limit
+        subscription = self.request.user.profile.agency.subscription
+        if subscription and subscription.plan.shift_limit is not None:
+            # Count shifts created this month
+            current_time = timezone.now()
+            current_month_start = current_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            current_shift_count = Shift.objects.filter(
+                agency=shift.agency,
+                shift_date__gte=current_month_start
+            ).count()
+            if current_shift_count >= subscription.plan.shift_limit:
+                messages.error(
+                    self.request,
+                    f"Your agency has reached the maximum number of shifts ({subscription.plan.shift_limit}) for this month. Please upgrade your subscription."
+                )
+                logger.info(
+                    f"Agency '{shift.agency.name}' has reached the shift limit for the month."
+                )
+                return redirect("subscriptions:upgrade_subscription")  # Redirect to upgrade page
+
+        # Generate a unique shift code
         shift.shift_code = generate_shift_code()
 
         # Save the shift
@@ -520,6 +551,7 @@ class ShiftUpdateView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
     UpdateView,
 ):
     """
@@ -527,6 +559,7 @@ class ShiftUpdateView(
     Superusers can change the agency of a shift or leave it without an agency.
     """
 
+    required_features = ['shift_management']
     model = Shift
     form_class = ShiftForm
     template_name = "shifts/shift_form.html"
@@ -579,6 +612,7 @@ class ShiftDeleteView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
     DeleteView,
 ):
     """
@@ -586,6 +620,7 @@ class ShiftDeleteView(
     Superusers can delete any shift regardless of agency association.
     """
 
+    required_features = ['shift_management']
     model = Shift
     template_name = "shifts/shift_confirm_delete.html"
     success_url = reverse_lazy("shifts:shift_list")
@@ -603,12 +638,14 @@ class ShiftDeleteView(
 
 
 class ShiftCompleteView(
-    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, View
+    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
 ):
     """
     Allows agency staff or superusers to complete a shift with digital signature and location verification.
     Superusers can complete any shift without agency restrictions.
     """
+
+    required_features = ['shift_management']
 
     def get(self, request, shift_id, *args, **kwargs):
         shift = get_object_or_404(Shift, id=shift_id)
@@ -723,12 +760,14 @@ class ShiftCompleteView(
 
 
 class ShiftCompleteForUserView(
-    LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, View
+    LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
 ):
     """
     Allows superusers and agency managers to complete a shift on behalf of a user.
     Useful in scenarios where the user cannot complete the shift themselves.
     """
+
+    required_features = ['shift_management']
 
     def get(self, request, shift_id, user_id, *args, **kwargs):
         shift = get_object_or_404(Shift, id=shift_id)
@@ -894,12 +933,14 @@ class ShiftCompleteForUserView(
 
 
 class ShiftCompleteAjaxView(
-    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, View
+    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
 ):
     """
     Handles shift completion via AJAX, returning JSON responses.
     Superusers can complete any shift without agency restrictions.
     """
+
+    required_features = ['shift_management']
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
@@ -1028,12 +1069,14 @@ class ShiftCompleteAjaxView(
 
 
 class ShiftBookView(
-    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, View
+    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
 ):
     """
     Allows agency staff or superusers to book a shift based on availability and proximity.
     Superusers can book any shift without agency restrictions.
     """
+
+    required_features = ['shift_management']
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
@@ -1114,12 +1157,14 @@ class ShiftBookView(
 
 
 class ShiftUnbookView(
-    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, View
+    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
 ):
     """
     Allows agency staff or superusers to unbook a shift.
     Superusers can unbook any shift without agency restrictions.
     """
+
+    required_features = ['shift_management']
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
@@ -1169,13 +1214,16 @@ class ShiftUnbookView(
 
 
 class TimesheetDownloadView(
-    LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, View
+    LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
 ):
     """
     Generates and downloads a CSV timesheet for payroll, including total hours and total pay.
     Superusers can download timesheets for all agencies.
     Utilizes StreamingHttpResponse for efficient large file handling and robust error handling.
     """
+
+    required_features = ['shift_management']
+
     def get(self, request, *args, **kwargs):
         try:
             agency = (
@@ -1311,9 +1359,12 @@ class ReportDashboardView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
     TemplateView,
 ):
     template_name = "shifts/report_dashboard.html"
+
+    required_features = ['shift_management']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1352,10 +1403,18 @@ class ReportDashboardView(
 # ---------------------------
 
 
-class StaffPerformanceView(LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, ListView):
+class StaffPerformanceView(
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    ListView
+):
     """
     Displays staff performance metrics.
     """
+
+    required_features = ['staff_performance']
     model = StaffPerformance
     template_name = 'shifts/staff_performance_list.html'
     context_object_name = 'performances'
@@ -1371,11 +1430,19 @@ class StaffPerformanceView(LoginRequiredMixin, AgencyManagerRequiredMixin, Subsc
             return StaffPerformance.objects.none()
 
 
-class StaffPerformanceDetailView(LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, DetailView):
+class StaffPerformanceDetailView(
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    DetailView
+):
     """
     Displays detailed information about a specific staff performance entry.
     Only accessible to superusers and agency managers associated with the performance's agency.
     """
+
+    required_features = ['staff_performance']
     model = StaffPerformance
     template_name = 'shifts/staff_performance_detail.html'
     context_object_name = 'performance'
@@ -1395,12 +1462,14 @@ class StaffPerformanceCreateView(
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
-    CreateView,
+    CreateView
 ):
     model = StaffPerformance
     form_class = StaffPerformanceForm
     template_name = "shifts/create_performance.html"
     success_url = reverse_lazy("shifts:staff_performance_list")
+
+    required_features = ['staff_performance']
 
     def form_valid(self, form):
         performance = form.save(commit=False)
@@ -1411,11 +1480,19 @@ class StaffPerformanceCreateView(
         return super().form_valid(form)
 
 
-class StaffPerformanceUpdateView(LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, UpdateView):
+class StaffPerformanceUpdateView(
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    UpdateView
+):
     model = StaffPerformance
     form_class = StaffPerformanceForm
     template_name = 'shifts/staff_performance_form.html'
     success_url = reverse_lazy('shifts:staff_performance_list')
+
+    required_features = ['staff_performance']
 
     def form_valid(self, form):
         performance = form.save(commit=False)
@@ -1432,10 +1509,18 @@ class StaffPerformanceUpdateView(LoginRequiredMixin, AgencyManagerRequiredMixin,
         return super().form_valid(form)
 
 
-class StaffPerformanceDeleteView(LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, DeleteView):
+class StaffPerformanceDeleteView(
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    DeleteView
+):
     model = StaffPerformance
     template_name = 'shifts/staff_performance_confirm_delete.html'
     success_url = reverse_lazy('shifts:staff_performance_list')
+
+    required_features = ['staff_performance']
 
     def delete(self, request, *args, **kwargs):
         performance = self.get_object()
@@ -1453,6 +1538,7 @@ class ShiftDetailsAPIView(LoginRequiredMixin, View):
     """
     Provides shift details in JSON format.
     """
+
     def get(self, request, shift_id, *args, **kwargs):
         shift = get_object_or_404(Shift, id=shift_id)
         shift_data = {
@@ -1477,20 +1563,25 @@ class ShiftDetailsAPIView(LoginRequiredMixin, View):
 # ---------------------------
 
 
-class NotificationListView(LoginRequiredMixin, ListView):
+class NotificationListView(LoginRequiredMixin, FeatureRequiredMixin, ListView):
     model = Notification
     template_name = 'shifts/notification_list.html'
     context_object_name = 'notifications'
     paginate_by = 20
 
+    required_features = ['notifications_enabled']
+
     def get_queryset(self):
         return self.request.user.notifications.filter(read=False).order_by('-created_at')
 
 
-class MarkNotificationReadView(LoginRequiredMixin, View):
+class MarkNotificationReadView(LoginRequiredMixin, FeatureRequiredMixin, View):
     """
     Marks a notification as read.
     """
+
+    required_features = ['notifications_enabled']
+
     @method_decorator(csrf_protect, name='dispatch')
     def post(self, request, notification_id, *args, **kwargs):
         notification = get_object_or_404(Notification, id=notification_id, user=request.user)
@@ -1505,8 +1596,10 @@ class MarkNotificationReadView(LoginRequiredMixin, View):
 # ---------------------------
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
+class DashboardView(LoginRequiredMixin, FeatureRequiredMixin, TemplateView):
     template_name = 'shifts/dashboard.html'
+
+    required_features = ['shift_management']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1530,9 +1623,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class AssignWorkerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+class AssignWorkerView(LoginRequiredMixin, AgencyManagerRequiredMixin, FeatureRequiredMixin, FormView):
+    """
+    Assigns a worker to a specific shift.
+    """
     form_class = AssignWorkerForm
     template_name = "shifts/assign_worker_form.html"
+
+    required_features = ['shift_management']
 
     def dispatch(self, request, *args, **kwargs):
         self.shift = get_object_or_404(Shift, id=self.kwargs.get('shift_id'))
@@ -1553,21 +1651,29 @@ class AssignWorkerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         shift = self.shift
 
         # Check if the shift is already full
-        if is_shift_full(shift):
-            messages.error(self.request, "Cannot assign worker. The shift is already full.")
+        if shift.is_full:
+            form.add_error(None, "Cannot assign worker. The shift is already full.")
             return self.form_invalid(form)
 
         # Check if the worker is already assigned to the shift
-        if is_user_assigned(shift, worker):
-            messages.info(self.request, f"{worker.username} is already assigned to this shift.")
+        if ShiftAssignment.objects.filter(shift=shift, worker=worker).exists():
+            form.add_error(None, f"Worker {worker.username} is already assigned to this shift.")
             return self.form_invalid(form)
 
         # Create the ShiftAssignment
-        ShiftAssignment.objects.create(shift=shift, worker=worker)
-        messages.success(self.request, f"Worker {worker.username} has been assigned to the shift.")
-        logger.info(f"Worker {worker.username} assigned to shift {shift.id} by {self.request.user.username}.")
-
-        return super().form_valid(form)
+        try:
+            ShiftAssignment.objects.create(shift=shift, worker=worker, status=ShiftAssignment.CONFIRMED)
+            messages.success(self.request, f"Worker {worker.username} has been successfully assigned to the shift.")
+            logger.info(f"Worker {worker.username} assigned to shift {shift.id} by {self.request.user.username}.")
+            return redirect('shifts:shift_detail', pk=shift.id)
+        except ValidationError as e:
+            form.add_error(None, e.message)
+            logger.error(f"Validation error when assigning worker: {e}")
+            return self.form_invalid(form)
+        except Exception as e:
+            form.add_error(None, "An unexpected error occurred while assigning the worker.")
+            logger.exception(f"Unexpected error when assigning worker: {e}")
+            return self.form_invalid(form)
 
     def get_success_url(self):
         return reverse('shifts:shift_detail', kwargs={'pk': self.shift.id})
@@ -1578,11 +1684,13 @@ class AssignWorkerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return context
 
 
-class UnassignWorkerView(LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, View):
+class UnassignWorkerView(LoginRequiredMixin, AgencyManagerRequiredMixin, FeatureRequiredMixin, View):
     """
     Allows agency managers or superusers to unassign a worker from a specific shift.
     Superusers can unassign any worker, while agency managers can unassign workers within their agency.
     """
+
+    required_features = ['shift_management']
 
     def post(self, request, shift_id, assignment_id, *args, **kwargs):
         user = request.user
@@ -1618,9 +1726,10 @@ class UnassignWorkerView(LoginRequiredMixin, AgencyStaffRequiredMixin, Subscript
 
         # Perform Unassignment
         try:
+            worker_username = assignment.worker.username
             assignment.delete()
-            messages.success(request, f"Worker {assignment.worker.get_full_name()} has been unassigned from the shift.")
-            logger.info(f"Worker {assignment.worker.username} unassigned from shift {shift.id} by {user.username}.")
+            messages.success(request, f"Worker {worker_username} has been unassigned from the shift.")
+            logger.info(f"Worker {worker_username} unassigned from shift {shift.id} by {user.username}.")
         except Exception as e:
             messages.error(request, "An error occurred while unassigning the worker. Please try again.")
             logger.exception(f"Error unassigning worker {assignment.worker.username} from shift {shift.id}: {e}")
