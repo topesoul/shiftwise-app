@@ -83,24 +83,46 @@
             </li>
           {% endif %}
 
-          <!-- Manage Shifts (Visible to users with 'shift_management' feature) -->
-          {% if user|has_feature:"shift_management" %}
-            <li class="nav-item {% if request.resolver_match.url_name in 'shift_list shift_detail shift_create shift_update shift_delete' %}active{% endif %}">
+          <!-- View Shifts (Accessible to All Authenticated Users) -->
+          <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:shift_list,shifts:shift_detail" %}active{% endif %}">
+            <a class="nav-link" href="{% url 'shifts:shift_list' %}">
+              <i class="fas fa-eye"></i> View Shifts
+              {% if request.resolver_match.url_name|is_in:"shifts:shift_list,shifts:shift_detail" %}
+                <span class="sr-only">(current)</span>
+              {% endif %}
+            </a>
+          </li>
+
+          <!-- Manage Shifts (Visible to Superusers and Agency Managers) -->
+          {% if is_superuser or is_agency_manager %}
+            <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:shift_list,shifts:shift_detail,shifts:shift_create,shifts:shift_update,shifts:shift_delete" %}active{% endif %}">
               <a class="nav-link" href="{% url 'shifts:shift_list' %}">
                 <i class="fas fa-clipboard-list"></i> Manage Shifts
-                {% if request.resolver_match.url_name in 'shift_list shift_detail shift_create shift_update shift_delete' %}
+                {% if request.resolver_match.url_name|is_in:"shifts:shift_list,shifts:shift_detail,shifts:shift_create,shifts:shift_update,shifts:shift_delete" %}
                   <span class="sr-only">(current)</span>
                 {% endif %}
               </a>
             </li>
           {% endif %}
 
-          <!-- Manage Staff (Visible to users with 'notifications_enabled' feature) -->
-          {% if user|has_feature:"notifications_enabled" %}
-            <li class="nav-item {% if request.resolver_match.url_name in 'staff_list staff_create staff_update staff_delete' %}active{% endif %}">
+          <!-- Performance Management (Visible to Users with 'staff_performance' Feature) -->
+          {% if user|has_feature:"staff_performance" %}
+            <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}active{% endif %}">
+              <a class="nav-link" href="{% url 'shifts:staff_performance_list' %}">
+                <i class="fas fa-chart-line"></i> Performance Management
+                {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}
+                  <span class="sr-only">(current)</span>
+                {% endif %}
+              </a>
+            </li>
+          {% endif %}
+
+          <!-- Manage Staff (Visible to users with 'custom_integrations' feature) -->
+          {% if user|has_feature:"custom_integrations" %}
+            <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:staff_list,shifts:staff_create,shifts:staff_update,shifts:staff_delete" %}active{% endif %}">
               <a class="nav-link" href="{% url 'shifts:staff_list' %}">
                 <i class="fas fa-users"></i> Manage Staff
-                {% if request.resolver_match.url_name in 'staff_list staff_create staff_update staff_delete' %}
+                {% if request.resolver_match.url_name|is_in:"shifts:staff_list,shifts:staff_create,shifts:staff_update,shifts:staff_delete" %}
                   <span class="sr-only">(current)</span>
                 {% endif %}
               </a>
@@ -109,10 +131,10 @@
 
           <!-- Staff Performance (Visible to users with 'staff_performance' feature) -->
           {% if user|has_feature:"staff_performance" %}
-            <li class="nav-item {% if request.resolver_match.url_name in 'staff_performance_list staff_performance_detail staff_performance_create staff_performance_update staff_performance_delete' %}active{% endif %}">
+            <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}active{% endif %}">
               <a class="nav-link" href="{% url 'shifts:staff_performance_list' %}">
                 <i class="fas fa-chart-line"></i> Staff Performance
-                {% if request.resolver_match.url_name in 'staff_performance_list staff_performance_detail staff_performance_create staff_performance_update staff_performance_delete' %}
+                {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}
                   <span class="sr-only">(current)</span>
                 {% endif %}
               </a>
@@ -136,13 +158,22 @@
                     </a>
                   {% endfor %}
                   <div class="dropdown-divider"></div>
-                  <a class="dropdown-item text-center" href="{% url 'notifications:list' %}">View All Notifications</a>
+                  <a class="dropdown-item text-center" href="{% url 'shifts:notification_list' %}">View All Notifications</a>
                 {% else %}
                   <a class="dropdown-item disabled" href="#">
                     <i class="fas fa-info-circle mr-2"></i> No new notifications
                   </a>
                 {% endif %}
               </div>
+            </li>
+          {% endif %}
+
+          <!-- Needs Upgrade Alert -->
+          {% if needs_upgrade %}
+            <li class="nav-item">
+              <a class="nav-link text-warning" href="{% url 'subscriptions:upgrade_subscription' %}">
+                <i class="fas fa-exclamation-triangle"></i> Upgrade Needed
+              </a>
             </li>
           {% endif %}
 
@@ -197,6 +228,14 @@
                   </a>
                   <a class="dropdown-item" href="{% url 'subscriptions:cancel_subscription' %}">
                     <i class="fas fa-ban mr-2"></i> Cancel Subscription
+                  </a>
+                  <!-- Upgrade/Downgrade Options -->
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item" href="{% url 'subscriptions:upgrade_subscription' %}">
+                    <i class="fas fa-arrow-up mr-2"></i> Upgrade Plan
+                  </a>
+                  <a class="dropdown-item" href="{% url 'subscriptions:downgrade_subscription' %}">
+                    <i class="fas fa-arrow-down mr-2"></i> Downgrade Plan
                   </a>
                 {% else %}
                   {% for plan in available_plans %}
