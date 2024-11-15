@@ -79,6 +79,31 @@ class Command(BaseCommand):
                 staff_performance = metadata.get("staff_performance", "false").lower() == "true"
                 custom_integrations = metadata.get("custom_integrations", "false").lower() == "true"
 
+                # Extract shift_limit from metadata if available
+                shift_limit = metadata.get("shift_limit")
+                if shift_limit:
+                    # Remove surrounding quotes if any and convert to lowercase
+                    shift_limit_clean = shift_limit.strip('"').strip("'").lower()
+                    if shift_limit_clean in ['none', 'null', '']:
+                        shift_limit = None
+                    else:
+                        try:
+                            shift_limit = int(shift_limit_clean)
+                            if shift_limit <= 0:
+                                raise ValueError
+                        except ValueError:
+                            self.stderr.write(
+                                self.style.ERROR(
+                                    f"Invalid shift_limit '{shift_limit}' for price ID {price.id}. It must be a positive integer or 'None'. Skipping."
+                                )
+                            )
+                            logger.error(
+                                f"Invalid shift_limit '{shift_limit}' for price ID {price.id}. It must be a positive integer or 'None'. Skipping."
+                            )
+                            continue  # Skip this price
+                else:
+                    shift_limit = None  # Represents unlimited shifts
+
                 # Find existing plan or create a new one based on stripe_price_id
                 plan, created = Plan.objects.get_or_create(
                     stripe_price_id=price.id,
@@ -94,6 +119,7 @@ class Command(BaseCommand):
                         "shift_management": shift_management,
                         "staff_performance": staff_performance,
                         "custom_integrations": custom_integrations,
+                        "shift_limit": shift_limit,
                         "is_active": True,
                     },
                 )
@@ -112,6 +138,7 @@ class Command(BaseCommand):
                     plan.shift_management = shift_management
                     plan.staff_performance = staff_performance
                     plan.custom_integrations = custom_integrations
+                    plan.shift_limit = shift_limit
                     plan.is_active = True
                     plan.save()
                     self.stdout.write(
