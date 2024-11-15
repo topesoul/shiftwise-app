@@ -19,6 +19,7 @@ from subscriptions.models import Plan, Subscription
 from accounts.models import Profile, Agency
 from accounts.forms import UpdateProfileForm
 from .utils import create_stripe_customer
+from core.mixins import AgencyOwnerRequiredMixin
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -27,9 +28,9 @@ logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-class SubscriptionHomeView(LoginRequiredMixin, TemplateView):
+class SubscriptionHomeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView):
     """
-    Displays the available subscription plans and the user's current subscription status.
+    Displays the available subscription plans and the agency's current subscription status.
     """
     template_name = "subscriptions/subscription_home.html"
 
@@ -85,11 +86,10 @@ class SubscriptionHomeView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class SubscribeView(LoginRequiredMixin, View):
+class SubscribeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View):
     """
     Handles the subscription process, integrating with Stripe Checkout.
     """
-
     def post(self, request, plan_id, *args, **kwargs):
         user = request.user
 
@@ -319,9 +319,9 @@ class StripeWebhookView(View):
 stripe_webhook = StripeWebhookView.as_view()
 
 
-class ManageSubscriptionView(LoginRequiredMixin, TemplateView):
+class ManageSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView):
     """
-    Allows users to manage their subscriptions.
+    Allows agency owners to manage their subscriptions.
     """
     template_name = "subscriptions/manage_subscription.html"
 
@@ -365,9 +365,9 @@ class ManageSubscriptionView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class CancelSubscriptionView(LoginRequiredMixin, View):
+class CancelSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View):
     """
-    Allows users to cancel their subscription.
+    Allows agency owners to cancel their subscriptions.
     """
 
     def post(self, request, *args, **kwargs):
@@ -417,9 +417,9 @@ class CancelSubscriptionView(LoginRequiredMixin, View):
             return redirect("subscriptions:subscription_home")
 
 
-class UpdatePaymentMethodView(LoginRequiredMixin, View):
+class UpdatePaymentMethodView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View):
     """
-    Allows users to update their payment method.
+    Allows agency owners to update their payment method.
     """
 
     def get(self, request, *args, **kwargs):
@@ -465,9 +465,9 @@ class UpdatePaymentMethodView(LoginRequiredMixin, View):
             return redirect("subscriptions:subscription_home")
 
 
-class UpgradeSubscriptionView(LoginRequiredMixin, TemplateView):
+class UpgradeSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView):
     """
-    Allows users to upgrade their subscription plans.
+    Allows agency owners to upgrade their subscription plans.
     """
     template_name = "subscriptions/upgrade_subscription.html"
 
@@ -522,7 +522,7 @@ class UpgradeSubscriptionView(LoginRequiredMixin, TemplateView):
 
             # Update local subscription
             subscription.plan = new_plan
-            subscription.current_period_end = timezone.now() + timezone.timedelta(days=30)  # Adjust as per billing cycle
+            subscription.current_period_end = timezone.now() + timezone.timedelta(days=30)
             subscription.save()
 
             messages.success(request, f"Subscription upgraded to {new_plan.name} plan successfully.")
@@ -543,9 +543,9 @@ class UpgradeSubscriptionView(LoginRequiredMixin, TemplateView):
             return redirect('subscriptions:subscription_home')
 
 
-class DowngradeSubscriptionView(LoginRequiredMixin, TemplateView):
+class DowngradeSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView):
     """
-    Allows users to downgrade their subscription plans.
+    Allows agency owners to downgrade their subscription plans.
     """
     template_name = "subscriptions/downgrade_subscription.html"
 
@@ -600,7 +600,7 @@ class DowngradeSubscriptionView(LoginRequiredMixin, TemplateView):
 
             # Update local subscription
             subscription.plan = new_plan
-            subscription.current_period_end = timezone.now() + timezone.timedelta(days=30)  # Adjust as per billing cycle
+            subscription.current_period_end = timezone.now() + timezone.timedelta(days=30)
             subscription.save()
 
             messages.success(request, f"Subscription downgraded to {new_plan.name} plan successfully.")
