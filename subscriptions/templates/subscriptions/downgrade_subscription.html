@@ -1,0 +1,23 @@
+<!-- /workspace/shiftwise/subscriptions/templates/subscriptions/downgrade_subscription.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <h2>Downgrade Your Subscription</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="planSelect">Select a Plan to Downgrade:</label>
+            <select class="form-control" id="planSelect" name="plan_id" required>
+                <option value="" disabled selected>Select a plan</option>
+                {% for plan in available_plans %}
+                    <option value="{{ plan.id }}">{{ plan.name }} ({{ plan.billing_cycle|capitalize }}) - £{{ plan.price }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-warning">Downgrade Subscription</button>
+        <a href="{% url 'subscriptions:subscription_home' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
