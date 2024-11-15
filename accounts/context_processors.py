@@ -1,13 +1,16 @@
 # /workspace/shiftwise/accounts/context_processors.py
 
-from subscriptions.models import Plan, Subscription
-from django.utils import timezone
-from django.contrib.auth.models import Group
 from collections import defaultdict
+from django.utils import timezone
+from subscriptions.models import Plan, Subscription
+from django.contrib.auth.models import Group
 from django.conf import settings
 from accounts.models import Notification
 from django.core.exceptions import ObjectDoesNotExist
+import logging
 
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 def user_roles_and_subscriptions(request):
     user = request.user
@@ -27,17 +30,15 @@ def user_roles_and_subscriptions(request):
         if user.is_authenticated
         else False
     )
-
     has_active_subscription = False
     available_plans = []
     current_plan = None
     subscription_features = []
-
     can_manage_shifts = False
-
     google_places_api_key = settings.GOOGLE_PLACES_API_KEY
-
     notifications = []  # Initialize notifications
+
+    needs_upgrade = False  # Flag to indicate if an upgrade is needed
 
     if user.is_authenticated:
         try:
@@ -46,8 +47,8 @@ def user_roles_and_subscriptions(request):
             if agency:
                 subscription = Subscription.objects.filter(
                     agency=agency, is_active=True, current_period_end__gt=timezone.now()
-                ).first()
-                if subscription:
+                ).select_related('plan').first()
+                if subscription and subscription.plan:
                     has_active_subscription = True
                     current_plan = subscription.plan
                     # Collect features
@@ -59,13 +60,28 @@ def user_roles_and_subscriptions(request):
                         subscription_features.append("priority_support")
                     if subscription.plan.shift_management:
                         subscription_features.append("shift_management")
-                        # Update can_manage_shifts
-                        can_manage_shifts = is_superuser or is_agency_manager
                     if subscription.plan.staff_performance:
                         subscription_features.append("staff_performance")
+                    if subscription.plan.custom_integrations:
+                        subscription_features.append("custom_integrations")
+                    # Update can_manage_shifts based on features
+                    can_manage_shifts = is_superuser or is_agency_manager or "shift_management" in subscription_features
+
+                    # Implement Usage Limit Check based on number of shifts
+                    current_shift_count = agency.shifts.count()
+                    if hasattr(subscription.plan, 'shift_limit') and subscription.plan.shift_limit:
+                        if current_shift_count >= subscription.plan.shift_limit:
+                            needs_upgrade = True
+                            logger.debug(
+                                f"Agency '{agency.name}' has reached its shift limit ({current_shift_count}/{subscription.plan.shift_limit}). Upgrade needed."
+                            )
+            else:
+                logger.warning(f"User {user.username} does not have an associated agency.")
         except ObjectDoesNotExist:
             # User does not have a profile or agency
-            pass
+            logger.warning(f"User {user.username} does not have a profile or agency.")
+        except Exception as e:
+            logger.exception(f"Error in context processor: {e}")
 
         # Retrieve all active plans
         plans = Plan.objects.filter(is_active=True).order_by("name", "billing_cycle")
@@ -77,7 +93,6 @@ def user_roles_and_subscriptions(request):
                 plan_dict[plan.name]['monthly_plan'] = plan
             elif plan.billing_cycle.lower() == 'yearly':
                 plan_dict[plan.name]['yearly_plan'] = plan
-            # Add more billing cycles if needed
 
         # Structure available_plans as a list of dictionaries
         for plan_name, plans in plan_dict.items():
@@ -89,6 +104,22 @@ def user_roles_and_subscriptions(request):
 
         # Fetch unread notifications for the user
         notifications = Notification.objects.filter(user=user, read=False).order_by('-created_at')
+
+        # Add all features if user is superuser
+        if is_superuser:
+            all_features = [
+                "notifications_enabled",
+                "advanced_reporting",
+                "priority_support",
+                "shift_management",
+                "staff_performance",
+                "custom_integrations",
+            ]
+            subscription_features = list(set(subscription_features + all_features))
+            logger.debug(f"Superuser '{user.username}' assigned all features.")
+
+        # Attach subscription_features to user object for 'has_feature' filter
+        setattr(user, 'subscription_features', subscription_features)
 
     return {
         "is_superuser": is_superuser,
@@ -102,4 +133,5 @@ def user_roles_and_subscriptions(request):
         "can_manage_shifts": can_manage_shifts,
         "GOOGLE_PLACES_API_KEY": google_places_api_key,
         "notifications": notifications,
+        "needs_upgrade": needs_upgrade,  # Pass the upgrade flag to templates
     }
