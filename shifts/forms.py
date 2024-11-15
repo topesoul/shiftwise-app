@@ -322,11 +322,27 @@ class StaffPerformanceForm(forms.ModelForm):
 
 class AssignWorkerForm(forms.Form):
     worker = forms.ModelChoiceField(
-        queryset=User.objects.filter(groups__name="Agency Staff", is_active=True),
+        queryset=User.objects.none(),
         label="Select Worker",
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
 
+    def __init__(self, *args, **kwargs):
+        shift = kwargs.pop('shift', None)
+        super().__init__(*args, **kwargs)
+        if shift:
+            # Filter workers to only those in the same agency and active
+            self.fields['worker'].queryset = User.objects.filter(
+                groups__name="Agency Staff",
+                is_active=True,
+                profile__agency=shift.agency
+            )
+        else:
+            # Fallback: list all active agency staff
+            self.fields['worker'].queryset = User.objects.filter(
+                groups__name="Agency Staff",
+                is_active=True
+            )
 
 class UnassignWorkerForm(forms.Form):
     worker_id = forms.IntegerField(widget=forms.HiddenInput())
