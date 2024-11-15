@@ -6,11 +6,14 @@ from .models import Shift, ShiftAssignment
 from core.utils import (
     send_notification,
     send_email_notification,
-)  # Ensure both are imported
+)
 from django.contrib.auth import get_user_model
+import logging
 
 User = get_user_model()
 
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Shift)
 def shift_created_or_updated(sender, instance, created, **kwargs):
@@ -31,7 +34,7 @@ def shift_created_or_updated(sender, instance, created, **kwargs):
         send_email_notification(
             user_email=manager.email, subject=subject, message=message
         )
-
+    logger.info(f"Shift '{instance.name}' {'created' if created else 'updated'} and notifications sent to managers.")
 
 @receiver(pre_delete, sender=Shift)
 def shift_deleted(sender, instance, **kwargs):
@@ -48,7 +51,7 @@ def shift_deleted(sender, instance, **kwargs):
         send_email_notification(
             user_email=manager.email, subject=subject, message=message
         )
-
+    logger.info(f"Shift '{instance.name}' deleted and notifications sent to managers.")
 
 @receiver(post_save, sender=ShiftAssignment)
 def shift_assignment_created(sender, instance, created, **kwargs):
@@ -62,7 +65,7 @@ def shift_assignment_created(sender, instance, created, **kwargs):
         send_email_notification(
             user_email=instance.worker.email, subject=subject, message=message
         )
-
+        logger.info(f"ShiftAssignment created: Worker {instance.worker.username} assigned to shift '{instance.shift.name}'.")
 
 @receiver(pre_delete, sender=ShiftAssignment)
 def shift_assignment_deleted(sender, instance, **kwargs):
@@ -75,3 +78,4 @@ def shift_assignment_deleted(sender, instance, **kwargs):
     send_email_notification(
         user_email=instance.worker.email, subject=subject, message=message
     )
+    logger.info(f"ShiftAssignment deleted: Worker {instance.worker.username} unassigned from shift '{instance.shift.name}'.")
