@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Initialize Stripe with the secret key from settings
-stripe.api_key = settings.STRIPE_SECRET_KEY  # Ensure STRIPE_SECRET_KEY is set in settings.py
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 def create_stripe_customer(agency):
