@@ -8,9 +8,10 @@ import logging
 from subscriptions.models import Subscription
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
-
+User = get_user_model()
 
 class SuperuserRequiredMixin(UserPassesTestMixin):
     """Mixin to ensure that the user is a superuser."""
@@ -82,7 +83,6 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
     Checks if the user's agency has an active subscription and enforces view limits based on the subscription plan.
     Superusers bypass all restrictions.
     """
-
     required_features = []  # List of features required to access the view
 
     def test_func(self):
@@ -99,17 +99,12 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
             subscription = agency.subscription  # Using related_name='subscription'
             if not subscription.is_active or subscription.is_expired:
                 return False
-            # Reset view count if needed
-            profile.reset_view_count_if_needed()
-            # Check view limit
-            plan = subscription.plan
-            if plan and plan.view_limit is not None:
-                if profile.monthly_view_count >= plan.view_limit:
-                    return False
             # Check required features
-            for feature in self.required_features:
-                if not getattr(plan, feature, False):
-                    return False
+            plan = subscription.plan
+            if plan:
+                for feature in self.required_features:
+                    if not getattr(plan, feature, False):
+                        return False
             return True
         except Subscription.DoesNotExist:
             logger.exception(
@@ -127,7 +122,6 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
         # Clear existing messages
         storage = get_messages(self.request)
         list(storage)  # Force evaluation to clear messages
-
         if not user.is_authenticated:
             messages.error(self.request, "You must be logged in to access this page.")
             return redirect("accounts:login_view")
@@ -143,13 +137,11 @@ class FeatureRequiredMixin(UserPassesTestMixin):
     """
     Mixin to ensure that the user's subscription includes specific features.
     """
-
     required_feature = None  # Single feature required
 
     def test_func(self):
         if not self.required_feature:
             return True  # No feature required
-
         user = self.request.user
         if user.is_superuser:
             return True
