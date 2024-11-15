@@ -35,7 +35,6 @@ class Plan(models.Model):
     )
     stripe_product_id = models.CharField(
         max_length=100,
-        unique=True,
         null=True,
         blank=True,
         help_text="Stripe Product ID associated with this plan.",
@@ -98,6 +97,11 @@ class Plan(models.Model):
         default=False,
         help_text="Enable custom integrations for this plan.",
     )
+    shift_limit = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum number of shifts allowed under this plan. Leave blank for unlimited."
+    )
 
     class Meta:
         unique_together = ("name", "billing_cycle")
@@ -120,9 +124,11 @@ class Subscription(models.Model):
     )
     plan = models.ForeignKey(
         Plan,
-        on_delete=models.SET_NULL,
-        null=True,
+        on_delete=models.PROTECT,
+        related_name="subscriptions",
         help_text="Subscription plan chosen by the agency.",
+        null=False,
+        blank=False,
     )
     stripe_subscription_id = models.CharField(
         max_length=255,
@@ -192,8 +198,11 @@ class Subscription(models.Model):
         """
         Custom validation to ensure subscription aligns with plan's constraints.
         """
-        if self.plan and self.agency:
-            pass
+        if not self.plan:
+            raise ValidationError("Subscription must be associated with a Plan.")
+        if not self.agency:
+            raise ValidationError("Subscription must be associated with an Agency.")
+        super().clean()
 
     def save(self, *args, **kwargs):
         self.clean()
