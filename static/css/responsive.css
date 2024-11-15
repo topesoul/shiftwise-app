@@ -97,3 +97,11 @@
     }
 }
 
+.navbar {
+  width: 100%;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+}
