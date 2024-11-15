@@ -11,9 +11,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Billing Cycle Toggle Functionality
         initBillingCycleToggle();
 
-        // Dark Mode Preference
-        initDarkModeToggle();
-
         // Notifications Setup
         initNotifications();
     } else {
@@ -110,42 +107,6 @@ function initBillingCycleToggle() {
     }
 }
 
-// Dark Mode Toggle Functionality
-function initDarkModeToggle() {
-    const darkModeToggle = document.getElementById('darkModeToggle');
-
-    // Apply saved theme preference on load
-    applySavedTheme();
-
-    if (darkModeToggle) {
-        darkModeToggle.addEventListener('click', function (e) {
-            e.preventDefault();
-            toggleDarkMode();
-        });
-    } else {
-        console.warn("Dark mode toggle element is missing.");
-    }
-}
-
-function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    // Save preference in localStorage
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', 'light');
-    }
-}
-
-function applySavedTheme() {
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark') {
-        document.body.classList.add('dark-mode');
-    } else if (theme === 'light') {
-        document.body.classList.remove('dark-mode');
-    }
-}
-
 // Notifications Setup using WebSockets
 function initNotifications() {
     const userId = document.documentElement.getAttribute('data-user-id');
@@ -173,7 +134,7 @@ function initNotifications() {
             `;
             notificationContainer.appendChild(notification);
 
-            // Optionally, auto-dismiss the notification after a few seconds
+            // auto-dismiss the notification after a few seconds
             setTimeout(() => {
                 $(notification).alert('close');
             }, 5000);
@@ -185,7 +146,7 @@ function initNotifications() {
 
         socket.onclose = function (e) {
             console.error('Notification socket closed unexpectedly:', e);
-            // Optionally, attempt to reconnect after some time
+            // attempt to reconnect after some time
         };
     } else {
         console.warn("User is not authenticated. Notifications will not be initialized.");
