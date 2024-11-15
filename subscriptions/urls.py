@@ -11,4 +11,6 @@ urlpatterns = [
     path("success/", views.subscription_success, name="subscription_success"),
     path("cancel/", views.subscription_cancel, name="subscription_cancel"),
     path("webhook/", views.stripe_webhook, name="stripe_webhook"),
+    path("upgrade/", views.UpgradeSubscriptionView.as_view(), name="upgrade_subscription"),
+    path("downgrade/", views.DowngradeSubscriptionView.as_view(), name="downgrade_subscription"),
 ]
