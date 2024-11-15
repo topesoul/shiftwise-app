@@ -29,7 +29,7 @@ urlpatterns = [
 
     # Agency Management URLs
     path('agencies/', views.AgencyListView.as_view(), name='manage_agencies'),
-    path('agencies/create/', views.AgencyCreateView.as_view(), name='agency_create'),
+    path('agencies/create/', views.AgencyCreateView.as_view(), name='agency_create'),  # Ensure correct name
     path('agencies/update/<int:pk>/', views.AgencyUpdateView.as_view(), name='manage_agencies_edit'),
     path('agencies/delete/<int:pk>/', views.AgencyDeleteView.as_view(), name='manage_agencies_delete'),
 
@@ -38,6 +38,9 @@ urlpatterns = [
     path('users/create/', views.UserCreateView.as_view(), name='user_create'),
     path('users/update/<int:pk>/', views.UserUpdateView.as_view(), name='manage_users_edit'),
     path('users/delete/<int:pk>/', views.UserDeleteView.as_view(), name='manage_users_delete'),
+
+    # Invitation URLs
+    path('invite_staff/', views.InviteStaffView.as_view(), name='invite_staff'),
 
     # Notification URLs (Optional)
     path('notifications/', views.notifications_list, name='notifications_list'),
