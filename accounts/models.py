@@ -136,6 +136,24 @@ class Profile(models.Model):
     def __str__(self):
         return f"Profile of {self.user.username}"
 
+    @property
+    def subscription_features(self):
+        if self.subscription and self.subscription.plan:
+            features = []
+            if self.subscription.plan.notifications_enabled:
+                features.append("notifications_enabled")
+            if self.subscription.plan.advanced_reporting:
+                features.append("advanced_reporting")
+            if self.subscription.plan.priority_support:
+                features.append("priority_support")
+            if self.subscription.plan.shift_management:
+                features.append("shift_management")
+            if self.subscription.plan.staff_performance:
+                features.append("staff_performance")
+            if self.subscription.plan.custom_integrations:
+                features.append("custom_integrations")
+            return features
+        return []
 
 class Invitation(models.Model):
     """
