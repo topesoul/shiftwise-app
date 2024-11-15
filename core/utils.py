@@ -14,12 +14,6 @@ User = get_user_model()
 def send_notification(user_id, message, subject="Notification", url=""):
     """
     Sends an email notification to a specific user.
-
-    Parameters:
-    - user_id (int): ID of the user to notify.
-    - message (str): The message content.
-    - subject (str): Subject of the email.
-    - url (str): Optional URL to include in the message.
     """
     try:
         user = User.objects.get(id=user_id)
@@ -31,7 +25,6 @@ def send_notification(user_id, message, subject="Notification", url=""):
 
         full_message = message
         if url:
-            # Assuming SITE_URL is set in settings
             site_url = getattr(settings, 'SITE_URL', '')
             if site_url:
                 full_message += f"\n\nYou can view more details here: {site_url}{url}"
@@ -57,14 +50,6 @@ def send_email_notification(
 ):
     """
     Sends an email notification to the specified user.
-
-    Parameters:
-    - user_email (str): Recipient's email address.
-    - subject (str): Subject line of the email.
-    - message (str): Plain-text body of the email.
-    - from_email (str, optional): Sender's email address. Defaults to settings.DEFAULT_FROM_EMAIL.
-    - html_message (str, optional): HTML body of the email.
-    - **kwargs: Additional arguments for Django's send_mail function.
     """
     from_email = from_email or settings.DEFAULT_FROM_EMAIL
     try:
