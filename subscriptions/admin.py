@@ -3,7 +3,6 @@
 from django.contrib import admin
 from .models import Plan, Subscription
 
-
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
     list_display = (
@@ -31,13 +30,14 @@ class PlanAdmin(admin.ModelAdmin):
                 'priority_support',
                 'shift_management',
                 'staff_performance',
-                'max_staff_members',
+                'custom_integrations',
             )
         }),
         ('Status', {
             'fields': ('is_active', 'is_recommended')
         }),
     )
+    
 
 
 @admin.register(Subscription)
