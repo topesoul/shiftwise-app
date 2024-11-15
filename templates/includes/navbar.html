@@ -93,23 +93,11 @@
             </a>
           </li>
 
-          <!-- Manage Shifts (Visible to Superusers and Agency Managers) -->
-          {% if is_superuser or is_agency_manager %}
-            <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:shift_list,shifts:shift_detail,shifts:shift_create,shifts:shift_update,shifts:shift_delete" %}active{% endif %}">
-              <a class="nav-link" href="{% url 'shifts:shift_list' %}">
-                <i class="fas fa-clipboard-list"></i> Manage Shifts
-                {% if request.resolver_match.url_name|is_in:"shifts:shift_list,shifts:shift_detail,shifts:shift_create,shifts:shift_update,shifts:shift_delete" %}
-                  <span class="sr-only">(current)</span>
-                {% endif %}
-              </a>
-            </li>
-          {% endif %}
-
-          <!-- Performance Management (Visible to Users with 'staff_performance' Feature) -->
+          <!-- Performance Management (Visible to users with 'staff_performance' feature) -->
           {% if user|has_feature:"staff_performance" %}
             <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}active{% endif %}">
               <a class="nav-link" href="{% url 'shifts:staff_performance_list' %}">
-                <i class="fas fa-chart-line"></i> Performance Management
+                <i class="fas fa-chart-line"></i> Staff Performance
                 {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}
                   <span class="sr-only">(current)</span>
                 {% endif %}
@@ -129,36 +117,20 @@
             </li>
           {% endif %}
 
-          <!-- Staff Performance (Visible to users with 'staff_performance' feature) -->
-          {% if user|has_feature:"staff_performance" %}
-            <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}active{% endif %}">
-              <a class="nav-link" href="{% url 'shifts:staff_performance_list' %}">
-                <i class="fas fa-chart-line"></i> Staff Performance
-                {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}
-                  <span class="sr-only">(current)</span>
-                {% endif %}
-              </a>
-            </li>
-          {% endif %}
-
           <!-- Notifications Dropdown (Visible to users with 'notifications_enabled' feature) -->
           {% if user|has_feature:"notifications_enabled" %}
-            <li class="nav-item dropdown {% if 'notification' in request.resolver_match.url_name %}active{% endif %}">
+            <li class="nav-item dropdown {% if 'notifications' in request.resolver_match.url_name %}active{% endif %}">
               <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-bell"></i> Notifications
-                {% if notifications|length > 0 %}
-                  <span class="badge badge-danger">{{ notifications|length }}</span>
+                {% if unread_notifications_count > 0 %}
+                  <span class="badge badge-danger">{{ unread_notifications_count }}</span>
                 {% endif %}
               </a>
               <div class="dropdown-menu dropdown-menu-right" aria-labelledby="notificationsDropdown">
-                {% if notifications %}
-                  {% for notification in notifications %}
-                    <a class="dropdown-item" href="{{ notification.url }}">
-                      <i class="{{ notification.icon }} mr-2"></i> {{ notification.message }}
-                    </a>
-                  {% endfor %}
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item text-center" href="{% url 'shifts:notification_list' %}">View All Notifications</a>
+                {% if unread_notifications_count > 0 %}
+                  <a class="dropdown-item" href="{% url 'accounts:notifications' %}">
+                    <i class="fas fa-eye mr-2"></i> View All Notifications
+                  </a>
                 {% else %}
                   <a class="dropdown-item disabled" href="#">
                     <i class="fas fa-info-circle mr-2"></i> No new notifications
@@ -196,8 +168,8 @@
             </li>
           {% endif %}
 
-          <!-- Manage Users (Visible to Superusers and Agency Managers) -->
-          {% if is_superuser or is_agency_manager %}
+          <!-- Manage Users (Visible to Superusers only) -->
+          {% if is_superuser %}
             <li class="nav-item dropdown {% if 'manage_users' in request.resolver_match.url_name %}active{% endif %}">
               <a class="nav-link dropdown-toggle" href="#" id="manageUsersDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-users-cog"></i> Users
@@ -206,11 +178,9 @@
                 <a class="dropdown-item" href="{% url 'accounts:manage_users' %}">
                   <i class="fas fa-list mr-2"></i> Manage Users
                 </a>
-                {% if is_superuser or is_agency_manager %}
-                  <a class="dropdown-item" href="{% url 'accounts:user_create' %}">
-                    <i class="fas fa-user-plus mr-2"></i> Create User
-                  </a>
-                {% endif %}
+                <a class="dropdown-item" href="{% url 'accounts:user_create' %}">
+                  <i class="fas fa-user-plus mr-2"></i> Create User
+                </a>
               </div>
             </li>
           {% endif %}
