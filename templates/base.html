@@ -30,6 +30,12 @@
     {% block extra_css %}
     <!-- Bootstrap Datepicker CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+
+    <!-- Selectize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha512-1Q7hrPlRmsT35x6jhXX+Iq67Rx+L6BxQY3bWgZQV1Dvo0wZKaQG9UyXfIkGXjh6hjvP1sDXo2ByumFJFPx+YQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Bootstrap Timepicker CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-timepicker/0.5.2/css/bootstrap-timepicker.min.css" integrity="sha512-DtGdXQ3p+uTba+ycB/lqC4wRpbGzSxfra+qU+Izcl7VDuEo7Zk27m1HcOkdzpgrm2WDe5IRLFVuxXnu8MWJxwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     {% endblock %}
 
     <!-- Custom CSS Files -->
@@ -73,6 +79,16 @@
 
     <!-- Bootstrap Datepicker JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+
+    <!-- Selectize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js" integrity="sha512-BXWb/eT3nsgDNX2K4L1epAZ2LPgJOkhDgqV+YqYVb4LRkbxQeRTq/PgkJp5HjKvJgGDvC2nYQeRUKuMVBnFkBw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Bootstrap Timepicker JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-timepicker/0.5.2/js/bootstrap-timepicker.min.js" integrity="sha512-PnV3Sg+h3Zcxy69QCN0hkSVhS0ttUaV4HJ+Nr7LLR29uhG6rqhyWY59xvJ6kXSevRvXlzh9H0EbEaGKH3xfgOA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    {% block extra_js %}
+    <!-- Additional JS files can be included here -->
+    {% endblock %}
 
     <!-- Custom JS -->
     <script src="{% static 'js/scripts.js' %}"></script>
