@@ -1,0 +1,14 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/staff_performance_confirm_delete.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Confirm Deletion</h2>
+    <p>Are you sure you want to delete the performance record for <strong>{{ performance.worker.get_full_name }}</strong>?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'shifts:staff_performance_detail' performance.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
