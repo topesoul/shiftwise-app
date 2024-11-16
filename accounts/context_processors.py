@@ -35,7 +35,6 @@ def user_roles_and_subscriptions(request):
     current_plan = None
     subscription_features = []
     can_manage_shifts = False
-    google_places_api_key = settings.GOOGLE_PLACES_API_KEY
     notifications = []  # Initialize notifications
 
     needs_upgrade = False  # Flag to indicate if an upgrade is needed
@@ -134,7 +133,6 @@ def user_roles_and_subscriptions(request):
         "current_plan": current_plan,
         "subscription_features": subscription_features,
         "can_manage_shifts": can_manage_shifts,
-        "GOOGLE_PLACES_API_KEY": google_places_api_key,
         "notifications": notifications,
         "unread_notifications_count": unread_notifications_count,
         "needs_upgrade": needs_upgrade,
