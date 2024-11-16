@@ -1,0 +1,31 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/update_profile.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Update Profile | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2>Update Your Profile</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {{ form|crispy }}
+
+        <!-- Submit and Cancel Buttons -->
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include the Google Maps JavaScript API with Places and Geocoding Libraries -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places"></script>
+
+<!-- Include the Address Autocomplete JavaScript -->
+<script src="{% static 'js/address_autocomplete.js' %}"></script>
+{% endblock %}
