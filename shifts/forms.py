@@ -320,6 +320,7 @@ class StaffPerformanceForm(forms.ModelForm):
             raise ValidationError("Performance rating must be between 0 and 5.")
         return rating
 
+
 class AssignWorkerForm(forms.Form):
     worker = forms.ModelChoiceField(
         queryset=User.objects.none(),
@@ -343,6 +344,7 @@ class AssignWorkerForm(forms.Form):
                 groups__name="Agency Staff",
                 is_active=True
             )
+
 
 class UnassignWorkerForm(forms.Form):
     worker_id = forms.IntegerField(widget=forms.HiddenInput())
