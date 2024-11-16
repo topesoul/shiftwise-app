@@ -1,63 +1,21 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/accept_invitation.html -->
+
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-{% custom_filters}
+{% load custom_filters %}
 {% load static %}
 {% block title %}Accept Invitation{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-5">
     <h2>Accept Invitation</h2>
     <p>You have been invited to join ShiftWise. Please set your password and complete your profile.</p>
-    <form method="post" class="postcode-form">
+    <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
         {{ form|crispy }}
 
-        <!-- Address Fields -->
-        <div class="form-group">
-            {{ form.postcode.label_tag }}
-            {{ form.postcode }}
-            <span class="loadingSpinner" style="display: none;">Loading...</span>
-            {% for error in form.postcode.errors %}
-                <small class="text-danger">{{ error }}</small>
-            {% endfor %}
-            <select id="addressSuggestions" class="form-control mt-2" style="display: none;"></select>
-        </div>
-
-        <!-- Personal Information -->
-        <div class="form-row">
-            <div class="form-group col-md-6">
-                {{ form.first_name.label_tag }}
-                {{ form.first_name }}
-                {% for error in form.first_name.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                {% endfor %}
-            </div>
-            <div class="form-group col-md-6">
-                {{ form.last_name.label_tag }}
-                {{ form.last_name }}
-                {% for error in form.last_name.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Password Fields -->
-        <div class="form-group">
-            {{ form.password1.label_tag }}
-            {{ form.password1 }}
-            {% for error in form.password1.errors %}
-                <small class="text-danger">{{ error }}</small>
-            {% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.password2.label_tag }}
-            {{ form.password2 }}
-            {% for error in form.password2.errors %}
-                <small class="text-danger">{{ error }}</small>
-            {% endfor %}
-        </div>
-
+        <!-- Submit and Cancel Buttons -->
         <button type="submit" class="btn btn-primary">Activate Account</button>
         <a href="{% url 'home:home' %}" class="btn btn-secondary">Cancel</a>
     </form>
