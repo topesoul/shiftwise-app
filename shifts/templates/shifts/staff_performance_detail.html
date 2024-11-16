@@ -1,15 +1,19 @@
 <!-- /workspace/shiftwise/shifts/templates/shifts/staff_performance_detail.html -->
-
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Staff Performance Detail</h1>
-<p><strong>Worker:</strong> {{ performance.worker.get_full_name }}</p>
-<p><strong>Shift:</strong> {{ performance.shift.name }} on {{ performance.shift.shift_date }}</p>
-<p><strong>Wellness Score:</strong> {{ performance.wellness_score }}</p>
-<p><strong>Performance Rating:</strong> {{ performance.performance_rating }}</p>
-<p><strong>Comments:</strong> {{ performance.comments }}</p>
-
-<a href="{% url 'shifts:staff_performance_update' performance.id %}">Edit</a> |
-<a href="{% url 'shifts:staff_performance_delete' performance.id %}">Delete</a>
+<div class="container">
+    <h2>Staff Performance Details</h2>
+    <ul class="list-group">
+        <li class="list-group-item"><strong>Worker:</strong> {{ performance.worker.get_full_name }}</li>
+        <li class="list-group-item"><strong>Shift:</strong> {{ performance.shift }}</li>
+        <li class="list-group-item"><strong>Wellness Score:</strong> {{ performance.wellness_score }}</li>
+        <li class="list-group-item"><strong>Performance Rating:</strong> {{ performance.performance_rating }}</li>
+        <li class="list-group-item"><strong>Status:</strong> {{ performance.get_status_display }}</li>
+        <li class="list-group-item"><strong>Comments:</strong> {{ performance.comments }}</li>
+        <li class="list-group-item"><strong>Recorded At:</strong> {{ performance.created_at }}</li>
+    </ul>
+    <a href="{% url 'shifts:staff_performance_update' performance.id %}" class="btn btn-warning mt-3">Edit</a>
+    <a href="{% url 'shifts:staff_performance_delete' performance.id %}" class="btn btn-danger mt-3">Delete</a>
+</div>
 {% endblock %}
