@@ -121,27 +121,21 @@ class AgencyForm(forms.ModelForm):
                 Column("name", css_class="form-group col-md-6 mb-0"),
                 Column("agency_code", css_class="form-group col-md-6 mb-0"),
             ),
-            Field("agency_type", wrapper_class="form-group"),
-            # Address Fields
-            Field("address_line1", wrapper_class="form-group"),
-            Field("address_line2", wrapper_class="form-group"),
+            "agency_type",
+            "address_line1",
+            "address_line2",
             Row(
                 Column("city", css_class="form-group col-md-4 mb-0"),
                 Column("county", css_class="form-group col-md-4 mb-0"),
                 Column("postcode", css_class="form-group col-md-4 mb-0"),
             ),
-            Row(
-                Column("country", css_class="form-group col-md-6 mb-0"),
-                Column("email", css_class="form-group col-md-6 mb-0"),
-            ),
-            Row(
-                Column("phone_number", css_class="form-group col-md-6 mb-0"),
-                Column("website", css_class="form-group col-md-6 mb-0"),
-            ),
-            Row(
-                Column("latitude", css_class="form-group col-md-3 mb-0"),
-                Column("longitude", css_class="form-group col-md-3 mb-0"),
-            ),
+            "country",
+            "email",
+            "phone_number",
+            "website",
+            # Hidden fields
+            Field("latitude"),
+            Field("longitude"),
         )
 
     def clean_postcode(self):
@@ -789,6 +783,10 @@ class AcceptInvitationForm(UserCreationForm):
                 Column("password1", css_class="form-group col-md-6 mb-0"),
                 Column("password2", css_class="form-group col-md-6 mb-0"),
             ),
+            Row(
+                Column("first_name", css_class="form-group col-md-6 mb-0"),
+                Column("last_name", css_class="form-group col-md-6 mb-0"),
+            ),
         )
 
     def clean_email(self):
@@ -803,9 +801,7 @@ class AcceptInvitationForm(UserCreationForm):
         """
         user = super().save(commit=False)
         user.email = self.initial.get("email", "").strip().lower()
-        user.role = (
-            "staff"  # Ensure your User model has a 'role' field or adjust accordingly
-        )
+        user.role = "staff"
 
         if commit:
             user.save()
@@ -815,8 +811,9 @@ class AcceptInvitationForm(UserCreationForm):
 
             # Link the user to the agency associated with the invitation if applicable
             if self.invitation and self.invitation.agency:
-                user.profile.agency = self.invitation.agency
-                user.profile.save()
+                profile, created = Profile.objects.get_or_create(user=user)
+                profile.agency = self.invitation.agency
+                profile.save()
 
             # Mark the invitation as used
             if self.invitation:
@@ -827,7 +824,7 @@ class AcceptInvitationForm(UserCreationForm):
             # Log the acceptance of the invitation
             logger.info(f"Invitation accepted by user: {user.username}")
 
-            # Optionally, log the user in if needed
+            # Log the user in
             if self.request:
                 login(self.request, user)
 
@@ -855,7 +852,8 @@ class UpdateProfileForm(forms.ModelForm):
             "longitude",
         ]
         widgets = {
-            # Address Fields
+            "latitude": forms.HiddenInput(attrs={"id": "id_latitude"}),
+            "longitude": forms.HiddenInput(attrs={"id": "id_longitude"}),
             "address_line1": forms.TextInput(
                 attrs={
                     "class": "form-control address-autocomplete",
@@ -921,12 +919,12 @@ class UpdateProfileForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.layout = Layout(
-            Field("address_line1"),
-            Field("address_line2"),
+            "address_line1",
+            "address_line2",
             Row(
                 Column("city", css_class="form-group col-md-4 mb-0"),
                 Column("county", css_class="form-group col-md-4 mb-0"),
-                Column("postcode", css_class="form-group col-md-4 mb-0"),  # Correctly placed
+                Column("postcode", css_class="form-group col-md-4 mb-0"),
             ),
             Row(
                 Column("state", css_class="form-group col-md-6 mb-0"),
@@ -935,8 +933,8 @@ class UpdateProfileForm(forms.ModelForm):
             "travel_radius",
             "profile_picture",
             # Hidden fields
-            "latitude",
-            "longitude",
+            Field("latitude"),
+            Field("longitude"),
         )
 
     def clean_profile_picture(self):
@@ -1241,7 +1239,7 @@ class StaffCreationForm(UserCreationForm):
         user = super().save(commit=False)
         user.email = self.cleaned_data.get("email", "").strip().lower()
         user.role = (
-            "staff"  # Ensure your User model has a 'role' field or adjust accordingly
+            "staff"
         )
 
         if commit:
