@@ -41,8 +41,4 @@ urlpatterns = [
 
     # Invitation URLs
     path('invite_staff/', views.InviteStaffView.as_view(), name='invite_staff'),
-
-    # Notification URLs (Optional)
-    path('notifications/', views.notifications_list, name='notifications_list'),
-    path('notifications/list/', views.NotificationsView.as_view(), name='notifications'),
 ]
