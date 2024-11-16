@@ -9,7 +9,10 @@ from core.utils import send_notification
 from django.urls import reverse
 import logging
 from django.utils import timezone
-from django.db import transaction  # Import for transaction management
+from django.db import transaction
+
+import os
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +32,6 @@ def create_subscription_and_stripe_customer_for_agency(sender, instance, created
                 logger.info(f"Stripe customer created for Agency: {instance.name} (ID: {customer.id})")
             except Exception as e:
                 logger.error(f"Failed to create Stripe customer for Agency {instance.name}: {e}")
-                # Depending on your business logic, you might want to handle this differently
                 raise  # Re-raise to rollback the transaction
 
             # **Assign the Default 'Basic' Plan if Exists**
