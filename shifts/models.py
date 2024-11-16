@@ -105,7 +105,7 @@ class Shift(TimestampedModel):
         verbose_name_plural = "Shifts"
 
     def __str__(self):
-        return f"{self.name} on {self.shift_date}"  # Removed agency reference to prevent recursion
+        return f"{self.name} on {self.shift_date}"
 
     def clean(self, skip_date_validation=False):
         """
