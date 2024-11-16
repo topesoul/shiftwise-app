@@ -2,7 +2,7 @@
 
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% custom_filters}
+{% load custom_filters %}
 {% load static %}
 {% block title %}{% if form.instance.pk %}Edit User{% else %}Add New User{% endif %} | ShiftWise{% endblock %}
 
