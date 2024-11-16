@@ -10,6 +10,7 @@ import logging
 # Initialize logger
 logger = logging.getLogger(__name__)
 
+
 @receiver(post_save, sender=Subscription)
 def subscription_post_save(sender, instance, created, **kwargs):
     """
