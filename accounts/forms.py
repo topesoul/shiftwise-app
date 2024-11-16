@@ -946,7 +946,7 @@ class UpdateProfileForm(forms.ModelForm):
         picture = self.cleaned_data.get("profile_picture", False)
         if picture:
             if picture.size > 2 * 1024 * 1024:
-                raise ValidationError("Image file too large ( > 2MB )")
+                raise ValidationError("Image file too large ( > 2MB ).")
             if not picture.content_type in ["image/jpeg", "image/png"]:
                 raise ValidationError(
                     "Unsupported file type. Only JPEG and PNG are allowed."
