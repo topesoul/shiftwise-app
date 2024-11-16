@@ -5,7 +5,7 @@
     margin-right: 10px; /* Adjust the spacing as needed */
 }
 
-/* Optional: Enhance the appearance of the toggle buttons */
+/* Enhance the appearance of the toggle buttons */
 .subscription-toggle .btn-outline-primary {
     transition: background-color 0.3s, color 0.3s;
 }
