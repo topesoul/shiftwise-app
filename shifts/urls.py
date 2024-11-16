@@ -1,6 +1,6 @@
 # /workspace/shiftwise/shifts/urls.py
 
-from django.urls import path
+from django.urls import path, include
 from shifts.views import (
     # Staff Management Views
     StaffListView,
@@ -38,9 +38,6 @@ from shifts.views import (
     # API Views
     ShiftDetailsAPIView,
 
-    # Notification Views
-    NotificationListView,
-    MarkNotificationReadView,
 
     # Dashboard View
     DashboardView,
@@ -102,12 +99,6 @@ urlpatterns = [
     # API URLs
     # ---------------------------
     path('api/shift/<int:shift_id>/', ShiftDetailsAPIView.as_view(), name='shift_details_api'),
-
-    # ---------------------------
-    # Notification URLs
-    # ---------------------------
-    path('notifications/', NotificationListView.as_view(), name='notification_list'),
-    path('notifications/<int:notification_id>/read/', MarkNotificationReadView.as_view(), name='mark_notification_read'),
 
     # ---------------------------
     # Dashboard URL
