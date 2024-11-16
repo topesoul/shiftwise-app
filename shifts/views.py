@@ -26,7 +26,8 @@ from django.views.generic import (
     ListView, CreateView, UpdateView, DeleteView, DetailView, View, TemplateView, FormView
 )
 from django_filters.views import FilterView
-from accounts.models import Notification, Profile, Agency
+from accounts.models import Profile, Agency
+from notifications.models import Notification
 from accounts.forms import StaffCreationForm, StaffUpdateForm
 from .models import Shift, ShiftAssignment, StaffPerformance
 from .forms import ShiftForm, ShiftCompletionForm, StaffPerformanceForm, AssignWorkerForm, UnassignWorkerForm
@@ -480,6 +481,19 @@ class ShiftCreateView(
     template_name = "shifts/shift_form.html"
     success_url = reverse_lazy("shifts:shift_list")
 
+    def dispatch(self, request, *args, **kwargs):
+        """
+        Ensure that non-superusers have an associated agency before creating a shift.
+        """
+        if not request.user.is_superuser:
+            if not hasattr(request.user, 'profile') or not request.user.profile.agency:
+                messages.error(request, "You are not associated with any agency.")
+                logger.warning(
+                    f"User {request.user.username} attempted to create shift without an associated agency."
+                )
+                return redirect("accounts:profile")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         """
         Pass the user instance to the form to handle conditional fields.
@@ -500,12 +514,6 @@ class ShiftCreateView(
         else:
             # Agency managers assign shifts to their own agency
             agency = self.request.user.profile.agency
-            if not agency:
-                messages.error(self.request, "You are not associated with any agency.")
-                logger.warning(
-                    f"User {self.request.user.username} attempted to create shift without an associated agency."
-                )
-                return redirect("accounts:profile")
             shift.agency = agency
 
         # Check shift limit
@@ -1479,7 +1487,27 @@ class StaffPerformanceCreateView(
         logger.info(f"Performance for worker {performance.worker.username} on Shift ID {performance.shift.id} recorded by {self.request.user.username}.")
         return super().form_valid(form)
 
+    def get_initial(self):
+        initial = super().get_initial()
+        shift_id = self.request.GET.get('shift_id')
+        if shift_id:
+            try:
+                shift = Shift.objects.get(id=shift_id)
+                initial['shift'] = shift
+            except Shift.DoesNotExist:
+                pass
+        return initial
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        shift_id = self.request.GET.get('shift_id')
+        if shift_id:
+            try:
+                shift = Shift.objects.get(id=shift_id)
+                context['shift'] = shift
+            except Shift.DoesNotExist:
+                pass
+        return context
 class StaffPerformanceUpdateView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
@@ -1557,45 +1585,9 @@ class ShiftDetailsAPIView(LoginRequiredMixin, View):
         }
         return JsonResponse({'shift': shift_data})
 
-
-# ---------------------------
-# Notification Views
-# ---------------------------
-
-
-class NotificationListView(LoginRequiredMixin, FeatureRequiredMixin, ListView):
-    model = Notification
-    template_name = 'shifts/notification_list.html'
-    context_object_name = 'notifications'
-    paginate_by = 20
-
-    required_features = ['notifications_enabled']
-
-    def get_queryset(self):
-        return self.request.user.notifications.filter(read=False).order_by('-created_at')
-
-
-class MarkNotificationReadView(LoginRequiredMixin, FeatureRequiredMixin, View):
-    """
-    Marks a notification as read.
-    """
-
-    required_features = ['notifications_enabled']
-
-    @method_decorator(csrf_protect, name='dispatch')
-    def post(self, request, notification_id, *args, **kwargs):
-        notification = get_object_or_404(Notification, id=notification_id, user=request.user)
-        notification.read = True
-        notification.save()
-        logger.info(f"Notification ID {notification.id} marked as read by {request.user.username}.")
-        return JsonResponse({'success': True})
-
-
 # ---------------------------
 # Dashboard View
 # ---------------------------
-
-
 class DashboardView(LoginRequiredMixin, FeatureRequiredMixin, TemplateView):
     template_name = 'shifts/dashboard.html'
 
