@@ -1,4 +1,4 @@
-# /workspace/shiftwise/shiftwise/urls.py
+# shiftwise/urls.py
 
 from django.contrib import admin
 from django.urls import path, include
@@ -14,6 +14,7 @@ urlpatterns = [
     path("auth/", include("allauth.urls")),  # Allauth under 'auth/'
     path("contact/", include("contact.urls", namespace="contact")),
     path("subscriptions/", include("subscriptions.urls", namespace="subscriptions")),
+    path('notifications/', include('notifications.urls', namespace='notifications')),
     path("", include("home.urls", namespace="home")),
 ]
 
