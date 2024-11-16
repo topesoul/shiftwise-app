@@ -577,7 +577,7 @@ class InviteStaffView(
             logger.exception(
                 f"Failed to send invitation email to {invitation.email}: {e}"
             )
-            # Optionally, delete the invitation if email sending fails
+            # Delete the invitation if email sending fails
             invitation.delete()
             logger.debug(
                 f"Invitation deleted due to email sending failure: {invitation.email}"
