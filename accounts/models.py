@@ -1,5 +1,6 @@
 # /workspace/shiftwise/accounts/models.py
 
+import os
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from encrypted_model_fields.fields import EncryptedCharField
@@ -61,7 +62,7 @@ class Agency(models.Model):
         null=True,
         blank=True,
     )
-    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)  # **Added Field**
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "Agencies"
@@ -155,6 +156,19 @@ class Profile(models.Model):
             return features
         return []
 
+    def save(self, *args, **kwargs):
+        try:
+            this = Profile.objects.get(id=self.id)
+            if this.profile_picture != self.profile_picture:
+                if this.profile_picture:
+                    if os.path.isfile(this.profile_picture.path):
+                        os.remove(this.profile_picture.path)
+                        logger.info(f"Old profile picture deleted for user {self.user.username}.")
+        except Profile.DoesNotExist:
+            pass  # New profile, no action needed
+        super(Profile, self).save(*args, **kwargs)
+
+
 class Invitation(models.Model):
     """
     Represents an invitation sent to a staff member.
@@ -181,21 +195,3 @@ class Invitation(models.Model):
         """
         expiration_date = self.invited_at + timezone.timedelta(days=7)
         return timezone.now() > expiration_date
-
-
-class Notification(models.Model):
-    """
-    Represents a notification for a user.
-    """
-
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="notifications"
-    )
-    message = models.CharField(max_length=255)
-    icon = models.CharField(max_length=50, default="fas fa-info-circle")
-    url = models.URLField(blank=True, null=True)
-    read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Notification for {self.user.username}: {self.message}"
