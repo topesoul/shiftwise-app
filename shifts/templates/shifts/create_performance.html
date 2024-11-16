@@ -1,0 +1,16 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/create_performance.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Record Staff Performance</h2>
+    {% if shift %}
+        <p>Associated Shift: <strong>{{ shift.name }} on {{ shift.shift_date }}</strong></p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+{% endblock %}
