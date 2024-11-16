@@ -18,8 +18,10 @@ class SubscriptionLimitChecker:
                 return False
 
             shift_count = Shift.objects.filter(agency=agency, created_at__gte=timezone.now().replace(day=1)).count()
-            if plan.shift_management and shift_count >= getattr(plan, 'shift_limit', 0):
-                return False
+            if plan.shift_management:
+                if plan.shift_limit:
+                    if shift_count >= plan.shift_limit:
+                        return False
             return True
         except Subscription.DoesNotExist:
             return False
