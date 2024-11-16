@@ -38,7 +38,6 @@ from shifts.views import (
     # API Views
     ShiftDetailsAPIView,
 
-
     # Dashboard View
     DashboardView,
 
