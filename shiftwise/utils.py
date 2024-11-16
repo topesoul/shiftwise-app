@@ -55,50 +55,6 @@ def get_shift_assignment_queryset(user):
     else:
         return ShiftAssignment.objects.none()
 
-def auto_assign_shifts():
-    """
-    Auto-assigns available shifts to workers based on their preferences.
-    """
-    unassigned_shifts = Shift.objects.filter(is_completed=False).exclude(
-        assignments__isnull=False
-    )
-
-    for shift in unassigned_shifts:
-        if not shift.latitude or not shift.longitude:
-            logger.warning(f"Shift {shift.id} does not have valid geolocation data.")
-            continue
-
-        # Fetch workers who prefer the shift timing and are within travel distance
-        workers = (
-            User.objects.filter(
-                groups__name="Agency Staff",
-                is_active=True,
-                profile__latitude__isnull=False,
-                profile__longitude__isnull=False,
-                profile__agency=shift.agency,
-            )
-            .annotate(
-                distance=Cast(
-                    haversine_distance(
-                        F("profile__latitude"),
-                        F("profile__longitude"),
-                        shift.latitude,
-                        shift.longitude,
-                        "miles",
-                    ),
-                    FloatField(),
-                )
-            )
-            .filter(Q(profile__travel_radius__gte=F("distance")))
-            .order_by("shift_assignments__count")
-        )
-
-        if workers.exists():
-            worker = workers.first()
-            ShiftAssignment.objects.create(shift=shift, worker=worker)
-            logger.info(f"Auto-assigned Shift ID {shift.id} to Worker {worker.username}.")
-        else:
-            logger.warning(f"No suitable workers found for Shift ID {shift.id}.")
 
 def get_address_from_address_line1(address_line1):
     """
