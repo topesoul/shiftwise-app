@@ -1,0 +1,14 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/staff_performance_form.html -->
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <h2>Update Staff Performance</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
+</div>
+{% endblock %}
