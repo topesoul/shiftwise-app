@@ -1,7 +1,7 @@
-<!-- shifts/templates/shifts/shift_form.html -->
-
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load custom_tags %}
+{% load custom_filters %}
 {% load static %}
 
 {% block title %}{{ form_title }}{% endblock %}
@@ -11,13 +11,28 @@
     <h2>{{ form_title }}</h2>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        {{ form.non_field_errors }}
-
-        <!-- Render Non-Address Form Fields -->
+        
+        <!-- Display non-field errors -->
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+        
+        <!-- Display field-specific errors above the form -->
+        {% for field in form %}
+            {% if field.errors %}
+                <div class="alert alert-danger">
+                    <strong>{{ field.label }}:</strong> 
+                    {% for error in field.errors %}
+                        {{ error }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+        
+        <!-- Render the form using crispy_forms -->
         {{ form|crispy }}
-
-        <!-- Include Address Fields Partial -->
-        {% include 'includes/address_fields.html' %}
 
         <!-- Submit Button -->
         <button type="submit" class="btn btn-primary">Submit</button>
@@ -31,5 +46,4 @@
 
 <!-- Include the Address Autocomplete JavaScript -->
 <script src="{% static 'js/address_autocomplete.js' %}"></script>
-
 {% endblock %}
