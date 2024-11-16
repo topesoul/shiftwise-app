@@ -2,7 +2,7 @@
 
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% custom_filters}
+{% load custom_filters %}
 {% load static %}
 
 {% block title %}Add Staff Member{% endblock %}
@@ -10,7 +10,7 @@
 {% block content %}
 <div class="container mt-5">
     <h2 class="mb-4">Add Staff Member</h2>
-    <form method="post" enctype="multipart/form-data" class="postcode-form">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.non_field_errors }}
         {{ form|crispy }}
@@ -22,5 +22,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/scripts.js' %}"></script>
+<!-- Include the Google Maps JavaScript API with Places and Geocoding Libraries if needed -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places"></script>
+
+<!-- Include the Address Autocomplete JavaScript if address fields are present -->
+<script src="{% static 'js/address_autocomplete.js' %}"></script>
 {% endblock %}
