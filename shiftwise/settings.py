@@ -1,4 +1,4 @@
-# /workspace/shiftwise/shiftwise/settings.py
+# /workspace/shiftwise/settings.py
 
 import os
 from pathlib import Path
@@ -26,12 +26,7 @@ if not FIELD_ENCRYPTION_KEY:
     )
 
 # Hosts allowed to connect to the application
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-]
-
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 # Application definition
 AUTH_USER_MODEL = "accounts.User"  # Custom user model
@@ -44,7 +39,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "django_filters",
     "debug_toolbar",
-    # django-allauth apps
+    # Django-allauth apps
     "django.contrib.sites",
     "allauth",
     "allauth.account",
@@ -60,6 +55,7 @@ INSTALLED_APPS = [
     "shifts",
     "home",
     "contact",
+    "notifications",
     # Django default apps
     "django.contrib.admin",
     "django.contrib.auth",
@@ -77,6 +73,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 # Middleware configuration
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # WhiteNoise middleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     # Debug Toolbar Middleware
     "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -98,7 +95,6 @@ INTERNAL_IPS = [
 
 # Root URL configuration
 ROOT_URLCONF = "shiftwise.urls"
-
 
 # SITE_URL for constructing absolute URLs in notifications
 SITE_URL = os.getenv("SITE_URL")
@@ -172,6 +168,9 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# WhiteNoise static files storage
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 # Media files (user uploads)
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -229,32 +228,6 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@shiftwise.com")
 ADMINS = [
     ("Admin Name", "support@shiftwiseapp.com"),
 ]
-
-# OpenAI API Key
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-# AWS Bucket Parameter Configuration
-if "USE_AWS" in os.environ:
-    # Cache Control
-    AWS_S3_OBJECT_PARAMETERS = {
-        "ExpiresAt": os.environ.get("CACHE_CONTROL_MAX_AGE", default=86400, type=int),
-        "ContentType": "image/jpeg",
-        "ContentDisposition": "inline",
-        "CacheControl": "max-age=%d" % (AWS_S3_OBJECT_PARAMETERS["ExpiresAt"]),
-    }
-
-# AWS Cache Controller
-CACHE_MIDDLEWARE_ALIAS = "default"
-CACHE_MIDDLEWARE_SECONDS = 60 * 60  # 1 hour
-CACHE_MIDDLEWARE_KEY_PREFIX = "shiftwise"
-
-# AWS S3 configuration
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-AWS_REGION_NAME = "us-west-2"
-AWS_STORAGE_BUCKET_NAME = "shiftwise-static-files"
-AWS_DEFAULT_ACL = "public-read"
-AWS_S3_FILE_OVERWRITE = False
 
 # Stripe configuration
 STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
