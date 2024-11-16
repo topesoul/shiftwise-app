@@ -96,10 +96,7 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
             agency = profile.agency
             if not agency:
                 return False
-            subscription = agency.subscription  # Using related_name='subscription'
-            if not subscription.is_active or subscription.is_expired:
-                return False
-            # Check required features
+            subscription = Subscription.objects.get(agency=agency, is_active=True)
             plan = subscription.plan
             if plan:
                 for feature in self.required_features:
@@ -137,10 +134,10 @@ class FeatureRequiredMixin(UserPassesTestMixin):
     """
     Mixin to ensure that the user's subscription includes specific features.
     """
-    required_feature = None  # Single feature required
+    required_features = []  # List of features required to access the view
 
     def test_func(self):
-        if not self.required_feature:
+        if not self.required_features:
             return True  # No feature required
         user = self.request.user
         if user.is_superuser:
@@ -148,17 +145,22 @@ class FeatureRequiredMixin(UserPassesTestMixin):
         if not user.is_authenticated:
             return False
         try:
-            profile = user.profile
-            agency = profile.agency
-            subscription = Subscription.objects.get(agency=agency, is_active=True)
-            plan = subscription.plan
-            return getattr(plan, self.required_feature, False)
-        except (AttributeError, Subscription.DoesNotExist):
+            user_features = getattr(user, 'subscription_features', [])
+            return all(feature in user_features for feature in self.required_features)
+        except AttributeError:
+            logger.exception(
+                f"User {user.username} does not have 'subscription_features' attribute."
+            )
             return False
 
     def handle_no_permission(self):
-        messages.error(
-            self.request,
-            "You do not have the necessary subscription to access this feature.",
-        )
-        return redirect("subscriptions:subscription_home")
+        user = self.request.user
+        if not user.is_authenticated:
+            messages.error(self.request, "You must be logged in to access this page.")
+            return redirect("accounts:login_view")
+        else:
+            messages.error(
+                self.request,
+                "You do not have the necessary subscription to access this feature.",
+            )
+            return redirect("subscriptions:subscription_home")
