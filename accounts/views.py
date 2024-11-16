@@ -39,12 +39,12 @@ from .forms import (
     UserForm,
     UserUpdateForm,
 )
-from .models import Profile, Invitation, Agency, Notification
+from .models import Profile, Invitation, Agency
 from shifts.models import ShiftAssignment, Shift
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 
-from shiftwise.utils import get_address_from_address_line1  # Updated import
+from shiftwise.utils import get_address_from_address_line1
 from subscriptions.models import Subscription
 
 # Import mixins from core.mixins
@@ -383,6 +383,13 @@ class ProfileView(LoginRequiredMixin, SubscriptionRequiredMixin, UpdateView):
         logger.info(f"Profile updated for user {self.request.user.username}.")
         return super().form_valid(form)
 
+    def form_invalid(self, form):
+        messages.error(self.request, "Please correct the errors below.")
+        logger.warning(
+            f"Profile update failed for user {self.request.user.username}: {form.errors}"
+        )
+        return self.render_to_response(self.get_context_data(form=form))
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
@@ -590,7 +597,7 @@ class AcceptInvitationView(View):
 
     def post(self, request, token, *args, **kwargs):
         invitation = get_object_or_404(Invitation, token=token, is_active=True)
-        form = AcceptInvitationForm(request.POST, initial={"email": invitation.email})
+        form = AcceptInvitationForm(request.POST, initial={"email": invitation.email}, invitation=invitation, request=request)
         if form.is_valid():
             # Create the user
             user = form.save()
@@ -835,41 +842,10 @@ class UserDeleteView(
 
     def delete(self, request, *args, **kwargs):
         user = self.get_object()
-        user.is_active = False  # Deactivate instead of deleting
+        user.is_active = False
         user.save()
         messages.success(request, "User deactivated successfully.")
         logger.info(
             f"User '{user.username}' deactivated by user {request.user.username}."
         )
         return redirect(self.success_url)
-
-
-@login_required
-def notifications_list(request):
-    notifications = Notification.objects.filter(user=request.user).order_by(
-        "-created_at"
-    )
-    # Optionally mark all as read
-    Notification.objects.filter(user=request.user, read=False).update(read=True)
-    return render(
-        request, "accounts/notifications_list.html", {"notifications": notifications}
-    )
-
-
-# ---------------------------
-# Notification Views (Optional)
-# ---------------------------
-
-
-class NotificationsView(LoginRequiredMixin, SubscriptionRequiredMixin, ListView):
-    """Displays a list of notifications for the user."""
-
-    model = Notification
-    template_name = "accounts/notifications.html"
-    context_object_name = "notifications"
-    paginate_by = 20
-
-    def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user).order_by(
-            "-created_at"
-        )
