@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
@@ -17,7 +18,7 @@ if not SECRET_KEY:
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
-if not ALLOWED_HOSTS:
+if not ALLOWED_HOSTS or ALLOWED_HOSTS == ['']:
     raise ImproperlyConfigured("ALLOWED_HOSTS must be set in environment variables.")
 
 # Encrypted fields configuration
@@ -80,7 +81,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "shiftwise.urls"
 
-SITE_URL = os.getenv("SITE_URL", "https://your-app-name.herokuapp.com")
+SITE_URL = os.getenv("SITE_URL")
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
@@ -110,15 +111,28 @@ TEMPLATES = [
 WSGI_APPLICATION = "shiftwise.wsgi.application"
 
 # Database configuration
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),
-        conn_max_age=600,
-        ssl_require=True,
-    )
-}
-if not DATABASES['default']:
-    raise ImproperlyConfigured("DATABASE_URL must be set in environment variables.")
+if 'collectstatic' in sys.argv:
+    # Use a dummy database configuration when running collectstatic
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.dummy',
+        }
+    }
+else:
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    if not DATABASE_URL:
+        raise ImproperlyConfigured("DATABASE_URL must be set in environment variables.")
+
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
+
+    # Configure SSL for PostgreSQL database
+    DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -238,14 +252,3 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = 'DENY'
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# Activate Django-Heroku
-import django_heroku
-django_heroku.settings(locals(), staticfiles=False)
-
-
-# Configure SSL for PostgreSQL database
-if 'DATABASES' in locals():
-    if 'default' in DATABASES:
-        DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
-
