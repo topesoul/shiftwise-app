@@ -21,216 +21,158 @@
     <!-- Navbar Links -->
     <div class="collapse navbar-collapse" id="navbarShiftWise">
       <ul class="navbar-nav mr-auto">
-        <!-- Common Links -->
-        <li class="nav-item {% if request.resolver_match.url_name == 'home:home' %}active{% endif %}">
+        <!-- Home Link -->
+        <li class="nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
           <a class="nav-link" href="{% url 'home:home' %}">
             <i class="fas fa-home"></i> Home
-            {% if request.resolver_match.url_name == 'home:home' %}
-              <span class="sr-only">(current)</span>
-            {% endif %}
-          </a>
-        </li>
-        <li class="nav-item {% if request.resolver_match.url_name == 'contact:contact' %}active{% endif %}">
-          <a class="nav-link" href="{% url 'contact:contact' %}">
-            <i class="fas fa-envelope"></i> Contact
-            {% if request.resolver_match.url_name == 'contact:contact' %}
-              <span class="sr-only">(current)</span>
-            {% endif %}
           </a>
         </li>
 
-        <!-- Role-Based Links -->
+        <!-- Contact Link -->
+        <li class="nav-item {% if request.resolver_match.url_name == 'contact' %}active{% endif %}">
+          <a class="nav-link" href="{% url 'contact:contact' %}">
+            <i class="fas fa-envelope"></i> Contact
+          </a>
+        </li>
+
         {% if user.is_authenticated %}
-          {% if is_superuser %}
+          <!-- Dashboard Link Based on User Role -->
+          {% if user.is_superuser %}
             <!-- Superuser Dashboard -->
-            <li class="nav-item {% if request.resolver_match.url_name == 'accounts:superuser_dashboard' %}active{% endif %}">
+            <li class="nav-item {% if request.resolver_match.url_name == 'superuser_dashboard' %}active{% endif %}">
               <a class="nav-link" href="{% url 'accounts:superuser_dashboard' %}">
-                <i class="fas fa-user-shield"></i> Dashboard
-                {% if request.resolver_match.url_name == 'accounts:superuser_dashboard' %}
-                  <span class="sr-only">(current)</span>
-                {% endif %}
+                <i class="fas fa-tachometer-alt"></i> Dashboard
               </a>
             </li>
-          {% elif is_agency_owner %}
-            <!-- Agency Owner Dashboard -->
-            <li class="nav-item {% if request.resolver_match.url_name == 'accounts:agency_dashboard' %}active{% endif %}">
+          {% elif user|has_group:"Agency Owners" or user|has_group:"Agency Managers" %}
+            <!-- Agency Owner/Manager Dashboard -->
+            <li class="nav-item {% if request.resolver_match.url_name == 'agency_dashboard' %}active{% endif %}">
               <a class="nav-link" href="{% url 'accounts:agency_dashboard' %}">
                 <i class="fas fa-building"></i> Dashboard
-                {% if request.resolver_match.url_name == 'accounts:agency_dashboard' %}
-                  <span class="sr-only">(current)</span>
-                {% endif %}
               </a>
             </li>
-          {% elif is_agency_manager %}
-            <!-- Agency Manager Dashboard -->
-            <li class="nav-item {% if request.resolver_match.url_name == 'accounts:agency_dashboard' %}active{% endif %}">
-              <a class="nav-link" href="{% url 'accounts:agency_dashboard' %}">
-                <i class="fas fa-building"></i> Dashboard
-                {% if request.resolver_match.url_name == 'accounts:agency_dashboard' %}
-                  <span class="sr-only">(current)</span>
-                {% endif %}
-              </a>
-            </li>
-          {% elif is_agency_staff %}
-            <!-- Agency Staff Dashboard -->
-            <li class="nav-item {% if request.resolver_match.url_name == 'accounts:staff_dashboard' %}active{% endif %}">
+          {% elif user|has_group:"Agency Staff" %}
+            <!-- Staff Dashboard -->
+            <li class="nav-item {% if request.resolver_match.url_name == 'staff_dashboard' %}active{% endif %}">
               <a class="nav-link" href="{% url 'accounts:staff_dashboard' %}">
                 <i class="fas fa-user-tie"></i> Dashboard
-                {% if request.resolver_match.url_name == 'accounts:staff_dashboard' %}
-                  <span class="sr-only">(current)</span>
-                {% endif %}
+              </a>
+            </li>
+          {% else %}
+            <!-- Default Dashboard -->
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'accounts:profile' %}">
+                <i class="fas fa-user"></i> Profile
               </a>
             </li>
           {% endif %}
 
-          <!-- View Shifts (Accessible to All Authenticated Users) -->
-          <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:shift_list,shifts:shift_detail" %}active{% endif %}">
+          <!-- View Shifts -->
+          <li class="nav-item {% if request.resolver_match.url_name == 'shift_list' %}active{% endif %}">
             <a class="nav-link" href="{% url 'shifts:shift_list' %}">
-              <i class="fas fa-eye"></i> View Shifts
-              {% if request.resolver_match.url_name|is_in:"shifts:shift_list,shifts:shift_detail" %}
-                <span class="sr-only">(current)</span>
-              {% endif %}
+              <i class="fas fa-calendar-alt"></i> View Shifts
             </a>
           </li>
 
-          <!-- Performance Management (Visible to users with 'staff_performance' feature) -->
-          {% if user|has_feature:"staff_performance" %}
-            <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}active{% endif %}">
-              <a class="nav-link" href="{% url 'shifts:staff_performance_list' %}">
-                <i class="fas fa-chart-line"></i> Staff Performance
-                {% if request.resolver_match.url_name|is_in:"shifts:staff_performance_list,shifts:staff_performance_detail,shifts:staff_performance_create,shifts:staff_performance_update,shifts:staff_performance_delete" %}
-                  <span class="sr-only">(current)</span>
-                {% endif %}
-              </a>
-            </li>
-          {% endif %}
-
-          <!-- Manage Staff (Visible to users with 'custom_integrations' feature) -->
-          {% if user|has_feature:"custom_integrations" %}
-            <li class="nav-item {% if request.resolver_match.url_name|is_in:"shifts:staff_list,shifts:staff_create,shifts:staff_update,shifts:staff_delete" %}active{% endif %}">
-              <a class="nav-link" href="{% url 'shifts:staff_list' %}">
-                <i class="fas fa-users"></i> Manage Staff
-                {% if request.resolver_match.url_name|is_in:"shifts:staff_list,shifts:staff_create,shifts:staff_update,shifts:staff_delete" %}
-                  <span class="sr-only">(current)</span>
-                {% endif %}
-              </a>
-            </li>
-          {% endif %}
-
-          <!-- Notifications Dropdown (Visible to users with 'notifications_enabled' feature) -->
-          {% if user|has_feature:"notifications_enabled" %}
-            <li class="nav-item dropdown {% if 'notifications' in request.resolver_match.url_name %}active{% endif %}">
-              <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-bell"></i> Notifications
-                {% if unread_notifications_count > 0 %}
-                  <span class="badge badge-danger">{{ unread_notifications_count }}</span>
-                {% endif %}
-              </a>
-              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="notificationsDropdown">
-                {% if unread_notifications_count > 0 %}
-                  <a class="dropdown-item" href="{% url 'accounts:notifications' %}">
-                    <i class="fas fa-eye mr-2"></i> View All Notifications
-                  </a>
-                {% else %}
-                  <a class="dropdown-item disabled" href="#">
-                    <i class="fas fa-info-circle mr-2"></i> No new notifications
-                  </a>
-                {% endif %}
-              </div>
-            </li>
-          {% endif %}
-
-          <!-- Needs Upgrade Alert -->
-          {% if needs_upgrade %}
-            <li class="nav-item">
-              <a class="nav-link text-warning" href="{% url 'subscriptions:upgrade_subscription' %}">
-                <i class="fas fa-exclamation-triangle"></i> Upgrade Needed
-              </a>
-            </li>
-          {% endif %}
-
-          <!-- Manage Agencies (Visible to Superusers and Agency Owners) -->
-          {% if is_superuser or is_agency_owner %}
-            <li class="nav-item dropdown {% if 'manage_agencies' in request.resolver_match.url_name %}active{% endif %}">
-              <a class="nav-link dropdown-toggle" href="#" id="manageAgenciesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          {% if user.is_superuser %}
+            <!-- Manage Agencies -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="agenciesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-building"></i> Agencies
               </a>
-              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="manageAgenciesDropdown">
-                <a class="dropdown-item" href="{% url 'accounts:manage_agencies' %}">
-                  <i class="fas fa-list mr-2"></i> Manage Agencies
-                </a>
-                {% if is_superuser %}
-                  <a class="dropdown-item" href="{% url 'accounts:agency_create' %}">
-                    <i class="fas fa-plus mr-2"></i> Create Agency
-                  </a>
-                {% endif %}
+              <div class="dropdown-menu" aria-labelledby="agenciesDropdown">
+                <a class="dropdown-item" href="{% url 'accounts:manage_agencies' %}">Manage Agencies</a>
+                <a class="dropdown-item" href="{% url 'accounts:agency_create' %}">Create Agency</a>
               </div>
             </li>
-          {% endif %}
 
-          <!-- Manage Users (Visible to Superusers only) -->
-          {% if is_superuser %}
-            <li class="nav-item dropdown {% if 'manage_users' in request.resolver_match.url_name %}active{% endif %}">
-              <a class="nav-link dropdown-toggle" href="#" id="manageUsersDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <!-- Manage Users -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="usersDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-users-cog"></i> Users
               </a>
-              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="manageUsersDropdown">
-                <a class="dropdown-item" href="{% url 'accounts:manage_users' %}">
-                  <i class="fas fa-list mr-2"></i> Manage Users
-                </a>
-                <a class="dropdown-item" href="{% url 'accounts:user_create' %}">
-                  <i class="fas fa-user-plus mr-2"></i> Create User
-                </a>
+              <div class="dropdown-menu" aria-labelledby="usersDropdown">
+                <a class="dropdown-item" href="{% url 'accounts:manage_users' %}">Manage Users</a>
+                <a class="dropdown-item" href="{% url 'accounts:user_create' %}">Create User</a>
               </div>
+            </li>
+          {% elif user|has_group:"Agency Owners" %}
+            <!-- Agency Owner Links -->
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'accounts:agency_dashboard' %}">
+                <i class="fas fa-building"></i> Agency Dashboard
+              </a>
+            </li>
+          {% elif user|has_group:"Agency Managers" %}
+            <!-- Agency Manager Links -->
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'accounts:agency_dashboard' %}">
+                <i class="fas fa-building"></i> Agency Dashboard
+              </a>
+            </li>
+          {% elif user|has_group:"Agency Staff" %}
+            <!-- Agency Staff Links -->
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'accounts:staff_dashboard' %}">
+                <i class="fas fa-user-tie"></i> Staff Dashboard
+              </a>
             </li>
           {% endif %}
 
-          <!-- Subscription Management (Visible to Superusers and Agency Owners) -->
-          {% if is_superuser or is_agency_owner %}
-            <li class="nav-item dropdown {% if 'subscriptions' in request.resolver_match.url_name %}active{% endif %}">
+          <!-- Performance Management -->
+          {% if user|has_feature:"staff_performance" %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'shifts:staff_performance_list' %}">
+                <i class="fas fa-chart-line"></i> Staff Performance
+              </a>
+            </li>
+          {% endif %}
+
+          <!-- Manage Staff -->
+          {% if user|has_feature:"custom_integrations" %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'shifts:staff_list' %}">
+                <i class="fas fa-users"></i> Manage Staff
+              </a>
+            </li>
+          {% endif %}
+
+          <!-- Subscription Management -->
+          {% if user.is_superuser or user|has_group:"Agency Owners" %}
+            <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="subscriptionDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-credit-card"></i> Subscriptions
               </a>
-              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="subscriptionDropdown">
+              <div class="dropdown-menu" aria-labelledby="subscriptionDropdown">
                 {% if has_active_subscription %}
-                  <a class="dropdown-item" href="{% url 'subscriptions:manage_subscription' %}">
-                    <i class="fas fa-cogs mr-2"></i> Manage Subscription
-                  </a>
-                  <a class="dropdown-item" href="{% url 'subscriptions:cancel_subscription' %}">
-                    <i class="fas fa-ban mr-2"></i> Cancel Subscription
-                  </a>
-                  <!-- Upgrade/Downgrade Options -->
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item" href="{% url 'subscriptions:upgrade_subscription' %}">
-                    <i class="fas fa-arrow-up mr-2"></i> Upgrade Plan
-                  </a>
-                  <a class="dropdown-item" href="{% url 'subscriptions:downgrade_subscription' %}">
-                    <i class="fas fa-arrow-down mr-2"></i> Downgrade Plan
-                  </a>
+                  <a class="dropdown-item" href="{% url 'subscriptions:manage_subscription' %}">Manage Subscription</a>
+                  <a class="dropdown-item" href="{% url 'subscriptions:cancel_subscription' %}">Cancel Subscription</a>
                 {% else %}
-                  {% for plan in available_plans %}
-                    {% if plan.monthly_plan %}
-                      <a class="dropdown-item" href="{% url 'subscriptions:subscribe' plan.monthly_plan.id %}">
-                        <i class="fas fa-plus-circle mr-2"></i> Subscribe to {{ plan.name }} (Monthly)
-                      </a>
-                    {% endif %}
-                    {% if plan.yearly_plan %}
-                      <a class="dropdown-item" href="{% url 'subscriptions:subscribe' plan.yearly_plan.id %}">
-                        <i class="fas fa-plus-circle mr-2"></i> Subscribe to {{ plan.name }} (Yearly)
-                      </a>
-                    {% endif %}
-                  {% empty %}
-                    <a class="dropdown-item disabled" href="#">
-                      <i class="fas fa-exclamation-circle mr-2"></i> No Plans Available
-                    </a>
-                  {% endfor %}
+                  <a class="dropdown-item" href="{% url 'subscriptions:subscription_home' %}">Subscribe</a>
                 {% endif %}
               </div>
             </li>
           {% endif %}
+        {% else %}
+          <!-- Unauthenticated Users -->
+          <li class="nav-item {% if request.resolver_match.url_name == 'login_view' %}active{% endif %}">
+            <a class="nav-link" href="{% url 'accounts:login_view' %}">
+              <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+          </li>
+          <li class="nav-item {% if request.resolver_match.url_name == 'signup_selection' %}active{% endif %}">
+            <a class="nav-link" href="{% url 'accounts:signup_selection' %}">
+              <i class="fas fa-user-plus"></i> Sign Up
+            </a>
+          </li>
+        {% endif %}
+      </ul>
 
+      <!-- Right Side Navbar Items -->
+      <ul class="navbar-nav">
+        {% if user.is_authenticated %}
           <!-- User Profile Dropdown -->
-          <li class="nav-item dropdown {% if 'profile' in request.resolver_match.url_name %}active{% endif %}">
+          <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               {% if user.profile.profile_picture %}
                 <img src="{{ user.profile.profile_picture.url }}" alt="{{ user.username }}'s Profile Picture" class="rounded-circle mr-2" style="height:30px; width:30px;">
@@ -243,35 +185,14 @@
               <a class="dropdown-item" href="{% url 'accounts:profile' %}">
                 <i class="fas fa-user-circle mr-2"></i> Profile
               </a>
+              <!-- MFA Settings Link Removed -->
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" href="{% url 'accounts:logout_view' %}">
                 <i class="fas fa-sign-out-alt mr-2"></i> Logout
               </a>
             </div>
           </li>
-        {% else %}
-          <!-- Unauthenticated Users -->
-          <li class="nav-item {% if request.resolver_match.url_name == 'accounts:login_view' %}active{% endif %}">
-            <a class="nav-link" href="{% url 'accounts:login_view' %}">
-              <i class="fas fa-sign-in-alt"></i> Login
-              {% if request.resolver_match.url_name == 'accounts:login_view' %}
-                <span class="sr-only">(current)</span>
-              {% endif %}
-            </a>
-          </li>
-          <li class="nav-item {% if request.resolver_match.url_name == 'accounts:signup_selection' %}active{% endif %}">
-            <a class="nav-link" href="{% url 'accounts:signup_selection' %}">
-              <i class="fas fa-user-plus"></i> Sign Up
-              {% if request.resolver_match.url_name == 'accounts:signup_selection' %}
-                <span class="sr-only">(current)</span>
-              {% endif %}
-            </a>
-          </li>
         {% endif %}
-      </ul>
-
-      <!-- Right Side Navbar Items -->
-      <ul class="navbar-nav">
         <!-- Dark Mode Toggle -->
         <li class="nav-item">
           <a class="nav-link" href="#" id="darkModeToggle">
