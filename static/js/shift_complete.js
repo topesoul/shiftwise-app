@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 longitudeInput.value = longitude;
                 locationStatus.innerHTML = `<span class='text-success'>Location captured: (${latitude}, ${longitude})</span>`;
 
-                // Fetch address using reverse geocoding (optional)
+                // Fetch address using reverse geocoding 
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`)
                     .then((response) => response.json())
                     .then((data) => {
