@@ -1,11 +1,11 @@
-# /workspace/shiftwise/accounts/context_processors.py
+# accounts/context_processors.py
 
 from collections import defaultdict
 from django.utils import timezone
 from subscriptions.models import Plan, Subscription
 from django.contrib.auth.models import Group
 from django.conf import settings
-from accounts.models import Notification
+from notifications.models import Notification
 from django.core.exceptions import ObjectDoesNotExist
 import logging
 
@@ -137,5 +137,5 @@ def user_roles_and_subscriptions(request):
         "GOOGLE_PLACES_API_KEY": google_places_api_key,
         "notifications": notifications,
         "unread_notifications_count": unread_notifications_count,
-        "needs_upgrade": needs_upgrade,  # Pass the upgrade flag to templates
+        "needs_upgrade": needs_upgrade,
     }
