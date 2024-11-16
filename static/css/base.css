@@ -147,12 +147,3 @@ nav.navbar {
     overflow-y: auto;
 }
 
-/* Responsive Navbar Fix */
-@media (max-width: 992px) {
-    .navbar-nav {
-        text-align: center;
-    }
-    .navbar-nav .nav-item {
-        margin: 0.5rem 0;
-    }
-}
