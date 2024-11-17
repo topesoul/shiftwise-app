@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import TemplateView
 from django.contrib import messages
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.http import HttpResponse
 from django.utils import timezone
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-class SubscriptionHomeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView):
+class SubscriptionHomeView(TemplateView):
     """
     Displays the available subscription plans and the agency's current subscription status.
     """
@@ -39,20 +39,27 @@ class SubscriptionHomeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, Templat
 
         user = self.request.user
 
-        # Ensure the user has a profile
-        try:
-            profile = user.profile
-        except Profile.DoesNotExist:
-            messages.error(self.request, "User profile does not exist. Please contact support.")
-            logger.error(f"Profile does not exist for user: {user.username}")
-            return context
+        # Ensure the user has a profile if authenticated
+        if user.is_authenticated:
+            try:
+                profile = user.profile
+            except Profile.DoesNotExist:
+                messages.error(self.request, "User profile does not exist. Please contact support.")
+                logger.error(f"Profile does not exist for user: {user.username}")
+                return context
 
-        agency = profile.agency
+            agency = profile.agency
 
-        if agency is None:
-            messages.error(self.request, "Your agency information is missing. Please contact support.")
-            logger.error(f"Agency is None for user: {user.username}")
-            return context
+            if agency is None:
+                messages.error(self.request, "Your agency information is missing. Please contact support.")
+                logger.error(f"Agency is None for user: {user.username}")
+                return context
+
+            # Get current subscription
+            subscription = Subscription.objects.filter(
+                agency=agency, is_active=True, current_period_end__gt=timezone.now()
+            ).first()
+            context["subscription"] = subscription
 
         # Retrieve all active plans
         plans = Plan.objects.filter(is_active=True).order_by("name", "billing_cycle")
@@ -77,42 +84,47 @@ class SubscriptionHomeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, Templat
 
         context["available_plans"] = available_plans
 
-        # Get current subscription
-        subscription = Subscription.objects.filter(
-            agency=agency, is_active=True, current_period_end__gt=timezone.now()
-        ).first()
-        context["subscription"] = subscription
-
         return context
 
 
-class SubscribeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View):
+class SubscribeView(LoginRequiredMixin, View):
     """
     Handles the subscription process, integrating with Stripe Checkout.
     """
+
+    def get(self, request, plan_id, *args, **kwargs):
+        return self.process_subscription(request, plan_id)
+
     def post(self, request, plan_id, *args, **kwargs):
+        return self.process_subscription(request, plan_id)
+
+    def process_subscription(self, request, plan_id):
         user = request.user
 
         # Ensure the user has a profile
         try:
             profile = user.profile
         except Profile.DoesNotExist:
-            messages.error(request, "User profile does not exist. Please contact support.")
-            logger.error(f"Profile does not exist for user: {user.username}")
-            return redirect("subscriptions:subscription_home")
+            messages.error(request, "Please complete your profile before subscribing.")
+            return redirect("accounts:update_profile")
+
+        # Ensure the user has an agency
+        if not hasattr(profile, 'agency') or profile.agency is None:
+            messages.error(request, "Please create an agency before subscribing.")
+            return redirect("accounts:create_agency")
 
         agency = profile.agency
 
-        if agency is None:
-            messages.error(request, "Your agency information is missing. Please contact support.")
-            logger.error(f"Agency is None for user: {user.username}")
+        # Check if user is an agency owner
+        if not user.groups.filter(name="Agency Owners").exists():
+            messages.error(request, "Only agency owners can subscribe.")
             return redirect("subscriptions:subscription_home")
 
         # Get the selected plan
         plan = get_object_or_404(Plan, id=plan_id, is_active=True)
 
         # Create or retrieve a Stripe Customer
-        if not hasattr(agency, 'stripe_customer_id') or not agency.stripe_customer_id:
+        if not agency.stripe_customer_id:
             try:
                 # Use the Utility Function to Create Stripe Customer
                 customer = create_stripe_customer(agency)
@@ -344,7 +356,7 @@ class ManageSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, Templ
             logger.error(f"Agency is None for user: {user.username}")
             return context
 
-        if not hasattr(agency, 'stripe_customer_id') or not agency.stripe_customer_id:
+        if not agency.stripe_customer_id:
             messages.error(self.request, "No Stripe customer ID found. Please contact support.")
             logger.error(f"Stripe customer ID is missing for agency: {agency.name}")
             return context
@@ -388,7 +400,7 @@ class CancelSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View)
             logger.error(f"Agency is None for user: {user.username}")
             return redirect("subscriptions:subscription_home")
 
-        if not hasattr(agency, 'stripe_customer_id') or not agency.stripe_customer_id:
+        if not agency.stripe_customer_id:
             messages.error(request, "No Stripe customer ID found. Please contact support.")
             logger.error(f"Stripe customer ID is missing for agency: {agency.name}")
             return redirect("subscriptions:subscription_home")
@@ -443,7 +455,7 @@ class UpdatePaymentMethodView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View
             logger.error(f"Agency is None for user: {user.username}")
             return redirect("subscriptions:subscription_home")
 
-        if not hasattr(agency, 'stripe_customer_id') or not agency.stripe_customer_id:
+        if not agency.stripe_customer_id:
             messages.error(request, "No Stripe customer ID found. Please contact support.")
             logger.error(f"Stripe customer ID is missing for agency: {agency.name}")
             return redirect("subscriptions:subscription_home")
