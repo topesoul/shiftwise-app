@@ -59,3 +59,10 @@
     </section>
 {% endif %}
 {% endblock %}
+
+{% block extra_js %}
+
+<!-- Include the billing.js script for toggling billing cycles and plans -->
+<script src="{% static 'js/billing.js' %}"></script>
+
+{% endblock %}
