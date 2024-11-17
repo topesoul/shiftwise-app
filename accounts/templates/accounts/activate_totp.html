@@ -1,0 +1,25 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/mfa/activate_totp.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Activate MFA | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Activate Multi-Factor Authentication</h2>
+    <p>Scan the QR code below with your authenticator app (e.g., Google Authenticator, Authy) and enter the generated code.</p>
+    <div class="text-center mb-4">
+        <img src="data:image/png;base64,{{ qr_code_image }}" alt="MFA QR Code">
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_totp_code">MFA Code:</label>
+            <input type="text" name="totp_code" id="id_totp_code" class="form-control" maxlength="6" required>
+        </div>
+        <button type="submit" class="btn btn-success">Activate MFA</button>
+    </form>
+</div>
+{% endblock %}
