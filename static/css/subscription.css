@@ -100,4 +100,33 @@
     color: #ffffff;
 }
 
-.dark-mode .subscription-card .features-list .text-succes
+.dark-mode .subscription-card .features-list .text-success {
+    color: #28a745 !important;
+}
+
+.dark-mode .subscription-card .features-list .text-danger {
+    color: #dc3545 !important;
+}
+
+/* Badge Adjustments for Dark Mode */
+.dark-mode .subscription-card .badge {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+/* Ensure buttons adapt to dark mode */
+.dark-mode .subscribe-button {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.dark-mode .subscribe-button:hover {
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+/* Disabled Subscribe Button Styling */
+.subscribe-button.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+}
