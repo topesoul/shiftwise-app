@@ -1,13 +1,8 @@
 // /workspace/shiftwise/static/js/scripts.js
 
 document.addEventListener('DOMContentLoaded', function () {
-    if (window.jQuery) {
-
-        // Billing Cycle Toggle Functionality
-        initBillingCycleToggle();
-    } else {
-        console.error("jQuery is missing.");
-    }
+    // Billing Cycle Toggle Functionality
+    initBillingCycleToggle();
 });
 
 // Billing Cycle Toggle Functionality
@@ -15,7 +10,7 @@ function initBillingCycleToggle() {
     const monthlyToggle = document.getElementById('monthlyToggle');
     const yearlyToggle = document.getElementById('yearlyToggle');
     const priceValues = document.querySelectorAll('.price-value');
-    const subscribeForms = document.querySelectorAll('.subscribe-form');
+    const subscribeButtons = document.querySelectorAll('.subscribe-button');
 
     function updatePricingAndActions(isMonthly) {
         priceValues.forEach(function(span) {
@@ -30,14 +25,15 @@ function initBillingCycleToggle() {
             }
         });
 
-        subscribeForms.forEach(function(form) {
-            const planId = isMonthly ? form.getAttribute('data-monthly-plan-id') : form.getAttribute('data-yearly-plan-id');
+        const baseUrl = "/subscriptions/subscribe/";
+        subscribeButtons.forEach(function(button) {
+            const planId = isMonthly ? button.getAttribute('data-monthly-plan-id') : button.getAttribute('data-yearly-plan-id');
             if (planId) {
-                form.action = "/subscriptions/subscribe/" + planId + "/";
-                form.querySelector('button').disabled = false;
+                button.href = baseUrl + planId + "/";
+                button.classList.remove('disabled');
             } else {
-                form.action = "#";
-                form.querySelector('button').disabled = true;
+                button.href = "#";
+                button.classList.add('disabled');
             }
         });
     }
