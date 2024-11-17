@@ -35,11 +35,31 @@ def user_roles_and_subscriptions(request):
     current_plan = None
     subscription_features = []
     can_manage_shifts = False
-    notifications = []  # Initialize notifications
+    notifications = []
 
     needs_upgrade = False  # Flag to indicate if an upgrade is needed
 
     unread_notifications_count = 0  # Initialize unread notifications count
+
+    # Retrieve all active plans
+    plans = Plan.objects.filter(is_active=True).order_by("name", "billing_cycle")
+
+    # Group plans by name
+    plan_dict = defaultdict(dict)
+    for plan in plans:
+        if plan.billing_cycle.lower() == 'monthly':
+            plan_dict[plan.name]['monthly_plan'] = plan
+        elif plan.billing_cycle.lower() == 'yearly':
+            plan_dict[plan.name]['yearly_plan'] = plan
+
+    # Structure available_plans as a list of dictionaries
+    for plan_name, plans in plan_dict.items():
+        available_plans.append({
+            "name": plan_name,
+            "description": plans.get('monthly_plan', plans.get('yearly_plan')).description,
+            "monthly_plan": plans.get('monthly_plan'),
+            "yearly_plan": plans.get('yearly_plan'),
+        })
 
     if user.is_authenticated:
         try:
@@ -83,25 +103,6 @@ def user_roles_and_subscriptions(request):
             logger.warning(f"User {user.username} does not have a profile or agency.")
         except Exception as e:
             logger.exception(f"Error in context processor: {e}")
-
-        # Retrieve all active plans
-        plans = Plan.objects.filter(is_active=True).order_by("name", "billing_cycle")
-
-        # Group plans by name
-        plan_dict = defaultdict(dict)
-        for plan in plans:
-            if plan.billing_cycle.lower() == 'monthly':
-                plan_dict[plan.name]['monthly_plan'] = plan
-            elif plan.billing_cycle.lower() == 'yearly':
-                plan_dict[plan.name]['yearly_plan'] = plan
-
-        # Structure available_plans as a list of dictionaries
-        for plan_name, plans in plan_dict.items():
-            available_plans.append({
-                "name": plan_name,
-                "monthly_plan": plans.get('monthly_plan'),
-                "yearly_plan": plans.get('yearly_plan'),
-            })
 
         # Fetch unread notifications for the user
         notifications = Notification.objects.filter(user=user, read=False).order_by('-created_at')
