@@ -1,0 +1,19 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/mfa_verify.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}MFA Verification | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>MFA Verification</h2>
+    <p>Please enter the code from your authenticator app.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button type="submit" class="btn btn-primary">Verify</button>
+    </form>
+</div>
+{% endblock %}
