@@ -1,38 +1,26 @@
-import base64
-import csv
-import uuid
+# /workspace/shiftwise/shifts/views/report_views.py
+
 import logging
-import requests
-from django import forms
-from django.conf import settings
+from datetime import datetime, timedelta
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError, PermissionDenied
-from django.core.files.base import ContentFile
-from django.db.models import Q, Count, F, Sum, FloatField, ExpressionWrapper, Prefetch
-from django.http import JsonResponse, HttpResponse, StreamingHttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy, reverse
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.db import models
+from django.db.models import Count, ExpressionWrapper, F, FloatField, Q, Sum
+from django.http import StreamingHttpResponse
+from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
-from django.views.generic import (
-    ListView, CreateView, UpdateView, DeleteView, DetailView, View, TemplateView, FormView
+from django.views.generic import TemplateView, View
+
+from accounts.models import Agency
+from core.mixins import (
+    AgencyManagerRequiredMixin,
+    FeatureRequiredMixin,
+    SubscriptionRequiredMixin,
 )
-from django_filters.views import FilterView
-from accounts.models import Profile, Agency
-from notifications.models import Notification
-from accounts.forms import StaffCreationForm, StaffUpdateForm
-from shifts.models import Shift, ShiftAssignment, StaffPerformance
-from shifts.forms import ShiftForm, ShiftCompletionForm, StaffPerformanceForm, AssignWorkerForm, UnassignWorkerForm
-from shifts.filters import ShiftFilter
-from shifts.utils import is_shift_full, is_user_assigned
-from core.mixins import AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, AgencyManagerRequiredMixin, AgencyStaffRequiredMixin, FeatureRequiredMixin
-from shiftwise.utils import haversine_distance,  generate_shift_code
+from shifts.models import Shift, StaffPerformance
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -46,7 +34,11 @@ User = get_user_model()
 
 
 class TimesheetDownloadView(
-    LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    View,
 ):
     """
     Generates and downloads a CSV timesheet for payroll, including total hours and total pay.
@@ -54,7 +46,7 @@ class TimesheetDownloadView(
     Utilizes StreamingHttpResponse for efficient large file handling and robust error handling.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
 
     def get(self, request, *args, **kwargs):
         try:
@@ -130,7 +122,7 @@ class TimesheetDownloadView(
 
             # Define a generator to stream CSV rows
             def csv_generator():
-                yield [
+                yield (
                     "Username",
                     "Full Name",
                     "Email",
@@ -139,26 +131,27 @@ class TimesheetDownloadView(
                     "Pending Shifts",
                     "Total Hours",
                     "Total Pay (£)",
-                ]
+                )
                 for staff in staff_members:
-                    yield [
+                    yield (
                         staff.username,
                         f"{staff.first_name} {staff.last_name}",
                         staff.email,
-                        staff.total_shifts,
-                        staff.completed_shifts,
-                        staff.pending_shifts,
+                        staff.total_shifts or 0,
+                        staff.completed_shifts or 0,
+                        staff.pending_shifts or 0,
                         staff.total_hours or 0,  # Ensure no None values
                         (
                             "{0:.2f}".format(staff.total_pay)
                             if staff.total_pay
                             else "0.00"
                         ),
-                    ]
+                    )
 
             # Initialize StreamingHttpResponse with a generator
             response = StreamingHttpResponse(
-                (row for row in csv_generator()), content_type="text/csv"
+                (",".join(map(str, row)) + "\n" for row in csv_generator()),
+                content_type="text/csv",
             )
             filename = f"timesheet_{timezone.now().strftime('%Y%m%d')}.csv"
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -196,24 +189,20 @@ class ReportDashboardView(
 ):
     template_name = "shifts/report_dashboard.html"
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Existing shift data
-        from datetime import datetime, timedelta
-
-        dates = [datetime.now() - timedelta(days=i) for i in range(7)]
+        dates = [datetime.now().date() - timedelta(days=i) for i in range(6, -1, -1)]
         labels = [date.strftime("%Y-%m-%d") for date in dates]
-        shift_data = [
-            Shift.objects.filter(shift_date=date.date()).count() for date in dates
-        ]
-        context["labels"] = labels[::-1]
-        context["shift_data"] = shift_data[::-1]
+        shift_data = [Shift.objects.filter(shift_date=date).count() for date in dates]
+        context["labels"] = labels
+        context["shift_data"] = shift_data
 
         # Performance data
         performance = StaffPerformance.objects.filter(
-            shift__shift_date__gte=datetime.now() - timedelta(days=30)
+            shift__shift_date__gte=datetime.now().date() - timedelta(days=30)
         )
         avg_wellness = (
             performance.aggregate(models.Avg("wellness_score"))["wellness_score__avg"]
@@ -227,3 +216,9 @@ class ReportDashboardView(
         )
         context["avg_wellness"] = round(avg_wellness, 2)
         context["avg_rating"] = round(avg_rating, 2)
+
+        logger.debug(
+            f"Report dashboard accessed by user {self.request.user.username}. Shift data: {shift_data}, Performance data: Avg Wellness: {avg_wellness}, Avg Rating: {avg_rating}"
+        )
+
+        return context
