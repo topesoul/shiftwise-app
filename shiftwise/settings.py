@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
@@ -18,13 +19,15 @@ if not SECRET_KEY:
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
-if not ALLOWED_HOSTS or ALLOWED_HOSTS == ['']:
+if not ALLOWED_HOSTS or ALLOWED_HOSTS == [""]:
     raise ImproperlyConfigured("ALLOWED_HOSTS must be set in environment variables.")
 
 # Encrypted fields configuration
 FIELD_ENCRYPTION_KEY = os.getenv("FIELD_ENCRYPTION_KEY")
 if not FIELD_ENCRYPTION_KEY:
-    raise ImproperlyConfigured("FIELD_ENCRYPTION_KEY must be set in environment variables.")
+    raise ImproperlyConfigured(
+        "FIELD_ENCRYPTION_KEY must be set in environment variables."
+    )
 
 # Application definition
 AUTH_USER_MODEL = "accounts.User"
@@ -111,15 +114,15 @@ TEMPLATES = [
 WSGI_APPLICATION = "shiftwise.wsgi.application"
 
 # Database configuration
-if 'collectstatic' in sys.argv:
+if "collectstatic" in sys.argv:
     # Use a dummy database configuration when running collectstatic
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.dummy',
+        "default": {
+            "ENGINE": "django.db.backends.dummy",
         }
     }
 else:
-    DATABASE_URL = os.getenv('DATABASE_URL')
+    DATABASE_URL = os.getenv("DATABASE_URL")
     if not DATABASE_URL:
         raise ImproperlyConfigured("DATABASE_URL must be set in environment variables.")
 
@@ -132,14 +135,25 @@ else:
     }
 
     # Configure SSL for PostgreSQL database
-    DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
+    DATABASES["default"]["OPTIONS"] = {"sslmode": "require"}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 12,},},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 12,
+        },
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
 ]
 
 LANGUAGE_CODE = "en-us"
@@ -203,7 +217,9 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@shiftwiseapp.com")
 
-ADMINS = [("Admin Name", "support@shiftwiseapp.com"),]
+ADMINS = [
+    ("Admin Name", "support@shiftwiseapp.com"),
+]
 
 # Stripe configuration
 STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
@@ -219,24 +235,50 @@ STRIPE_PRICE_IDS = {
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in CSRF_TRUSTED_ORIGINS if origin.strip()]
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in CSRF_TRUSTED_ORIGINS if origin.strip()
+]
 
 # Logging configuration
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "verbose": {"format": "[{levelname}] {asctime} {name} {message}", "style": "{",},
-        "simple": {"format": "[{levelname}] {message}", "style": "{",},
+        "verbose": {
+            "format": "[{levelname}] {asctime} {name} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "[{levelname}] {message}",
+            "style": "{",
+        },
     },
     "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "verbose",},
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
     },
     "loggers": {
-        "django": {"handlers": ["console"], "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),},
-        "accounts": {"handlers": ["console"], "level": "DEBUG", "propagate": False,},
-        "subscriptions": {"handlers": ["console"], "level": "DEBUG", "propagate": False,},
-        "shifts": {"handlers": ["console"], "level": "DEBUG", "propagate": False,},
+        "django": {
+            "handlers": ["console"],
+            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+        },
+        "accounts": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "subscriptions": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "shifts": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
     },
 }
 
@@ -249,5 +291,5 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    X_FRAME_OPTIONS = "DENY"
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
