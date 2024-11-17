@@ -1,57 +1,54 @@
+# /workspace/shiftwise/shifts/views/completion_views.py
+
 import base64
-import csv
-import uuid
 import logging
-import requests
-from django import forms
-from django.conf import settings
+import uuid
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError, PermissionDenied
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
-from django.db.models import Q, Count, F, Sum, FloatField, ExpressionWrapper, Prefetch
-from django.http import JsonResponse, HttpResponse, StreamingHttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy, reverse
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
-from django.views.generic import (
-    ListView, CreateView, UpdateView, DeleteView, DetailView, View, TemplateView, FormView
+from django.views.generic import View
+
+from core.mixins import (
+    AgencyManagerRequiredMixin,
+    FeatureRequiredMixin,
+    SubscriptionRequiredMixin,
 )
-from django_filters.views import FilterView
-from accounts.models import Profile, Agency
-from notifications.models import Notification
-from accounts.forms import StaffCreationForm, StaffUpdateForm
-from shifts.models import Shift, ShiftAssignment, StaffPerformance
-from shifts.forms import ShiftForm, ShiftCompletionForm, StaffPerformanceForm, AssignWorkerForm, UnassignWorkerForm
-from shifts.filters import ShiftFilter
-from shifts.utils import is_shift_full, is_user_assigned
-from core.mixins import AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, AgencyManagerRequiredMixin, AgencyStaffRequiredMixin, FeatureRequiredMixin
-from shiftwise.utils import haversine_distance,  generate_shift_code
+from shifts.forms import ShiftCompletionForm
+from shifts.models import Shift, ShiftAssignment
+from shiftwise.utils import haversine_distance
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
+
 class ShiftCompleteView(
-    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    View,
 ):
     """
     Allows agency staff or superusers to complete a shift with digital signature and location verification.
     Superusers can complete any shift without agency restrictions.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
 
     def get(self, request, shift_id, *args, **kwargs):
         shift = get_object_or_404(Shift, id=shift_id)
-        assignment = get_object_or_404(ShiftAssignment, shift=shift, worker=request.user)
+        assignment = get_object_or_404(
+            ShiftAssignment, shift=shift, worker=request.user
+        )
 
         if shift.is_completed:
             messages.info(request, "This shift has already been completed.")
@@ -66,7 +63,9 @@ class ShiftCompleteView(
 
     def post(self, request, shift_id, *args, **kwargs):
         shift = get_object_or_404(Shift, id=shift_id)
-        assignment = get_object_or_404(ShiftAssignment, shift=shift, worker=request.user)
+        assignment = get_object_or_404(
+            ShiftAssignment, shift=shift, worker=request.user
+        )
 
         if shift.is_completed:
             messages.info(request, "This shift has already been completed.")
@@ -162,14 +161,18 @@ class ShiftCompleteView(
 
 
 class ShiftCompleteForUserView(
-    LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    View,
 ):
     """
     Allows superusers and agency managers to complete a shift on behalf of a user.
     Useful in scenarios where the user cannot complete the shift themselves.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
 
     def get(self, request, shift_id, user_id, *args, **kwargs):
         shift = get_object_or_404(Shift, id=shift_id)
@@ -257,7 +260,10 @@ class ShiftCompleteForUserView(
                     return redirect("shifts:shift_detail", pk=shift.id)
 
             # If completing on behalf, you might want to bypass location validation or use shift's location
-            if request.user.is_superuser or request.user.groups.filter(name="Agency Managers").exists():
+            if (
+                request.user.is_superuser
+                or request.user.groups.filter(name="Agency Managers").exists()
+            ):
                 if not latitude or not longitude:
                     latitude = shift.latitude
                     longitude = shift.longitude
@@ -335,14 +341,18 @@ class ShiftCompleteForUserView(
 
 
 class ShiftCompleteAjaxView(
-    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
+    LoginRequiredMixin,
+    AgencyManagerRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    View,
 ):
     """
     Handles shift completion via AJAX, returning JSON responses.
     Superusers can complete any shift without agency restrictions.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
