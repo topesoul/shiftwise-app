@@ -1,10 +1,11 @@
 # /workspace/shiftwise/shifts/models.py
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
-from django.core.exceptions import ValidationError
+
 from .validators import validate_image
 
 User = settings.AUTH_USER_MODEL
@@ -154,7 +155,9 @@ class Shift(TimestampedModel):
         else:
             # Non-overnight shifts: end_dt should be after start_dt
             if end_dt <= start_dt:
-                raise ValidationError("End time must be after start time for non-overnight shifts.")
+                raise ValidationError(
+                    "End time must be after start time for non-overnight shifts."
+                )
 
         # Calculate duration in hours
         duration = (end_dt - start_dt).total_seconds() / 3600

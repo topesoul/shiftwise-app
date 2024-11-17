@@ -1,17 +1,20 @@
 # /workspace/shiftwise/shifts/forms.py
 
 import re
+
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Column, Field, Layout, Row
 from django import forms
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column, Field
+
+from accounts.models import Agency
 
 from .models import Shift, ShiftAssignment, StaffPerformance
-from accounts.models import Agency
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
 
 class ShiftForm(forms.ModelForm):
     """
@@ -46,36 +49,48 @@ class ShiftForm(forms.ModelForm):
         widgets = {
             "latitude": forms.HiddenInput(attrs={"id": "id_latitude"}),
             "longitude": forms.HiddenInput(attrs={"id": "id_longitude"}),
-            "address_line1": forms.TextInput(attrs={
-                "class": "form-control address-autocomplete",
-                "placeholder": "Enter address line 1",
-                "id": "id_address_line1",
-            }),
-            "address_line2": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter address line 2",
-                "id": "id_address_line2",
-            }),
-            "city": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter city",
-                "id": "id_city",
-            }),
-            "county": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter county",
-                "id": "id_county",
-            }),
-            "postcode": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter postcode",
-                "id": "id_postcode",
-            }),
-            "country": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter country",
-                "id": "id_country",
-            }),
+            "address_line1": forms.TextInput(
+                attrs={
+                    "class": "form-control address-autocomplete",
+                    "placeholder": "Enter address line 1",
+                    "id": "id_address_line1",
+                }
+            ),
+            "address_line2": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter address line 2",
+                    "id": "id_address_line2",
+                }
+            ),
+            "city": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter city",
+                    "id": "id_city",
+                }
+            ),
+            "county": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter county",
+                    "id": "id_county",
+                }
+            ),
+            "postcode": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter postcode",
+                    "id": "id_postcode",
+                }
+            ),
+            "country": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter country",
+                    "id": "id_country",
+                }
+            ),
             # Other widgets as needed...
         }
 
@@ -220,7 +235,6 @@ class ShiftForm(forms.ModelForm):
         return shift
 
 
-
 class ShiftCompletionForm(forms.Form):
     """
     Form for completing a shift, capturing digital signature and location data.
@@ -231,7 +245,7 @@ class ShiftCompletionForm(forms.Form):
     latitude = forms.DecimalField(widget=forms.HiddenInput())
     longitude = forms.DecimalField(widget=forms.HiddenInput())
     attendance_status = forms.ChoiceField(
-        choices=[('present', 'Present'), ('absent', 'Absent')],
+        choices=[("present", "Present"), ("absent", "Absent")],
         widget=forms.RadioSelect,
         required=False,
         help_text="Select attendance status after completing the shift.",
@@ -251,7 +265,7 @@ class ShiftCompletionForm(forms.Form):
         if (
             attendance_status
             and attendance_status
-            not in dict([('present', 'Present'), ('absent', 'Absent')]).keys()
+            not in dict([("present", "Present"), ("absent", "Absent")]).keys()
         ):
             raise forms.ValidationError("Invalid attendance status selected.")
 
@@ -286,24 +300,23 @@ class AssignWorkerForm(forms.Form):
     worker = forms.ModelChoiceField(
         queryset=User.objects.none(),
         label="Select Worker",
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        widget=forms.Select(attrs={"class": "form-control"}),
     )
 
     def __init__(self, *args, **kwargs):
-        shift = kwargs.pop('shift', None)
+        shift = kwargs.pop("shift", None)
         super().__init__(*args, **kwargs)
         if shift:
             # Filter workers to only those in the same agency and active
-            self.fields['worker'].queryset = User.objects.filter(
+            self.fields["worker"].queryset = User.objects.filter(
                 groups__name="Agency Staff",
                 is_active=True,
-                profile__agency=shift.agency
+                profile__agency=shift.agency,
             )
         else:
             # Fallback: list all active agency staff
-            self.fields['worker'].queryset = User.objects.filter(
-                groups__name="Agency Staff",
-                is_active=True
+            self.fields["worker"].queryset = User.objects.filter(
+                groups__name="Agency Staff", is_active=True
             )
 
 

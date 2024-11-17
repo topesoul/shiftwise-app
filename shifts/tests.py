@@ -1,12 +1,15 @@
 # /workspace/shiftwise/shifts/tests.py
 
-from django.test import TestCase, Client
+from datetime import date, time, timedelta
+
 from django.contrib.auth.models import Group
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
+
+from accounts.models import Agency, Profile, User
+
 from .models import Shift, ShiftAssignment
-from accounts.models import User, Profile, Agency
-from datetime import date, time, timedelta
 
 
 class ShiftListViewTestCase(TestCase):

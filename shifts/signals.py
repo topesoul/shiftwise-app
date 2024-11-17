@@ -1,15 +1,15 @@
 # /workspace/shiftwise/shifts/signals.py
 
+import logging
+
+from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.urls import reverse
+
+from core.utils import send_email_notification, send_notification
+
 from .models import Shift, ShiftAssignment
-from core.utils import (
-    send_notification,
-    send_email_notification,
-)
-from django.contrib.auth import get_user_model
-import logging
 
 User = get_user_model()
 
@@ -37,9 +37,11 @@ def shift_created_or_updated(sender, instance, created, **kwargs):
             user_id=manager.id,
             message=message,
             subject=subject,
-            url=reverse("accounts:agency_dashboard")  # Provide relevant URL
+            url=reverse("accounts:agency_dashboard"),  # Provide relevant URL
         )
-    logger.info(f"Shift '{instance.name}' {'created' if created else 'updated'} and notifications sent to managers.")
+    logger.info(
+        f"Shift '{instance.name}' {'created' if created else 'updated'} and notifications sent to managers."
+    )
 
 
 @receiver(pre_delete, sender=Shift)
@@ -58,7 +60,7 @@ def shift_deleted(sender, instance, **kwargs):
             user_id=manager.id,
             message=message,
             subject=subject,
-            url=reverse("accounts:agency_dashboard")  # Provide relevant URL
+            url=reverse("accounts:agency_dashboard"),  # Provide relevant URL
         )
     logger.info(f"Shift '{instance.name}' deleted and notifications sent to managers.")
 
@@ -74,9 +76,11 @@ def shift_assignment_created(sender, instance, created, **kwargs):
             user_id=instance.worker.id,
             message=message,
             subject=subject,
-            url=reverse("accounts:staff_dashboard")  # Provide relevant URL
+            url=reverse("accounts:staff_dashboard"),  # Provide relevant URL
         )
-        logger.info(f"ShiftAssignment created: Worker {instance.worker.username} assigned to shift '{instance.shift.name}'.")
+        logger.info(
+            f"ShiftAssignment created: Worker {instance.worker.username} assigned to shift '{instance.shift.name}'."
+        )
 
 
 @receiver(pre_delete, sender=ShiftAssignment)
@@ -89,6 +93,8 @@ def shift_assignment_deleted(sender, instance, **kwargs):
         user_id=instance.worker.id,
         message=message,
         subject=subject,
-        url=reverse("accounts:staff_dashboard")  # Provide relevant URL
+        url=reverse("accounts:staff_dashboard"),  # Provide relevant URL
     )
-    logger.info(f"ShiftAssignment deleted: Worker {instance.worker.username} unassigned from shift '{instance.shift.name}'.")
+    logger.info(
+        f"ShiftAssignment deleted: Worker {instance.worker.username} unassigned from shift '{instance.shift.name}'."
+    )

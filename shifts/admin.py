@@ -1,6 +1,7 @@
 # /workspace/shiftwise/shifts/admin.py
 
 from django.contrib import admin
+
 from .models import Shift, ShiftAssignment
 
 

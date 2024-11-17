@@ -1,8 +1,9 @@
 # /workspace/shiftwise/shifts/filters.py
 
 import django_filters
-from django.db.models import Q
 from django import forms
+from django.db.models import Q
+
 from .models import Shift
 
 
