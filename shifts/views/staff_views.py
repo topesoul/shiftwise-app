@@ -1,43 +1,38 @@
-import base64
-import csv
-import uuid
+# /workspace/shiftwise/shifts/views/staff_views.py
+
 import logging
-import requests
-from django import forms
-from django.conf import settings
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError, PermissionDenied
-from django.core.files.base import ContentFile
-from django.db.models import Q, Count, F, Sum, FloatField, ExpressionWrapper, Prefetch
-from django.http import JsonResponse, HttpResponse, StreamingHttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy, reverse
-from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
+from django.core.exceptions import PermissionDenied
+from django.db.models import Count, ExpressionWrapper, FloatField, Q, Sum
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
 from django.views.generic import (
-    ListView, CreateView, UpdateView, DeleteView, DetailView, View, TemplateView, FormView
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
 )
-from django_filters.views import FilterView
-from accounts.models import Profile, Agency
-from notifications.models import Notification
+
 from accounts.forms import StaffCreationForm, StaffUpdateForm
+from accounts.models import Profile
+from core.mixins import (
+    AgencyManagerRequiredMixin,
+    FeatureRequiredMixin,
+    SubscriptionRequiredMixin,
+)
 from shifts.models import Shift, ShiftAssignment, StaffPerformance
-from shifts.forms import ShiftForm, ShiftCompletionForm, StaffPerformanceForm, AssignWorkerForm, UnassignWorkerForm
-from shifts.filters import ShiftFilter
 from shifts.utils import is_shift_full, is_user_assigned
-from core.mixins import AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, AgencyManagerRequiredMixin, AgencyStaffRequiredMixin, FeatureRequiredMixin
-from shiftwise.utils import haversine_distance,  generate_shift_code
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
 
 class StaffListView(
     LoginRequiredMixin,
@@ -50,6 +45,7 @@ class StaffListView(
     Displays a list of staff members.
     Only accessible to users with 'custom_integrations' feature.
     """
+
     required_features = ["custom_integrations"]
     model = User
     template_name = "shifts/staff_list.html"
@@ -141,6 +137,7 @@ class StaffCreateView(
     Allows agency managers and superusers to add new staff members to their agency.
     Superusers can add staff without being associated with any agency.
     """
+
     required_features = ["custom_integrations"]
     model = User
     form_class = StaffCreationForm
@@ -183,6 +180,7 @@ class StaffUpdateView(
     Allows agency managers or superusers to edit staff details.
     Superusers can edit any staff member regardless of agency association.
     """
+
     required_features = ["custom_integrations"]
     model = User
     form_class = StaffUpdateForm
@@ -222,6 +220,7 @@ class StaffDeleteView(
     Allows agency managers or superusers to deactivate a staff member.
     Superusers can deactivate any staff member regardless of agency association.
     """
+
     required_features = ["custom_integrations"]
     model = User
     template_name = "shifts/delete_staff.html"
