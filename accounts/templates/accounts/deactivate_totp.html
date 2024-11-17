@@ -1,0 +1,19 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/mfa/deactivate_totp.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Disable MFA | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Disable Multi-Factor Authentication</h2>
+    <p>Are you sure you want to disable MFA? This will reduce the security of your account.</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Disable MFA</button>
+        <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
