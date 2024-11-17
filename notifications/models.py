@@ -1,16 +1,16 @@
 # notifications/models.py
 
-from django.db import models
 from django.conf import settings
+from django.db import models
+
 
 class Notification(models.Model):
     """
     Represents a notification for a user.
     """
+
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="notifications"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
     )
     message = models.CharField(max_length=255)
     icon = models.CharField(max_length=50, default="fas fa-info-circle")
