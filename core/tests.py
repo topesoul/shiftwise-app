@@ -1,9 +1,10 @@
 # /workspace/shiftwise/core/tests.py
 
-from django.test import TestCase
-from django.core import mail
-from .utils import send_email_notification
 from django.conf import settings
+from django.core import mail
+from django.test import TestCase
+
+from .utils import send_email_notification
 
 
 class EmailNotificationTests(TestCase):

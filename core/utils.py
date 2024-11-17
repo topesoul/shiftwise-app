@@ -1,9 +1,10 @@
 # /workspace/shiftwise/core/utils.py
 
 import logging
-from django.core.mail import send_mail
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.urls import reverse
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ def send_notification(user_id, message, subject="Notification", url=""):
 
         full_message = message
         if url:
-            site_url = getattr(settings, 'SITE_URL', '')
+            site_url = getattr(settings, "SITE_URL", "")
             if site_url:
                 full_message += f"\n\nYou can view more details here: {site_url}{url}"
             else:
@@ -38,7 +39,9 @@ def send_notification(user_id, message, subject="Notification", url=""):
             recipient_list=[user_email],
             fail_silently=False,
         )
-        logger.debug(f"Email notification sent to user {user.username} ({user_email}): {subject}")
+        logger.debug(
+            f"Email notification sent to user {user.username} ({user_email}): {subject}"
+        )
     except User.DoesNotExist:
         logger.error(f"User with ID {user_id} does not exist. Notification not sent.")
     except Exception as e:
