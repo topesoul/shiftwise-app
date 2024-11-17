@@ -1,0 +1,25 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/reauthenticate.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Resend MFA QR Code | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Resend MFA QR Code</h2>
+    <p>Scan the updated QR code below with your authenticator app and enter the new code.</p>
+    <div class="text-center mb-4">
+        <img src="data:image/png;base64,{{ qr_code_image }}" alt="MFA QR Code">
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_totp_code">MFA Code:</label>
+            <input type="text" name="totp_code" id="id_totp_code" class="form-control" maxlength="6" required>
+        </div>
+        <button type="submit" class="btn btn-success">Resend MFA Code</button>
+    </form>
+</div>
+{% endblock %}
