@@ -1,12 +1,12 @@
-from django.contrib import admin
-from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
 
 # Import custom error views
 from shifts.views.custom_views import (
-    custom_permission_denied_view,
     custom_page_not_found_view,
+    custom_permission_denied_view,
     custom_server_error_view,
 )
 
@@ -19,7 +19,7 @@ urlpatterns = [
     path("auth/", include("allauth.urls")),  # Allauth under 'auth/'
     path("contact/", include("contact.urls", namespace="contact")),
     path("subscriptions/", include("subscriptions.urls", namespace="subscriptions")),
-    path('notifications/', include('notifications.urls', namespace='notifications')),
+    path("notifications/", include("notifications.urls", namespace="notifications")),
     path("", include("home.urls", namespace="home")),
 ]
 

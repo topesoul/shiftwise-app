@@ -1,17 +1,20 @@
 # /workspace/shifts/utils.py
 
-from django.db.models import F, FloatField
-from django.db.models.functions import Cast
-from django.db.models import Q
+import logging
+import uuid
+from math import atan2, cos, radians, sin, sqrt
+
+import requests
 from django.conf import settings
 from django.core.cache import cache
-import logging, requests, uuid
-from shifts.models import Shift, ShiftAssignment
-from accounts.models import User
+from django.db.models import F, FloatField, Q
+from django.db.models.functions import Cast
 
-from math import radians, sin, cos, sqrt, atan2
+from accounts.models import User
+from shifts.models import Shift, ShiftAssignment
 
 logger = logging.getLogger(__name__)
+
 
 def haversine_distance(lat1, lon1, lat2, lon2, unit="miles"):
     """
@@ -29,6 +32,7 @@ def haversine_distance(lat1, lon1, lat2, lon2, unit="miles"):
     r = 3956 if unit == "miles" else 6371  # Radius of Earth in miles or kilometers
     return c * r
 
+
 def predict_staffing_needs(date):
     """
     Function for predicting staffing needs.
@@ -36,11 +40,13 @@ def predict_staffing_needs(date):
     """
     return 5
 
+
 def generate_shift_code():
     """
     Generates a unique shift code using UUID4.
     """
     return f"SHIFT-{uuid.uuid4().hex[:8].upper()}"
+
 
 def get_shift_assignment_queryset(user):
     """
