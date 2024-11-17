@@ -1,60 +1,53 @@
 # /workspace/shiftwise/shifts/views/shift_views.py
 
-import base64
-import csv
-import uuid
 import logging
-import requests
-from django import forms
-from django.conf import settings
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError, PermissionDenied
-from django.core.files.base import ContentFile
-from django.db.models import Q, Count, F, Sum, FloatField, ExpressionWrapper, Prefetch
-from django.http import JsonResponse, HttpResponse, StreamingHttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy, reverse
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
+from django.db.models import Count, Prefetch, Q
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
 from django.views.generic import (
-    ListView, CreateView, UpdateView, DeleteView, DetailView, View, TemplateView, FormView
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
 )
-from django_filters.views import FilterView
-from accounts.models import Profile, Agency
-from notifications.models import Notification
-from accounts.forms import StaffCreationForm, StaffUpdateForm
-from shifts.models import Shift, ShiftAssignment, StaffPerformance
-from shifts.forms import ShiftForm, ShiftCompletionForm, StaffPerformanceForm, AssignWorkerForm, UnassignWorkerForm
+
+from core.mixins import (
+    AgencyManagerRequiredMixin,
+    FeatureRequiredMixin,
+    SubscriptionRequiredMixin,
+)
 from shifts.filters import ShiftFilter
-from shifts.utils import is_shift_full, is_user_assigned
-from core.mixins import AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, AgencyManagerRequiredMixin, AgencyStaffRequiredMixin, FeatureRequiredMixin
-from shiftwise.utils import haversine_distance, generate_shift_code
+from shifts.forms import ShiftForm
+from shifts.models import Shift, ShiftAssignment
+from shiftwise.utils import generate_shift_code, haversine_distance
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
+
 class ShiftListView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
-    ListView
+    ListView,
 ):
     """
     Displays a list of shifts available to the user with search and filter capabilities.
-    Includes distance calculations based on user's registered address.
+    Includes distance calculations based on the user's registered address.
     Superusers see all shifts without agency restrictions.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
     model = Shift
     template_name = "shifts/shift_list.html"
     context_object_name = "shifts"
@@ -84,7 +77,6 @@ class ShiftListView(
 
         # Calculate distance and annotate
         if profile.latitude and profile.longitude:
-            shifts_with_distance = []
             for shift in queryset:
                 if shift.latitude and shift.longitude:
                     distance = haversine_distance(
@@ -97,13 +89,12 @@ class ShiftListView(
                     shift.distance_to_user = distance
                 else:
                     shift.distance_to_user = None
-                shifts_with_distance.append(shift)
-            return shifts_with_distance
         else:
-            # If user has no registered address, show all shifts
+            # If user has no registered address, set distance to None
             for shift in queryset:
                 shift.distance_to_user = None
-            return queryset
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -111,7 +102,7 @@ class ShiftListView(
         return context
 
 
-class ShiftDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class ShiftDetailView(LoginRequiredMixin, DetailView):
     """
     Displays details of a specific shift, including distance from the user's location.
     Superusers can view any shift regardless of agency association.
@@ -120,15 +111,6 @@ class ShiftDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Shift
     template_name = "shifts/shift_detail.html"
     context_object_name = "shift"
-
-    def test_func(self):
-        user = self.request.user
-        shift = self.get_object()
-        if user.is_superuser:
-            return True
-        elif user.groups.filter(name="Agency Managers").exists() or user.groups.filter(name="Agency Staff").exists():
-            return shift.agency == user.profile.agency
-        return False
 
     def get_queryset(self):
         user = self.request.user
@@ -215,7 +197,7 @@ class ShiftCreateView(
     Superusers can assign shifts to any agency or without an agency.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
     model = Shift
     form_class = ShiftForm
     template_name = "shifts/shift_form.html"
@@ -226,7 +208,7 @@ class ShiftCreateView(
         Ensure that non-superusers have an associated agency before creating a shift.
         """
         if not request.user.is_superuser:
-            if not hasattr(request.user, 'profile') or not request.user.profile.agency:
+            if not hasattr(request.user, "profile") or not request.user.profile.agency:
                 messages.error(request, "You are not associated with any agency.")
                 logger.warning(
                     f"User {request.user.username} attempted to create shift without an associated agency."
@@ -261,20 +243,23 @@ class ShiftCreateView(
             if subscription and subscription.plan.shift_limit is not None:
                 # Count shifts created this month
                 current_time = timezone.now()
-                current_month_start = current_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                current_month_start = current_time.replace(
+                    day=1, hour=0, minute=0, second=0, microsecond=0
+                )
                 current_shift_count = Shift.objects.filter(
-                    agency=shift.agency,
-                    shift_date__gte=current_month_start
+                    agency=shift.agency, shift_date__gte=current_month_start
                 ).count()
                 if current_shift_count >= subscription.plan.shift_limit:
                     messages.error(
                         self.request,
-                        f"Your agency has reached the maximum number of shifts ({subscription.plan.shift_limit}) for this month. Please upgrade your subscription."
+                        f"Your agency has reached the maximum number of shifts ({subscription.plan.shift_limit}) for this month. Please upgrade your subscription.",
                     )
                     logger.info(
                         f"Agency '{shift.agency.name}' has reached the shift limit for the month."
                     )
-                    return redirect("subscriptions:upgrade_subscription")  # Redirect to upgrade page
+                    return redirect(
+                        "subscriptions:upgrade_subscription"
+                    )  # Redirect to upgrade page
 
         # Generate a unique shift code
         shift.shift_code = generate_shift_code()
@@ -307,7 +292,7 @@ class ShiftUpdateView(
     Superusers can change the agency of a shift or leave it without an agency.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
     model = Shift
     form_class = ShiftForm
     template_name = "shifts/shift_form.html"
@@ -367,7 +352,7 @@ class ShiftDeleteView(
     Superusers can delete any shift regardless of agency association.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
     model = Shift
     template_name = "shifts/shift_confirm_delete.html"
     success_url = reverse_lazy("shifts:shift_list")
