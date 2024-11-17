@@ -1,11 +1,13 @@
 # /workspace/shiftwise/accounts/tests.py
 
-from django.test import TestCase, Client
+from django.contrib.auth.models import Group, User
+from django.test import Client, TestCase
 from django.urls import reverse
-from django.contrib.auth.models import User, Group
-from .models import Profile, Invitation, Agency
-from shifts.models import ShiftAssignment, Shift
+
+from shifts.models import Shift, ShiftAssignment
 from subscriptions.models import Plan, Subscription
+
+from .models import Agency, Invitation, Profile
 
 
 class AuthenticationTests(TestCase):

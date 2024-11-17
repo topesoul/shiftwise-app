@@ -1,16 +1,16 @@
 # /workspace/shiftwise/accounts/models.py
 
-import os
-from django.db import models
-from django.contrib.auth.models import AbstractUser
-from encrypted_model_fields.fields import EncryptedCharField
-import uuid
 import hashlib
-from django.utils import timezone
-
-from subscriptions.models import Subscription, Plan
-
 import logging
+import os
+import uuid
+
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.utils import timezone
+from encrypted_model_fields.fields import EncryptedCharField
+
+from subscriptions.models import Plan, Subscription
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +163,9 @@ class Profile(models.Model):
                 if this.profile_picture:
                     if os.path.isfile(this.profile_picture.path):
                         os.remove(this.profile_picture.path)
-                        logger.info(f"Old profile picture deleted for user {self.user.username}.")
+                        logger.info(
+                            f"Old profile picture deleted for user {self.user.username}."
+                        )
         except Profile.DoesNotExist:
             pass  # New profile, no action needed
         super(Profile, self).save(*args, **kwargs)

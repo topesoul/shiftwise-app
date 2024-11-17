@@ -3,17 +3,16 @@
 import logging
 import re
 
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Column, Field, Layout, Row
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import get_user_model, login
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Profile, Agency, Invitation
-
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Field, Row, Column
+from .models import Agency, Invitation, Profile
 
 User = get_user_model()
 
@@ -342,9 +341,7 @@ class SignUpForm(UserCreationForm):
         user = super().save(commit=False)
         user.email = self.cleaned_data.get("email", "").strip().lower()
 
-        user.role = (
-            "staff"
-        )
+        user.role = "staff"
 
         if commit:
             user.save()
@@ -1238,9 +1235,7 @@ class StaffCreationForm(UserCreationForm):
         """
         user = super().save(commit=False)
         user.email = self.cleaned_data.get("email", "").strip().lower()
-        user.role = (
-            "staff"
-        )
+        user.role = "staff"
 
         if commit:
             user.save()

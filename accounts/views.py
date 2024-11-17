@@ -1,60 +1,59 @@
 # /workspace/shiftwise/accounts/views.py
 
+import base64
 import logging
+from io import BytesIO
+
 import pyotp
 import qrcode
-import base64
-from io import BytesIO
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, logout, authenticate
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import Group
+from django.core.mail import send_mail
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.core.mail import send_mail
-from django.conf import settings
-from django.http import JsonResponse, HttpResponse
-from django.template.loader import render_to_string
-from django.contrib.auth.models import Group
-from django.views.generic import (
-    UpdateView,
-    DeleteView,
-    CreateView,
-    ListView,
-    View,
-    FormView,
-    TemplateView,
-)
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.forms import AuthenticationForm
 from django.views.decorators.csrf import csrf_exempt
-from django_ratelimit.decorators import ratelimit
-
-from .forms import (
-    SignUpForm,
-    AgencySignUpForm,
-    InvitationForm,
-    AcceptInvitationForm,
-    UpdateProfileForm,
-    AgencyForm,
-    UserForm,
-    UserUpdateForm,
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+    View,
 )
-from .models import Profile, Invitation, Agency
-from shifts.models import ShiftAssignment, Shift
-from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required
-
-from shiftwise.utils import get_address_from_address_line1
-from subscriptions.models import Subscription
+from django_ratelimit.decorators import ratelimit
 
 # Import mixins from core.mixins
 from core.mixins import (
-    SuperuserRequiredMixin,
-    AgencyOwnerRequiredMixin,
     AgencyManagerRequiredMixin,
+    AgencyOwnerRequiredMixin,
     AgencyStaffRequiredMixin,
     SubscriptionRequiredMixin,
+    SuperuserRequiredMixin,
 )
+from shifts.models import Shift, ShiftAssignment
+from shiftwise.utils import get_address_from_address_line1
+from subscriptions.models import Subscription
+
+from .forms import (
+    AcceptInvitationForm,
+    AgencyForm,
+    AgencySignUpForm,
+    InvitationForm,
+    SignUpForm,
+    UpdateProfileForm,
+    UserForm,
+    UserUpdateForm,
+)
+from .models import Agency, Invitation, Profile
 
 User = get_user_model()
 
@@ -597,7 +596,12 @@ class AcceptInvitationView(View):
 
     def post(self, request, token, *args, **kwargs):
         invitation = get_object_or_404(Invitation, token=token, is_active=True)
-        form = AcceptInvitationForm(request.POST, initial={"email": invitation.email}, invitation=invitation, request=request)
+        form = AcceptInvitationForm(
+            request.POST,
+            initial={"email": invitation.email},
+            invitation=invitation,
+            request=request,
+        )
         if form.is_valid():
             # Create the user
             user = form.save()
