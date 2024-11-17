@@ -2,6 +2,7 @@
 
 from django.views.generic import TemplateView
 
+
 class HomeView(TemplateView):
     """
     Home view for the application, displaying subscription plans.
