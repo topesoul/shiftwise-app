@@ -1,7 +1,9 @@
 # /workspace/shiftwise/subscriptions/admin.py
 
 from django.contrib import admin
+
 from .models import Plan, Subscription
+
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
@@ -17,27 +19,26 @@ class PlanAdmin(admin.ModelAdmin):
     search_fields = ("name", "stripe_product_id", "stripe_price_id", "description")
     ordering = ("name", "billing_cycle")
     fieldsets = (
-        (None, {
-            'fields': ('name', 'billing_cycle', 'description', 'price', 'view_limit')
-        }),
-        ('Stripe Integration', {
-            'fields': ('stripe_product_id', 'stripe_price_id')
-        }),
-        ('Features', {
-            'fields': (
-                'notifications_enabled',
-                'advanced_reporting',
-                'priority_support',
-                'shift_management',
-                'staff_performance',
-                'custom_integrations',
-            )
-        }),
-        ('Status', {
-            'fields': ('is_active', 'is_recommended')
-        }),
+        (
+            None,
+            {"fields": ("name", "billing_cycle", "description", "price", "view_limit")},
+        ),
+        ("Stripe Integration", {"fields": ("stripe_product_id", "stripe_price_id")}),
+        (
+            "Features",
+            {
+                "fields": (
+                    "notifications_enabled",
+                    "advanced_reporting",
+                    "priority_support",
+                    "shift_management",
+                    "staff_performance",
+                    "custom_integrations",
+                )
+            },
+        ),
+        ("Status", {"fields": ("is_active", "is_recommended")}),
     )
-    
 
 
 @admin.register(Subscription)
@@ -57,16 +58,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
     fieldsets = (
-        (None, {
-            'fields': ('agency', 'plan', 'stripe_subscription_id')
-        }),
-        ('Status', {
-            'fields': ('is_active', 'is_expired')
-        }),
-        ('Billing Period', {
-            'fields': ('current_period_start', 'current_period_end')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at')
-        }),
+        (None, {"fields": ("agency", "plan", "stripe_subscription_id")}),
+        ("Status", {"fields": ("is_active", "is_expired")}),
+        ("Billing Period", {"fields": ("current_period_start", "current_period_end")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )

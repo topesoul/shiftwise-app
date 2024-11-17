@@ -1,13 +1,16 @@
 # /workspace/shiftwise/subscriptions/management/commands/sync_stripe_plans.py
 
-from django.core.management.base import BaseCommand
-from subscriptions.models import Plan
+import logging
+from decimal import Decimal
+
 import stripe
 from django.conf import settings
-from decimal import Decimal
-import logging
+from django.core.management.base import BaseCommand
+
+from subscriptions.models import Plan
 
 logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     help = "Sync subscription plans from Stripe to Django models"
@@ -16,7 +19,9 @@ class Command(BaseCommand):
         stripe.api_key = settings.STRIPE_SECRET_KEY
         try:
             # Retrieve all active GBP prices from Stripe
-            prices = stripe.Price.list(currency="gbp", active=True, expand=["data.product"])
+            prices = stripe.Price.list(
+                currency="gbp", active=True, expand=["data.product"]
+            )
 
             # Collect all Stripe price IDs to identify inactive plans later
             synced_stripe_price_ids = []
@@ -58,33 +63,45 @@ class Command(BaseCommand):
 
                 # Convert unit_amount_decimal from string to Decimal
                 try:
-                    price_amount = Decimal(price.unit_amount_decimal) / 100  # Convert from pence to pounds
+                    price_amount = (
+                        Decimal(price.unit_amount_decimal) / 100
+                    )  # Convert from pence to pounds
                 except (ValueError, TypeError):
                     self.stderr.write(
                         self.style.ERROR(
                             f"Invalid unit_amount_decimal for price ID {price.id}"
                         )
                     )
-                    logger.error(
-                        f"Invalid unit_amount_decimal for price ID {price.id}"
-                    )
+                    logger.error(f"Invalid unit_amount_decimal for price ID {price.id}")
                     continue  # Skip this price
 
                 # Map Stripe product metadata to feature flags
                 metadata = product.get("metadata", {})
-                notifications_enabled = metadata.get("notifications_enabled", "false").lower() == "true"
-                advanced_reporting = metadata.get("advanced_reporting", "false").lower() == "true"
-                priority_support = metadata.get("priority_support", "false").lower() == "true"
-                shift_management = metadata.get("shift_management", "false").lower() == "true"
-                staff_performance = metadata.get("staff_performance", "false").lower() == "true"
-                custom_integrations = metadata.get("custom_integrations", "false").lower() == "true"
+                notifications_enabled = (
+                    metadata.get("notifications_enabled", "false").lower() == "true"
+                )
+                advanced_reporting = (
+                    metadata.get("advanced_reporting", "false").lower() == "true"
+                )
+                priority_support = (
+                    metadata.get("priority_support", "false").lower() == "true"
+                )
+                shift_management = (
+                    metadata.get("shift_management", "false").lower() == "true"
+                )
+                staff_performance = (
+                    metadata.get("staff_performance", "false").lower() == "true"
+                )
+                custom_integrations = (
+                    metadata.get("custom_integrations", "false").lower() == "true"
+                )
 
                 # Extract shift_limit from metadata if available
                 shift_limit = metadata.get("shift_limit")
                 if shift_limit:
                     # Remove surrounding quotes if any and convert to lowercase
                     shift_limit_clean = shift_limit.strip('"').strip("'").lower()
-                    if shift_limit_clean in ['none', 'null', '']:
+                    if shift_limit_clean in ["none", "null", ""]:
                         shift_limit = None
                     else:
                         try:

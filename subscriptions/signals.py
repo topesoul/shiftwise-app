@@ -1,11 +1,14 @@
 # /workspace/shiftwise/subscriptions/signals.py
 
+import logging
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Subscription
-from core.utils import send_notification
 from django.urls import reverse
-import logging
+
+from core.utils import send_notification
+
+from .models import Subscription
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -17,10 +20,14 @@ def subscription_post_save(sender, instance, created, **kwargs):
     Handle actions after a subscription is created or updated.
     """
     if created:
-        message = f"Your subscription to the {instance.plan.name} Plan has been activated."
+        message = (
+            f"Your subscription to the {instance.plan.name} Plan has been activated."
+        )
         subject = "Subscription Activated"
     else:
-        message = f"Your subscription has been updated to the {instance.plan.name} Plan."
+        message = (
+            f"Your subscription has been updated to the {instance.plan.name} Plan."
+        )
         subject = "Subscription Updated"
 
     url = reverse("subscriptions:manage_subscription")
@@ -30,10 +37,7 @@ def subscription_post_save(sender, instance, created, **kwargs):
         agency_owner = instance.agency.owner
         if agency_owner:
             send_notification(
-                user_id=agency_owner.id,
-                message=message,
-                subject=subject,
-                url=url
+                user_id=agency_owner.id, message=message, subject=subject, url=url
             )
             logger.info(f"Notification sent to agency owner: {agency_owner.username}")
         else:

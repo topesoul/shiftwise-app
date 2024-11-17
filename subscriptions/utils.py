@@ -1,8 +1,9 @@
 # /workspace/shiftwise/subscriptions/utils.py
 
+import logging
+
 import stripe
 from django.conf import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,9 @@ def create_stripe_customer(agency):
         customers = stripe.Customer.list(email=agency.email, limit=1)
         if customers.data:
             customer = customers.data[0]
-            logger.info(f"Existing Stripe customer found: {customer.id} for agency: {agency.name}")
+            logger.info(
+                f"Existing Stripe customer found: {customer.id} for agency: {agency.name}"
+            )
             return customer
 
         # Create new customer if none exists
@@ -35,7 +38,7 @@ def create_stripe_customer(agency):
             email=agency.email,
             metadata={
                 "agency_id": agency.id,
-            }
+            },
         )
         logger.info(f"Stripe customer created: {customer.id} for agency: {agency.name}")
         return customer

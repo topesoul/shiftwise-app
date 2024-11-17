@@ -1,15 +1,16 @@
 # /workspace/shiftwise/subscriptions/models.py
 
-from django.db import models
-from django.core.validators import MinValueValidator
-from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from django.db import models
+from django.utils import timezone
 
 
 class Plan(models.Model):
     """
     Represents a subscription plan.
     """
+
     BASIC = "Basic"
     PRO = "Pro"
     ENTERPRISE = "Enterprise"
@@ -100,7 +101,7 @@ class Plan(models.Model):
     shift_limit = models.PositiveIntegerField(
         null=True,
         blank=True,
-        help_text="Maximum number of shifts allowed under this plan. Leave blank for unlimited."
+        help_text="Maximum number of shifts allowed under this plan. Leave blank for unlimited.",
     )
 
     class Meta:
@@ -116,6 +117,7 @@ class Subscription(models.Model):
     """
     Represents an agency's subscription.
     """
+
     agency = models.OneToOneField(
         "accounts.Agency",
         on_delete=models.CASCADE,

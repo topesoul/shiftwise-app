@@ -1,8 +1,10 @@
 # /workspace/shiftwise/subscriptions/services.py
 
-from subscriptions.models import Subscription
-from shifts.models import Shift
 from django.utils import timezone
+
+from shifts.models import Shift
+from subscriptions.models import Subscription
+
 
 class SubscriptionLimitChecker:
     @staticmethod
@@ -12,12 +14,16 @@ class SubscriptionLimitChecker:
         Returns True if within limits, False otherwise.
         """
         try:
-            subscription = Subscription.objects.get(agency=agency, is_active=True, current_period_end__gt=timezone.now())
+            subscription = Subscription.objects.get(
+                agency=agency, is_active=True, current_period_end__gt=timezone.now()
+            )
             plan = subscription.plan
             if not plan:
                 return False
 
-            shift_count = Shift.objects.filter(agency=agency, created_at__gte=timezone.now().replace(day=1)).count()
+            shift_count = Shift.objects.filter(
+                agency=agency, created_at__gte=timezone.now().replace(day=1)
+            ).count()
             if plan.shift_management:
                 if plan.shift_limit:
                     if shift_count >= plan.shift_limit:
