@@ -7,8 +7,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const getLocationButton = document.querySelector(".getLocation");
     const locationStatus = document.getElementById("locationStatus");
     const confirmAddressInput = document.getElementById("id_confirm_address");
-    const latitudeInput = document.getElementById("id_latitude");
-    const longitudeInput = document.getElementById("id_longitude");
+    const latitudeInput = document.getElementById("id_shift_completion_latitude");
+    const longitudeInput = document.getElementById("id_shift_completion_longitude");
 
     // Resize the canvas to properly handle high-DPI screens
     function resizeCanvas() {
