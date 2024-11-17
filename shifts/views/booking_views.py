@@ -1,53 +1,38 @@
-import base64
-import csv
-import uuid
+# /workspace/shiftwise/shifts/views/booking_views.py
+
 import logging
-import requests
-from django import forms
-from django.conf import settings
+
 from django.contrib import messages
-from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError, PermissionDenied
-from django.core.files.base import ContentFile
-from django.db.models import Q, Count, F, Sum, FloatField, ExpressionWrapper, Prefetch
-from django.http import JsonResponse, HttpResponse, StreamingHttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy, reverse
-from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
-from django.views.generic import (
-    ListView, CreateView, UpdateView, DeleteView, DetailView, View, TemplateView, FormView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
+from django.views.generic import View
+
+from core.mixins import (
+    AgencyStaffRequiredMixin,
+    FeatureRequiredMixin,
+    SubscriptionRequiredMixin,
 )
-from django_filters.views import FilterView
-from accounts.models import Profile, Agency
-from notifications.models import Notification
-from accounts.forms import StaffCreationForm, StaffUpdateForm
-from shifts.models import Shift, ShiftAssignment, StaffPerformance
-from shifts.forms import ShiftForm, ShiftCompletionForm, StaffPerformanceForm, AssignWorkerForm, UnassignWorkerForm
-from shifts.filters import ShiftFilter
+from shifts.models import Shift, ShiftAssignment
 from shifts.utils import is_shift_full, is_user_assigned
-from core.mixins import AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, AgencyManagerRequiredMixin, AgencyStaffRequiredMixin, FeatureRequiredMixin
-from shiftwise.utils import haversine_distance,  generate_shift_code
+from shiftwise.utils import haversine_distance
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-User = get_user_model()
 
 class ShiftBookView(
-    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
+    LoginRequiredMixin,
+    AgencyStaffRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    View,
 ):
     """
     Allows agency staff or superusers to book a shift based on availability and proximity.
     Superusers can book any shift without agency restrictions.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
@@ -72,7 +57,9 @@ class ShiftBookView(
         # Check if the shift is full
         if is_shift_full(shift):
             messages.error(request, "This shift is already full.")
-            logger.info(f"User {user.username} attempted to book a full shift {shift.id}.")
+            logger.info(
+                f"User {user.username} attempted to book a full shift {shift.id}."
+            )
             return redirect("shifts:shift_list")
 
         # Check if the user has already booked the shift
@@ -128,14 +115,18 @@ class ShiftBookView(
 
 
 class ShiftUnbookView(
-    LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, View
+    LoginRequiredMixin,
+    AgencyStaffRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    View,
 ):
     """
     Allows agency staff or superusers to unbook a shift.
     Superusers can unbook any shift without agency restrictions.
     """
 
-    required_features = ['shift_management']
+    required_features = ["shift_management"]
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
