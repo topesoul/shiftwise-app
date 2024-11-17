@@ -129,12 +129,16 @@
                         <!-- Subscribe Button -->
                         <div class="mt-auto">
                             {% if plan_group.monthly_plan or plan_group.yearly_plan %}
-                                <form method="post" class="subscribe-form"
-                                    data-monthly-plan-id="{% if plan_group.monthly_plan %}{{ plan_group.monthly_plan.id }}{% endif %}"
-                                    data-yearly-plan-id="{% if plan_group.yearly_plan %}{{ plan_group.yearly_plan.id }}{% endif %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-block">Subscribe</button>
-                                </form>
+                                {% if user.is_authenticated %}
+                                    <form method="post" class="subscribe-form"
+                                        data-monthly-plan-id="{% if plan_group.monthly_plan %}{{ plan_group.monthly_plan.id }}{% endif %}"
+                                        data-yearly-plan-id="{% if plan_group.yearly_plan %}{{ plan_group.yearly_plan.id }}{% endif %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-block">Subscribe</button>
+                                    </form>
+                                {% else %}
+                                    <a href="{% url 'accounts:login_view' %}?next={% url 'subscriptions:subscription_home' %}" class="btn btn-primary btn-block">Login to Subscribe</a>
+                                {% endif %}
                             {% else %}
                                 <p class="text-center text-danger">No available plans to subscribe.</p>
                             {% endif %}
