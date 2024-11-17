@@ -23,6 +23,7 @@ from core.mixins import (
 from shifts.forms import ShiftCompletionForm
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import haversine_distance
+from django.db.models import F
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -453,13 +454,22 @@ class ShiftCompleteAjaxView(
 
         # If not superuser, update the assignment
         if not user.is_superuser:
-            assignment = ShiftAssignment.objects.get(shift=shift, worker=user)
-            assignment.signature = data
-            assignment.completion_latitude = latitude
-            assignment.completion_longitude = longitude
-            assignment.completion_time = timezone.now()
-            assignment.attendance_status = attendance_status
-            assignment.save()
+            try:
+                assignment = ShiftAssignment.objects.get(shift=shift, worker=user)
+                assignment.signature = data
+                assignment.completion_latitude = latitude
+                assignment.completion_longitude = longitude
+                assignment.completion_time = timezone.now()
+                assignment.attendance_status = attendance_status
+                assignment.save()
+            except ShiftAssignment.DoesNotExist:
+                logger.error(
+                    f"ShiftAssignment does not exist for user {user.username} and shift {shift.id}."
+                )
+                return JsonResponse(
+                    {"success": False, "message": "Shift assignment not found."},
+                    status=404,
+                )
 
         logger.info(f"User {user.username} completed Shift ID {shift_id} via AJAX.")
         return JsonResponse(
