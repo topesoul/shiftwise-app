@@ -1,69 +1,68 @@
-import base64
-import csv
-import uuid
+# /workspace/shiftwise/shifts/views/performance_views.py
+
 import logging
-import requests
-from django import forms
-from django.conf import settings
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError, PermissionDenied
-from django.core.files.base import ContentFile
-from django.db.models import Q, Count, F, Sum, FloatField, ExpressionWrapper, Prefetch
-from django.http import JsonResponse, HttpResponse, StreamingHttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy, reverse
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
 from django.views.generic import (
-    ListView, CreateView, UpdateView, DeleteView, DetailView, View, TemplateView, FormView
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
 )
-from django_filters.views import FilterView
-from accounts.models import Profile, Agency
-from notifications.models import Notification
-from accounts.forms import StaffCreationForm, StaffUpdateForm
-from shifts.models import Shift, ShiftAssignment, StaffPerformance
-from shifts.forms import ShiftForm, ShiftCompletionForm, StaffPerformanceForm, AssignWorkerForm, UnassignWorkerForm
-from shifts.filters import ShiftFilter
-from shifts.utils import is_shift_full, is_user_assigned
-from core.mixins import AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, AgencyManagerRequiredMixin, AgencyStaffRequiredMixin, FeatureRequiredMixin
-from shiftwise.utils import haversine_distance,  generate_shift_code
+
+from core.mixins import (
+    AgencyManagerRequiredMixin,
+    FeatureRequiredMixin,
+    SubscriptionRequiredMixin,
+)
+from shifts.forms import StaffPerformanceForm
+from shifts.models import StaffPerformance
+from shiftwise.utils import generate_shift_code
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
+
 class StaffPerformanceView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
-    ListView
+    ListView,
 ):
     """
-    Displays staff performance metrics.
+    Displays a list of staff performances.
+    Only accessible to agency managers and superusers.
     """
 
-    required_features = ['staff_performance']
+    required_features = ["performance_management"]
     model = StaffPerformance
-    template_name = 'shifts/staff_performance_list.html'
-    context_object_name = 'performances'
+    template_name = "shifts/staff_performance_list.html"
+    context_object_name = "staff_performances"
     paginate_by = 20
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_superuser:
-            return StaffPerformance.objects.all()
-        elif user.groups.filter(name='Agency Managers').exists():
-            return StaffPerformance.objects.filter(shift__agency=user.profile.agency)
-        else:
-            return StaffPerformance.objects.none()
+        agency = user.profile.agency if not user.is_superuser else None
+        queryset = StaffPerformance.objects.all()
+
+        if not user.is_superuser:
+            queryset = queryset.filter(agency=agency)
+
+        return queryset.order_by("-created_at")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 
 
 class StaffPerformanceDetailView(
@@ -71,26 +70,26 @@ class StaffPerformanceDetailView(
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
-    DetailView
+    DetailView,
 ):
     """
-    Displays detailed information about a specific staff performance entry.
-    Only accessible to superusers and agency managers associated with the performance's agency.
+    Displays detailed performance metrics for a specific staff member.
     """
 
-    required_features = ['staff_performance']
+    required_features = ["performance_management"]
     model = StaffPerformance
-    template_name = 'shifts/staff_performance_detail.html'
-    context_object_name = 'performance'
+    template_name = "shifts/staff_performance_detail.html"
+    context_object_name = "staff_performance"
 
-    def test_func(self):
+    def get_queryset(self):
         user = self.request.user
-        performance = self.get_object()
-        if user.is_superuser:
-            return True
-        elif user.groups.filter(name='Agency Managers').exists():
-            return performance.shift.agency == user.profile.agency
-        return False
+        agency = user.profile.agency if not user.is_superuser else None
+        queryset = StaffPerformance.objects.all()
+
+        if not user.is_superuser:
+            queryset = queryset.filter(agency=agency)
+
+        return queryset
 
 
 class StaffPerformanceCreateView(
@@ -98,70 +97,66 @@ class StaffPerformanceCreateView(
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
-    CreateView
+    CreateView,
 ):
+    """
+    Allows agency managers and superusers to create a new staff performance record.
+    """
+
+    required_features = ["performance_management"]
     model = StaffPerformance
     form_class = StaffPerformanceForm
-    template_name = "shifts/create_performance.html"
+    template_name = "shifts/staff_performance_form.html"
     success_url = reverse_lazy("shifts:staff_performance_list")
-
-    required_features = ['staff_performance']
 
     def form_valid(self, form):
         performance = form.save(commit=False)
-        performance.worker = self.request.user
+        if not self.request.user.is_superuser:
+            performance.agency = self.request.user.profile.agency
+        performance.shift_code = generate_shift_code()
         performance.save()
-        messages.success(self.request, "Performance data recorded successfully.")
-        logger.info(f"Performance for worker {performance.worker.username} on Shift ID {performance.shift.id} recorded by {self.request.user.username}.")
+        form.save_m2m()
+
+        messages.success(self.request, "Staff performance record created successfully.")
+        logger.info(
+            f"Staff performance record '{performance}' created by {self.request.user.username}."
+        )
         return super().form_valid(form)
 
-    def get_initial(self):
-        initial = super().get_initial()
-        shift_id = self.request.GET.get('shift_id')
-        if shift_id:
-            try:
-                shift = Shift.objects.get(id=shift_id)
-                initial['shift'] = shift
-            except Shift.DoesNotExist:
-                pass
-        return initial
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        shift_id = self.request.GET.get('shift_id')
-        if shift_id:
-            try:
-                shift = Shift.objects.get(id=shift_id)
-                context['shift'] = shift
-            except Shift.DoesNotExist:
-                pass
-        return context
 class StaffPerformanceUpdateView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
-    UpdateView
+    UpdateView,
 ):
+    """
+    Allows agency managers and superusers to update an existing staff performance record.
+    """
+
+    required_features = ["performance_management"]
     model = StaffPerformance
     form_class = StaffPerformanceForm
-    template_name = 'shifts/staff_performance_form.html'
-    success_url = reverse_lazy('shifts:staff_performance_list')
+    template_name = "shifts/staff_performance_form.html"
+    success_url = reverse_lazy("shifts:staff_performance_list")
 
-    required_features = ['staff_performance']
+    def get_queryset(self):
+        user = self.request.user
+        agency = user.profile.agency if not user.is_superuser else None
+        queryset = StaffPerformance.objects.all()
+
+        if not user.is_superuser:
+            queryset = queryset.filter(agency=agency)
+
+        return queryset
 
     def form_valid(self, form):
-        performance = form.save(commit=False)
-
-        # Ensure the shift belongs to the manager's agency
-        if not self.request.user.is_superuser:
-            if performance.shift.agency != self.request.user.profile.agency:
-                messages.error(self.request, "You cannot update performance for shifts outside your agency.")
-                return self.form_invalid(form)
-
-        performance.save()
-        messages.success(self.request, "Staff performance updated successfully.")
-        logger.info(f"Performance for worker {performance.worker.username} on Shift ID {performance.shift.id} updated by {self.request.user.username}.")
+        performance = form.save()
+        messages.success(self.request, "Staff performance record updated successfully.")
+        logger.info(
+            f"Staff performance record '{performance}' updated by {self.request.user.username}."
+        )
         return super().form_valid(form)
 
 
@@ -170,16 +165,21 @@ class StaffPerformanceDeleteView(
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
-    DeleteView
+    DeleteView,
 ):
-    model = StaffPerformance
-    template_name = 'shifts/staff_performance_confirm_delete.html'
-    success_url = reverse_lazy('shifts:staff_performance_list')
+    """
+    Allows agency managers and superusers to delete a staff performance record.
+    """
 
-    required_features = ['staff_performance']
+    required_features = ["performance_management"]
+    model = StaffPerformance
+    template_name = "shifts/staff_performance_confirm_delete.html"
+    success_url = reverse_lazy("shifts:staff_performance_list")
 
     def delete(self, request, *args, **kwargs):
         performance = self.get_object()
-        logger.info(f"Performance for worker {performance.worker.username} on Shift ID {performance.shift.id} deleted by {request.user.username}.")
-        messages.success(request, "Staff performance deleted successfully.")
+        logger.info(
+            f"Staff performance record '{performance}' deleted by {request.user.username}."
+        )
+        messages.success(request, "Staff performance record deleted successfully.")
         return super().delete(request, *args, **kwargs)
