@@ -1,17 +1,20 @@
 # /workspace/shiftwise/core/mixins.py
 
-from django.contrib.auth.mixins import UserPassesTestMixin
-from django.shortcuts import redirect
-from django.contrib import messages
-from django.contrib.messages import get_messages
 import logging
-from subscriptions.models import Subscription
-from django.utils import timezone
-from django.core.exceptions import PermissionDenied
+
+from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.messages import get_messages
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect
+from django.utils import timezone
+
+from subscriptions.models import Subscription
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
 
 class SuperuserRequiredMixin(UserPassesTestMixin):
     """Mixin to ensure that the user is a superuser."""
@@ -83,6 +86,7 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
     Checks if the user's agency has an active subscription and enforces view limits based on the subscription plan.
     Superusers bypass all restrictions.
     """
+
     required_features = []  # List of features required to access the view
 
     def test_func(self):
@@ -134,6 +138,7 @@ class FeatureRequiredMixin(UserPassesTestMixin):
     """
     Mixin to ensure that the user's subscription includes specific features.
     """
+
     required_features = []  # List of features required to access the view
 
     def test_func(self):
@@ -145,7 +150,7 @@ class FeatureRequiredMixin(UserPassesTestMixin):
         if not user.is_authenticated:
             return False
         try:
-            user_features = getattr(user, 'subscription_features', [])
+            user_features = getattr(user, "subscription_features", [])
             return all(feature in user_features for feature in self.required_features)
         except AttributeError:
             logger.exception(
