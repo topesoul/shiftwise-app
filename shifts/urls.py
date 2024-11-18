@@ -5,7 +5,6 @@ from django.urls import include, path
 from shifts.views import (  # Staff Management Views; Shift Management Views; Shift Completion Views; Shift Booking and Unbooking Views; Timesheet and Reporting Views; Staff Performance Views; API Views; Dashboard View; Worker Assignment Views
     APIAccessView,
     AssignWorkerView,
-    DashboardView,
     ReportDashboardView,
     ShiftBookView,
     ShiftCompleteAjaxView,
@@ -25,7 +24,7 @@ from shifts.views import (  # Staff Management Views; Shift Management Views; Sh
     StaffPerformanceDeleteView,
     StaffPerformanceDetailView,
     StaffPerformanceUpdateView,
-    StaffPerformanceView,
+    StaffPerformanceListView,
     StaffUpdateView,
     TimesheetDownloadView,
     UnassignWorkerView,
@@ -86,7 +85,7 @@ urlpatterns = [
     # ---------------------------
     # Staff Performance URLs
     # ---------------------------
-    path("performance/", StaffPerformanceView.as_view(), name="staff_performance_list"),
+    path("performance/", StaffPerformanceListView.as_view(), name="staff_performance_list"),
     path(
         "performance/<int:pk>/",
         StaffPerformanceDetailView.as_view(),
@@ -116,10 +115,6 @@ urlpatterns = [
         ShiftDetailsAPIView.as_view(),
         name="shift_details_api",
     ),
-    # ---------------------------
-    # Dashboard URL
-    # ---------------------------
-    path("dashboard/", DashboardView.as_view(), name="dashboard"),
     # ---------------------------
     # Worker Assignment URLs
     # ---------------------------
