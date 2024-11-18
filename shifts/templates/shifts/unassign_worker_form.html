@@ -1,14 +1,20 @@
 <!-- /workspace/shiftwise/shifts/templates/shifts/unassign_worker_form.html -->
 
-{% extends "base.html" %}
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
 {% load crispy_forms_tags %}
+
+{% block title %}Unassign Worker from Shift: {{ shift.name }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <h2>Unassign Worker from Shift: {{ shift.name }}</h2>
     <form method="post" action="{% url 'shifts:unassign_worker' shift.id assignment.id %}">
         {% csrf_token %}
-        {{ form.as_p }}
+        {{ form|crispy }}
         <button type="submit" class="btn btn-danger">Unassign Worker</button>
         <a href="{% url 'shifts:shift_detail' shift.id %}" class="btn btn-secondary">Cancel</a>
     </form>
