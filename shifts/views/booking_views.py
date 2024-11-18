@@ -36,7 +36,7 @@ class ShiftBookView(
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
-        shift = get_object_or_404(Shift, id=shift_id)
+        shift = get_object_or_404(Shift, id=shift_id, is_active=True)
 
         # Check permissions
         if not (user.groups.filter(name="Agency Staff").exists() or user.is_superuser):
@@ -70,20 +70,22 @@ class ShiftBookView(
 
         # Check proximity if not superuser
         if not user.is_superuser:
-            if (
-                user.profile.latitude
-                and user.profile.longitude
-                and shift.latitude
-                and shift.longitude
-            ):
+            profile = user.profile
+            shift_lat = shift.latitude
+            shift_lon = shift.longitude
+            user_lat = profile.latitude
+            user_lon = profile.longitude
+            travel_radius = profile.travel_radius
+
+            if user_lat is not None and user_lon is not None and shift_lat is not None and shift_lon is not None:
                 distance = haversine_distance(
-                    user.profile.latitude,
-                    user.profile.longitude,
-                    shift.latitude,
-                    shift.longitude,
+                    user_lat,
+                    user_lon,
+                    shift_lat,
+                    shift_lon,
                     unit="miles",
                 )
-                if distance > user.profile.travel_radius:
+                if distance > travel_radius:
                     messages.error(
                         request,
                         f"You are too far from the shift location ({distance:.2f} miles).",
@@ -102,10 +104,19 @@ class ShiftBookView(
                 return redirect("shifts:shift_detail", pk=shift_id)
 
         # Create a ShiftAssignment
-        ShiftAssignment.objects.create(shift=shift, worker=user)
-        messages.success(request, "You have successfully booked the shift.")
-        logger.info(f"User {user.username} booked shift {shift.id}.")
-        return redirect("shifts:shift_detail", pk=shift_id)
+        try:
+            assignment = ShiftAssignment.objects.create(shift=shift, worker=user)
+            messages.success(request, "You have successfully booked the shift.")
+            logger.info(f"User {user.username} booked shift {shift.id}.")
+            return redirect("shifts:shift_detail", pk=shift_id)
+        except Exception as e:
+            messages.error(
+                request, "An error occurred while booking the shift. Please try again."
+            )
+            logger.exception(
+                f"Error booking shift {shift.id} for user {user.username}: {e}"
+            )
+            return redirect("shifts:shift_detail", pk=shift_id)
 
     def get(self, request, shift_id, *args, **kwargs):
         """
@@ -130,7 +141,7 @@ class ShiftUnbookView(
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
-        shift = get_object_or_404(Shift, id=shift_id)
+        shift = get_object_or_404(Shift, id=shift_id, is_active=True)
 
         # Check permissions
         if not (user.groups.filter(name="Agency Staff").exists() or user.is_superuser):
@@ -155,12 +166,28 @@ class ShiftUnbookView(
             logger.info(
                 f"User {user.username} attempted to unbook shift {shift.id} without existing booking."
             )
-            return redirect("shifts:shift_list")
+            return redirect("shifts:shift_detail", pk=shift_id)
 
         # Delete the ShiftAssignment
-        assignment.delete()
-        messages.success(request, "You have successfully unbooked the shift.")
-        logger.info(f"User {user.username} unbooked shift {shift.id}.")
+        try:
+            worker_username = assignment.worker.get_full_name()
+            assignment.delete()
+            messages.success(
+                request, f"You have been unbooked from the shift: {shift.name}."
+            )
+            logger.info(
+                f"User {user.username} unbooked from shift {shift.id}."
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                "An error occurred while unbooking the shift. Please try again.",
+            )
+            logger.exception(
+                f"Error unbooking shift {shift.id} for user {user.username}: {e}"
+            )
+            return redirect("shifts:shift_detail", pk=shift_id)
+
         return redirect("shifts:shift_detail", pk=shift_id)
 
     def get(self, request, shift_id, *args, **kwargs):
