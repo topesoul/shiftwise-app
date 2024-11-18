@@ -1,6 +1,5 @@
 <!-- /workspace/shiftwise/shifts/templates/shifts/shift_complete_modal.html -->
 
-{% load static %}
 <div class="modal fade" id="completeShiftModal" tabindex="-1" role="dialog" aria-labelledby="completeShiftModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <form id="completeShiftForm" enctype="multipart/form-data" action="{% url 'shifts:complete_shift' shift.id %}" method="post" class="complete-shift-form">
@@ -15,15 +14,16 @@
                 <div class="modal-body">
                     <p>Please provide a signature and confirm your current location to complete the shift.</p>
                     
-                    <!-- Signature Pad -->
-                    <div class="form-group">
-                        <label for="signaturePad">Signature:</label>
-                        <canvas id="signaturePad" class="signaturePad mb-2"></canvas>
-                        <button type="button" class="btn btn-secondary btn-sm clearSignature">Clear Signature</button>
-                        <input type="hidden" name="signature" class="signatureInput">
-                    </div>
+                <!-- Signature Pad -->
+                <div class="form-group">
+                    <label for="signaturePad">Signature:</label>
+                    <canvas id="signaturePad" class="signaturePad mb-2"></canvas>
+                    <button type="button" class="btn btn-secondary btn-sm clearSignature">Clear Signature</button>
+                    <input type="hidden" name="signature" class="signatureInput">
+                </div>
 
-                    <!-- Geolocation Capture -->
+
+                    <!-- Get Location Button -->
                     <div class="form-group">
                         <button type="button" class="btn btn-info btn-sm getLocation">Get Current Location</button>
                         <small class="form-text text-muted">Your location is required to verify shift completion.</small>
@@ -31,8 +31,8 @@
                     </div>
 
                     <!-- Hidden Fields for Latitude and Longitude -->
-                    <input type="hidden" name="latitude" id="id_latitude">
-                    <input type="hidden" name="longitude" id="id_longitude">
+                    <input type="hidden" name="latitude" id="id_shift_completion_latitude">
+                    <input type="hidden" name="longitude" id="id_shift_completion_longitude">
 
                     <!-- Address Confirmation -->
                     <div class="form-group">
@@ -44,8 +44,8 @@
                     <!-- Attendance Status -->
                     <div class="form-group">
                         <label for="id_attendance_status">Attendance Status:</label>
-                        {{ shift_completion_form.attendance_status }}
-                        {% for error in shift_completion_form.attendance_status.errors %}
+                        {{ form.attendance_status }}
+                        {% for error in form.attendance_status.errors %}
                             <small class="text-danger">{{ error }}</small>
                         {% endfor %}
                     </div>
