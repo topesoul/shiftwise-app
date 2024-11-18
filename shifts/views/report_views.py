@@ -7,8 +7,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db import models
-from django.db.models import Count, ExpressionWrapper, F, FloatField, Q, Sum
+from django.db.models import Avg, Count, ExpressionWrapper, F, FloatField, Q, Sum
 from django.http import StreamingHttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -193,32 +192,44 @@ class ReportDashboardView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Existing shift data
-        dates = [datetime.now().date() - timedelta(days=i) for i in range(6, -1, -1)]
+        user = self.request.user
+
+        # Fetch data for the past 7 days
+        dates = [timezone.now().date() - timedelta(days=i) for i in range(6, -1, -1)]
         labels = [date.strftime("%Y-%m-%d") for date in dates]
-        shift_data = [Shift.objects.filter(shift_date=date).count() for date in dates]
+
+        # Filter shifts based on agency if not superuser
+        if user.is_superuser:
+            shifts = Shift.objects.filter(shift_date__in=dates)
+            performances = StaffPerformance.objects.filter(
+                shift__shift_date__gte=timezone.now().date() - timedelta(days=30)
+            )
+        else:
+            agency = user.profile.agency
+            shifts = Shift.objects.filter(shift_date__in=dates, agency=agency)
+            performances = StaffPerformance.objects.filter(
+                shift__shift_date__gte=timezone.now().date() - timedelta(days=30),
+                agency=agency,
+            )
+
+        shift_data = [shifts.filter(shift_date=date).count() for date in dates]
+
         context["labels"] = labels
         context["shift_data"] = shift_data
 
         # Performance data
-        performance = StaffPerformance.objects.filter(
-            shift__shift_date__gte=datetime.now().date() - timedelta(days=30)
-        )
-        avg_wellness = (
-            performance.aggregate(models.Avg("wellness_score"))["wellness_score__avg"]
-            or 0
-        )
-        avg_rating = (
-            performance.aggregate(models.Avg("performance_rating"))[
-                "performance_rating__avg"
-            ]
-            or 0
-        )
+        avg_wellness = performances.aggregate(Avg("wellness_score"))[
+            "wellness_score__avg"
+        ] or 0
+        avg_rating = performances.aggregate(Avg("performance_rating"))[
+            "performance_rating__avg"
+        ] or 0
+
         context["avg_wellness"] = round(avg_wellness, 2)
         context["avg_rating"] = round(avg_rating, 2)
 
         logger.debug(
-            f"Report dashboard accessed by user {self.request.user.username}. Shift data: {shift_data}, Performance data: Avg Wellness: {avg_wellness}, Avg Rating: {avg_rating}"
+            f"Report dashboard accessed by user {user.username}. Shift data: {shift_data}, Performance data: Avg Wellness: {avg_wellness}, Avg Rating: {avg_rating}"
         )
 
         return context
