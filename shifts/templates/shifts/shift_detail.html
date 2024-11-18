@@ -1,20 +1,25 @@
-<!-- /workspace/shiftwise/shifts/templates/shifts/shift_detail.html -->
-
 {% extends 'base.html' %}
-{% block title %}Shift Detail - {{ shift.name }}{% endblock %}
-{% load custom_tags %}
-{% load custom_filters %}
-{% load crispy_forms_tags %}
+
 {% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+
+{% block title %}Shift Detail - {{ shift.name }}{% endblock %}
+
 {% block content %}
 <div class="container">
     <div class="card mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h3 class="mb-0">{{ shift.name }} Details</h3>
             <span class="badge badge-info">{{ shift.get_status_display }}</span>
+            {% if not shift.is_active %}
+                <span class="badge badge-secondary">Inactive</span>
+            {% endif %}
         </div>
         <div class="card-body">
             <!-- Shift Details -->
+            <p><strong>Shift Code:</strong> {{ shift.shift_code }}</p>
             <p><strong>Date:</strong> {{ shift.shift_date|date:"D, d M Y" }}</p>
             <p><strong>Start Time:</strong> {{ shift.start_time|time:"H:i" }}</p>
             <p><strong>End Time:</strong> {{ shift.end_time|time:"H:i" }}</p>
@@ -22,8 +27,7 @@
             <p><strong>Capacity:</strong> {{ shift.capacity }}</p>
             <p><strong>Available Slots:</strong> {{ shift.available_slots }}</p>
             <p><strong>Agency:</strong> {{ shift.agency.name }}</p>
-            <p><strong>Address:</strong> {{ shift.address_line1 }}, {{ shift.city }}, {{ shift.county }},
-                {{ shift.country }}, {{ shift.postcode }}</p>
+            <p><strong>Address:</strong> {{ shift.address_line1 }}, {{ shift.city }}, {{ shift.county }}, {{ shift.country }}, {{ shift.postcode }}</p>
             <p><strong>Shift Type:</strong> {{ shift.get_shift_type_display }}</p>
             <p><strong>Hourly Rate:</strong> £{{ shift.hourly_rate|floatformat:2 }}</p>
             <p><strong>Notes:</strong> {{ shift.notes }}</p>
@@ -31,11 +35,16 @@
             <!-- Display Distance -->
             <p><strong>Distance from Your Location:</strong>
                 {% if distance_to_shift %}
-                {{ distance_to_shift|floatformat:2 }} miles
+                    {{ distance_to_shift|floatformat:2 }} miles
                 {% else %}
-                <span class="text-muted">N/A</span>
+                    <span class="text-muted">N/A</span>
                 {% endif %}
             </p>
+
+            <!-- Display if shift is full -->
+            {% if shift.is_full %}
+                <p><span class="badge badge-danger">Shift is Full</span></p>
+            {% endif %}
 
             {% if shift.is_completed %}
             <hr>
@@ -46,18 +55,18 @@
             <img src="{{ shift.signature.url }}" alt="Signature" class="img-fluid mb-3 signature-img">
             {% endif %}
             {% if shift.completion_latitude and shift.completion_longitude %}
-            <p><strong>Completion Location:</strong> Latitude: {{ shift.completion_latitude }}, Longitude:
-                {{ shift.completion_longitude }}</p>
+            <p><strong>Completion Location:</strong> Latitude: {{ shift.completion_latitude }}, Longitude: {{ shift.completion_longitude }}</p>
             <p><strong>Distance from Shift Location:</strong>
                 {% get_distance shift shift.completion_latitude shift.completion_longitude as distance %}
                 {% if distance %}
-                {{ distance|floatformat:2 }} miles
+                    {{ distance|floatformat:2 }} miles
                 {% else %}
-                <span class="text-muted">N/A</span>
+                    <span class="text-muted">N/A</span>
                 {% endif %}
             </p>
             {% endif %}
             {% endif %}
+
         </div>
         <div class="card-footer d-flex justify-content-between align-items-center">
             {% if user.is_authenticated %}
@@ -66,27 +75,31 @@
                 <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-primary">
                     <i class="fas fa-edit"></i> Edit Shift
                 </a>
-                <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-danger"
-                    onclick="return confirm('Are you sure you want to delete this shift?');">
+                <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this shift?');">
                     <i class="fas fa-trash-alt"></i> Delete Shift
                 </a>
                 {% endif %}
-                {% if can_book %}
-                <a href="{% url 'shifts:book_shift' shift.id %}" class="btn btn-success">
-                    <i class="fas fa-bookmark"></i> Book Shift
-                </a>
+                {% if can_book and shift.is_active and not shift.is_full %}
+                <form method="post" action="{% url 'shifts:book_shift' shift.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-bookmark"></i> Book Shift
+                    </button>
+                </form>
                 {% elif can_unbook %}
-                <a href="{% url 'shifts:unbook_shift' shift.id %}" class="btn btn-warning"
-                    onclick="return confirm('Are you sure you want to unbook this shift?');">
-                    <i class="fas fa-undo"></i> Unbook Shift
-                </a>
+                <form method="post" action="{% url 'shifts:unbook_shift' shift.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to unbook this shift?');">
+                        <i class="fas fa-undo"></i> Unbook Shift
+                    </button>
+                </form>
                 {% elif shift.is_full %}
                 <span class="text-muted">Shift is Full</span>
                 {% endif %}
                 <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Shifts
                 </a>
-                {% if can_edit and not shift.is_completed %}
+                {% if can_edit and not shift.is_completed and shift.is_active %}
                 <!-- Button to trigger Complete Shift Modal -->
                 <button type="button" class="btn btn-success" data-toggle="modal" data-target="#completeShiftModal">
                     <i class="fas fa-check-circle"></i> Complete Shift
@@ -133,45 +146,46 @@
     {% endif %}
 
     <!-- Assigned Workers List -->
-    <div class="card mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h4 class="mb-0">Assigned Workers</h4>
+    {% if assigned_workers %}
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">Assigned Workers</h4>
+            </div>
+            <div class="card-body">
+                {% if assigned_workers %}
+                    <ul class="list-group">
+                        {% for assignment in assigned_workers %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-user-tie mr-2"></i> {{ assignment.worker.get_full_name }} ({{ assignment.worker.email }})
+                                </div>
+                                {% if can_assign_workers %}
+                                    <form method="post" action="{% url 'shifts:unassign_worker' shift.id assignment.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to unassign this worker?');">
+                                            <i class="fas fa-user-minus"></i> Unassign
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No workers assigned to this shift.</p>
+                {% endif %}
+            </div>
         </div>
-        <div class="card-body">
-            {% if assigned_workers %}
-                <ul class="list-group">
-                    {% for assignment in assigned_workers %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="fas fa-user-tie mr-2"></i> {{ assignment.worker.get_full_name }} ({{ assignment.worker.email }})
-                            </div>
-                            {% if can_assign_workers %}
-                                <form method="post" action="{% url 'shifts:unassign_worker' shift.id assignment.id %}" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to unassign this worker?');">
-                                        <i class="fas fa-user-minus"></i> Unassign
-                                    </button>
-                                </form>
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="text-muted">No workers assigned to this shift.</p>
-            {% endif %}
-        </div>
-    </div>
-</div>
+    {% endif %}
 
 <!-- Include the Shift Completion Modal -->
-{% if can_edit and not shift.is_completed %}
+{% if can_edit and not shift.is_completed and shift.is_active %}
     {% include 'shifts/shift_complete_modal.html' %}
 {% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <!-- Include SignaturePad -->
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@2.3.2/dist/signature_pad.min.js"></script>
 
 <!-- Include the Shift Completion Modal JavaScript -->
 <script src="{% static 'shifts/js/shift_complete_modal.js' %}"></script>
@@ -181,5 +195,4 @@
 
 <!-- Include the General Scripts -->
 <script src="{% static 'js/address_autocomplete.js' %}"></script>
-<script src="{% static 'js/scripts.js' %}"></script>
 {% endblock %}
