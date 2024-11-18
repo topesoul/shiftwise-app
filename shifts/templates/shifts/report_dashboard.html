@@ -1,59 +1,45 @@
-<!-- shifts/templates/shifts/report_dashboard.html -->
+<!-- /workspace/shiftwise/shifts/templates/shifts/report_dashboard.html -->
 
 {% extends 'base.html' %}
 
+{% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+
+{% block title %}Shift Reports{% endblock %}
+
 {% block content %}
-<h2>Shift Reports</h2>
-<canvas id="shiftsChart" width="400" height="200"></canvas>
-<canvas id="performanceChart" width="400" height="200"></canvas>
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">Shift Reports</h2>
 
+    <div class="row">
+        <div class="col-md-6">
+            <canvas id="shiftsChart"></canvas>
+        </div>
+        <div class="col-md-6">
+            <canvas id="performanceChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/report_dashboard.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // Shift Chart
-    const ctx = document.getElementById('shiftsChart').getContext('2d');
-    const shiftsChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: {{ labels|safe }},
-            datasets: [{
-                label: '# of Shifts',
-                data: {{ shift_data|safe }},
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
 
-    // Performance Chart
-    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
-    const performanceChart = new Chart(performanceCtx, {
-        type: 'pie',
-        data: {
-            labels: ['Average Wellness Score', 'Average Performance Rating'],
-            datasets: [{
-                data: [{{ avg_wellness }}, {{ avg_rating }}],
-                backgroundColor: [
-                    'rgba(75, 192, 192, 0.2)',
-                    'rgba(255, 206, 86, 0.2)'
-                ],
-                borderColor: [
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(255, 206, 86, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-        }
-    });
+<!-- Pass data to JavaScript via global variables -->
+<script>
+    const labels = {{ labels|safe }};
+    const shiftData = {{ shift_data|safe }};
+    const avgWellness = {{ avg_wellness }};
+    const avgRating = {{ avg_rating }};
 </script>
+
+<!-- Include External JavaScript for Report Dashboard -->
+<script src="{% static 'js/report_dashboard.js' %}"></script>
 {% endblock %}
