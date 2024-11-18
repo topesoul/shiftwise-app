@@ -22,6 +22,7 @@ class User(AbstractUser):
         ("agency_owner", "Agency Owner"),
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="staff")
+    email = models.EmailField(max_length=254, unique=True)  # Ensuring unique emails
 
     def __str__(self):
         return self.username
