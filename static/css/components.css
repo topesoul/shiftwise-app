@@ -14,7 +14,7 @@
     height: 470px;
     background-size: cover;
     background-position: center;
-    padding-top: 20px; /* Adding padding */
+    padding-top: 20px;
 }
 
 /* Hero Section Styling */
@@ -364,4 +364,23 @@
 /* Clear Signature Button */
 .clearSignature {
     margin-top: 0.5rem;
+}
+
+/* Form Styling */
+
+.form-inline .form-group {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.form-inline .form-control {
+    width: auto;
+}
+
+.form-row .form-group {
+    margin-bottom: 15px;
+}
+
+.form-row .form-control {
+    width: 100%;
 }
