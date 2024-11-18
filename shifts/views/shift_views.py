@@ -6,8 +6,16 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ValidationError
-from django.db.models import Count, Prefetch, Q
+from django.db.models import (
+    BooleanField,
+    Case,
+    Count,
+    Exists,
+    F,
+    OuterRef,
+    Q,
+    When,
+)
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -24,8 +32,7 @@ from core.mixins import (
     FeatureRequiredMixin,
     SubscriptionRequiredMixin,
 )
-from shifts.filters import ShiftFilter
-from shifts.forms import ShiftForm
+from shifts.forms import ShiftForm, ShiftFilterForm
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import generate_shift_code, haversine_distance
 
@@ -43,9 +50,8 @@ class ShiftListView(
     ListView,
 ):
     """
-    Displays a list of shifts available to the user with search and filter capabilities.
-    Includes distance calculations based on the user's registered address.
-    Superusers see all shifts without agency restrictions.
+    Displays a list of shifts with filtering options.
+    Only accessible to agency managers and superusers.
     """
 
     required_features = ["shift_management"]
@@ -56,50 +62,98 @@ class ShiftListView(
 
     def get_queryset(self):
         user = self.request.user
-        profile = user.profile
-        queryset = Shift.objects.all().order_by("shift_date", "start_time")
+        queryset = Shift.objects.all()
 
-        # Filter based on user role
-        if user.is_superuser:
-            pass  # Superusers see all shifts
-        elif user.groups.filter(name="Agency Managers").exists():
-            queryset = queryset.filter(agency=profile.agency)
-        elif user.groups.filter(name="Agency Staff").exists():
-            queryset = queryset.filter(agency=profile.agency)
-        else:
-            queryset = Shift.objects.none()
+        if not user.is_superuser:
+            agency = user.profile.agency
+            queryset = queryset.filter(agency=agency)
 
-        # Apply search filters through ShiftFilter
-        self.filterset = ShiftFilter(self.request.GET, queryset=queryset)
-        queryset = self.filterset.qs
+        # Annotate with number of assignments and is_full_shift
+        queryset = queryset.annotate(
+            assignments_count=Count("assignments"),
+            is_full_shift=Case(
+                When(assignments_count__gte=F("capacity"), then=True),
+                default=False,
+                output_field=BooleanField(),
+            ),
+        )
 
-        # Prefetch related assignments and workers for optimization
-        queryset = queryset.prefetch_related("assignments__worker")
+        # Apply filters
+        self.filter_form = ShiftFilterForm(self.request.GET or None)
+        if self.filter_form.is_valid():
+            date_from = self.filter_form.cleaned_data.get("date_from")
+            date_to = self.filter_form.cleaned_data.get("date_to")
+            status = self.filter_form.cleaned_data.get("status")
+            search = self.filter_form.cleaned_data.get("search")
+            shift_code = self.filter_form.cleaned_data.get("shift_code")
+            address = self.filter_form.cleaned_data.get("address")
 
-        # Calculate distance and annotate
-        if profile.latitude and profile.longitude:
+            if date_from:
+                queryset = queryset.filter(shift_date__gte=date_from)
+            if date_to:
+                queryset = queryset.filter(shift_date__lte=date_to)
+            if status and status != "all":
+                if status == "available":
+                    queryset = queryset.filter(is_full_shift=False)
+                elif status == "booked":
+                    queryset = queryset.filter(assignments_count__gt=0)
+                elif status == "completed":
+                    queryset = queryset.filter(status=Shift.STATUS_COMPLETED)
+                elif status == "cancelled":
+                    queryset = queryset.filter(status=Shift.STATUS_CANCELED)
+            if search:
+                queryset = queryset.filter(
+                    Q(name__icontains=search)
+                    | Q(shift_type__icontains=search)
+                    | Q(agency__name__icontains=search)
+                )
+            if shift_code:
+                queryset = queryset.filter(shift_code__icontains=shift_code)
+            if address:
+                queryset = queryset.filter(
+                    Q(address_line1__icontains=address)
+                    | Q(address_line2__icontains=address)
+                    | Q(city__icontains=address)
+                    | Q(county__icontains=address)
+                    | Q(postcode__icontains=address)
+                    | Q(country__icontains=address)
+                )
+
+        # Annotate with is_assigned
+        assignments = ShiftAssignment.objects.filter(shift=OuterRef("pk"), worker=user)
+        queryset = queryset.annotate(is_assigned=Exists(assignments))
+
+        # Annotate with distance if user has location
+        if (
+            user.is_authenticated
+            and hasattr(user, "profile")
+            and user.profile.latitude
+            and user.profile.longitude
+        ):
+            user_lat = user.profile.latitude
+            user_lon = user.profile.longitude
+            # Calculate distance for each shift
+            shifts = []
             for shift in queryset:
                 if shift.latitude and shift.longitude:
                     distance = haversine_distance(
-                        profile.latitude,
-                        profile.longitude,
+                        user_lat,
+                        user_lon,
                         shift.latitude,
                         shift.longitude,
                         unit="miles",
                     )
-                    shift.distance_to_user = distance
+                    shift.distance = distance
                 else:
-                    shift.distance_to_user = None
-        else:
-            # If user has no registered address, set distance to None
-            for shift in queryset:
-                shift.distance_to_user = None
+                    shift.distance = None
+                shifts.append(shift)
+            queryset = shifts
 
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["filter"] = self.filterset
+        context["filter_form"] = self.filter_form
         return context
 
 
@@ -120,13 +174,15 @@ class ShiftDetailView(LoginRequiredMixin, DetailView):
         )
 
         if user.is_superuser:
-            return queryset
+            queryset = queryset.filter(is_active=True)
         elif user.groups.filter(name="Agency Managers").exists():
-            return queryset.filter(agency=user.profile.agency)
+            queryset = queryset.filter(agency=user.profile.agency, is_active=True)
         elif user.groups.filter(name="Agency Staff").exists():
-            return queryset.filter(agency=user.profile.agency)
+            queryset = queryset.filter(agency=user.profile.agency, is_active=True)
         else:
-            return Shift.objects.none()
+            queryset = Shift.objects.none()
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -150,30 +206,46 @@ class ShiftDetailView(LoginRequiredMixin, DetailView):
                 unit="miles",
             )
 
+        # Annotate with number of assignments and is_full_shift
+        shift.assignments_count = shift.assignments.count()
+        shift.is_full_shift = shift.assignments_count >= shift.capacity
+
         context["distance_to_shift"] = distance
-        context["is_assigned"] = shift.assignments.filter(worker=user).exists()
+
+        # Check if the user is assigned to this shift
+        context["is_assigned"] = ShiftAssignment.objects.filter(
+            shift=shift, worker=user
+        ).exists()
+
         context["can_book"] = (
             user.groups.filter(name="Agency Staff").exists()
-            and not shift.is_full
+            and not shift.is_full_shift
             and not context["is_assigned"]
+            and shift.is_active
         )
         context["can_unbook"] = (
-            user.groups.filter(name="Agency Staff").exists() and context["is_assigned"]
+            user.groups.filter(name="Agency Staff").exists()
+            and context["is_assigned"]
         )
         context["can_edit"] = user.is_superuser or (
             user.groups.filter(name="Agency Managers").exists()
             and shift.agency == profile.agency
         )
-        context["assigned_workers"] = shift.assignments.all()
-        context["can_assign_workers"] = (
-            user.is_superuser or user.groups.filter(name="Agency Managers").exists()
-        )
+
+        # Only include assigned_workers if user is superuser or agency manager
+        if user.is_superuser or user.groups.filter(name="Agency Managers").exists():
+            context["assigned_workers"] = shift.assignments.all()
+            context["can_assign_workers"] = True
+        else:
+            context["assigned_workers"] = None
+            context["can_assign_workers"] = False
 
         # For assigning workers
         if context["can_assign_workers"]:
             if user.is_superuser:
                 available_workers = User.objects.filter(
-                    groups__name="Agency Staff", is_active=True
+                    groups__name="Agency Staff",
+                    is_active=True,
                 ).exclude(shift_assignments__shift=shift)
             else:
                 available_workers = User.objects.filter(
@@ -320,6 +392,7 @@ class ShiftUpdateView(
             # Agency managers cannot change the agency of a shift
             shift.agency = self.request.user.profile.agency
 
+        # Update shift code if needed
         shift.shift_code = generate_shift_code()
 
         # Save the shift
