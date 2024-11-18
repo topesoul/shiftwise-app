@@ -1,9 +1,11 @@
 <!-- /workspace/shiftwise/accounts/templates/accounts/signup.html -->
+{% extends 'base.html' %}
 
-{% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% custom_filters}
 {% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+
 {% block title %}Staff Sign Up{% endblock %}
 
 {% block content %}
