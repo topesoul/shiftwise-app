@@ -122,16 +122,6 @@ class UnassignWorkerView(
                     f"User {user.username} attempted to unassign worker from shift {shift.id} outside their agency."
                 )
                 return redirect("shifts:shift_detail", pk=shift_id)
-        elif user.groups.filter(name="Agency Staff").exists():
-            # Agency Staff can only unassign themselves
-            if assignment.worker != user:
-                messages.error(
-                    request, "You do not have permission to unassign this worker."
-                )
-                logger.warning(
-                    f"User {user.username} attempted to unassign worker {assignment.worker.username} from shift {shift.id}."
-                )
-                return redirect("shifts:shift_detail", pk=shift_id)
         else:
             messages.error(request, "You do not have permission to unassign shifts.")
             logger.warning(
@@ -141,13 +131,13 @@ class UnassignWorkerView(
 
         # Perform Unassignment
         try:
-            worker_username = assignment.worker.get_full_name()
+            worker_full_name = assignment.worker.get_full_name()
             assignment.delete()
             messages.success(
-                request, f"Worker {worker_username} has been unassigned from the shift."
+                request, f"Worker {worker_full_name} has been unassigned from the shift."
             )
             logger.info(
-                f"Worker {worker_username} unassigned from shift {shift.id} by {user.username}."
+                f"Worker {worker_full_name} unassigned from shift {shift.id} by {user.username}."
             )
         except Exception as e:
             messages.error(
@@ -159,10 +149,4 @@ class UnassignWorkerView(
             )
             return redirect("shifts:shift_detail", pk=shift_id)
 
-        return redirect("shifts:shift_detail", pk=shift_id)
-
-    def get(self, request, shift_id, assignment_id, *args, **kwargs):
-        """
-        Redirect GET requests to the shift detail page.
-        """
         return redirect("shifts:shift_detail", pk=shift_id)
