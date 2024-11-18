@@ -30,12 +30,12 @@ class AssignWorkerView(
     required_features = ["shift_management"]
 
     def dispatch(self, request, *args, **kwargs):
-        self.shift = get_object_or_404(Shift, id=self.kwargs.get("shift_id"))
+        self.shift = get_object_or_404(Shift, id=self.kwargs.get("shift_id"), is_active=True)
         return super().dispatch(request, *args, **kwargs)
 
     def test_func(self):
         user = self.request.user
-        # Superusers can assign workers to any shift
+        # Superusers can assign workers to any active shift
         if user.is_superuser:
             return True
         # Agency Managers can assign workers within their agency
@@ -55,7 +55,7 @@ class AssignWorkerView(
         # Check if the worker is already assigned to the shift
         if ShiftAssignment.objects.filter(shift=shift, worker=worker).exists():
             form.add_error(
-                None, f"Worker {worker.username} is already assigned to this shift."
+                None, f"Worker {worker.get_full_name()} is already assigned to this shift."
             )
             return self.form_invalid(form)
 
@@ -66,7 +66,7 @@ class AssignWorkerView(
             )
             messages.success(
                 self.request,
-                f"Worker {worker.username} has been successfully assigned to the shift.",
+                f"Worker {worker.get_full_name()} has been successfully assigned to the shift.",
             )
             logger.info(
                 f"Worker {worker.username} assigned to shift {shift.id} by {self.request.user.username}."
@@ -104,12 +104,12 @@ class UnassignWorkerView(
 
     def post(self, request, shift_id, assignment_id, *args, **kwargs):
         user = request.user
-        shift = get_object_or_404(Shift, id=shift_id)
+        shift = get_object_or_404(Shift, id=shift_id, is_active=True)
         assignment = get_object_or_404(ShiftAssignment, id=assignment_id, shift=shift)
 
         # Permission Checks
         if user.is_superuser:
-            # Superusers can unassign any worker
+            # Superusers can unassign any worker from active shifts
             pass
         elif user.groups.filter(name="Agency Managers").exists():
             # Agency Managers can unassign workers within their agency
@@ -141,7 +141,7 @@ class UnassignWorkerView(
 
         # Perform Unassignment
         try:
-            worker_username = assignment.worker.username
+            worker_username = assignment.worker.get_full_name()
             assignment.delete()
             messages.success(
                 request, f"Worker {worker_username} has been unassigned from the shift."
