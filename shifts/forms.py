@@ -1,5 +1,3 @@
-# /workspace/shiftwise/shifts/forms.py
-
 import re
 
 from crispy_forms.helper import FormHelper
@@ -10,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from accounts.models import Agency
-from .models import Shift, ShiftAssignment, StaffPerformance
+from shifts.models import Shift, StaffPerformance, ShiftAssignment
 
 User = get_user_model()
 
@@ -26,7 +24,7 @@ class ShiftForm(forms.ModelForm):
         model = Shift
         fields = [
             "name",
-            "shift_code",  # Added shift_code field
+            "shift_code",
             "shift_date",
             "start_time",
             "end_time",
@@ -45,7 +43,7 @@ class ShiftForm(forms.ModelForm):
             "hourly_rate",
             "notes",
             "agency",
-            "is_active",  # Added is_active field
+            "is_active",
         ]
         widgets = {
             # Address Fields with unique IDs
@@ -126,7 +124,7 @@ class ShiftForm(forms.ModelForm):
             ),
             "notes",
             Field("agency"),
-            "is_active",  # Include is_active in the layout
+            "is_active",
             "address_line1",
             "address_line2",
             Row(
@@ -309,7 +307,7 @@ class ShiftCompletionForm(forms.Form):
         decimal_places=6,
     )
     attendance_status = forms.ChoiceField(
-        choices=[("present", "Present"), ("absent", "Absent")],
+        choices=ShiftAssignment.ATTENDANCE_STATUS_CHOICES,
         widget=forms.RadioSelect,
         required=False,
         help_text="Select attendance status after completing the shift.",
@@ -329,7 +327,7 @@ class ShiftCompletionForm(forms.Form):
         if (
             attendance_status
             and attendance_status
-            not in dict([("present", "Present"), ("absent", "Absent")]).keys()
+            not in dict(ShiftAssignment.ATTENDANCE_STATUS_CHOICES).keys()
         ):
             raise forms.ValidationError("Invalid attendance status selected.")
 
