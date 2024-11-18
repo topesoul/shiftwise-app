@@ -24,7 +24,7 @@ __all__ = [
     'ShiftUnbookView',
 
     # Staff Performance Views
-    'StaffPerformanceView',
+    'StaffPerformanceListView',
     'StaffPerformanceDetailView',
     'StaffPerformanceCreateView',
     'StaffPerformanceUpdateView',
@@ -83,7 +83,7 @@ from .booking_views import (
 
 # Staff Performance Views
 from .performance_views import (
-    StaffPerformanceView,
+    StaffPerformanceListView,
     StaffPerformanceDetailView,
     StaffPerformanceCreateView,
     StaffPerformanceUpdateView,
@@ -106,11 +106,6 @@ from .assignment_views import (
 from .api_views import (
     ShiftDetailsAPIView,
     APIAccessView,
-)
-
-# Dashboard Views
-from .dashboard_views import (
-    DashboardView,
 )
 
 # Custom Views
