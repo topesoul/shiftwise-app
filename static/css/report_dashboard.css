@@ -1,0 +1,37 @@
+/* /workspace/shiftwise/static/css/report_dashboard.css */
+
+#shiftsChart,
+#performanceChart {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 400px;
+}
+
+.container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.col-md-6 {
+    margin-bottom: 30px;
+    flex: 1 1 45%;
+}
+
+/* Additional Styles for Enhanced Visual Appeal */
+.canvas-container {
+    position: relative;
+    margin: auto;
+    height: 100%;
+    width: 100%;
+}
+
+.chartjs-render-monitor {
+    display: block !important;
+}
