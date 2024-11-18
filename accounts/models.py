@@ -22,7 +22,7 @@ class User(AbstractUser):
         ("agency_owner", "Agency Owner"),
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="staff")
-    email = models.EmailField(max_length=254, unique=True)  # Ensuring unique emails
+    email = models.EmailField(max_length=254, unique=True)
 
     def __str__(self):
         return self.username
@@ -33,14 +33,19 @@ class Agency(models.Model):
     Represents an agency managing multiple shifts.
     """
 
+    AGENCY_TYPE_CHOICES = [
+        ("staffing", "Staffing"),
+        ("healthcare", "Healthcare"),
+        ("training", "Training"),
+        ("education", "Education"),
+        ("other", "Other"),
+    ]
+
     name = models.CharField(max_length=255, unique=True)
-    agency_code = models.CharField(max_length=50, unique=True, blank=True)
+    agency_code = models.CharField(max_length=20, editable=False, unique=True)
     agency_type = models.CharField(
         max_length=100,
-        choices=[
-            ("staffing", "Staffing"),
-            ("healthcare", "Healthcare"),
-        ],
+        choices=AGENCY_TYPE_CHOICES,
         default="staffing",
     )
     is_active = models.BooleanField(default=True)
@@ -73,7 +78,8 @@ class Agency(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.agency_code:
-            self.agency_code = f"AG-{str(uuid.uuid4())[:8].upper()}"
+            # Generate a unique agency_code with "AG-" prefix followed by 8 uppercase characters
+            self.agency_code = f"AG-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
 
 
