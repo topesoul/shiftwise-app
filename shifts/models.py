@@ -7,7 +7,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from .validators import validate_image
+from shifts.validators import validate_image
 
 User = settings.AUTH_USER_MODEL
 
@@ -212,8 +212,8 @@ class Shift(TimestampedModel):
         assigned_count = self.assignments.filter(status=ShiftAssignment.CONFIRMED).count()
         return self.capacity - assigned_count
 
-    @property
-    def is_full(self):
+    # Change the property to a method to avoid conflicts
+    def check_is_full(self):
         """
         Returns True if the shift is fully booked.
         """
@@ -303,12 +303,14 @@ class ShiftAssignment(TimestampedModel):
         """
         super().clean()
 
-        # Ensure worker has an associated profile
-        if not hasattr(self.worker, "profile"):
-            raise ValidationError("Worker does not have an associated profile.")
+        # Ensure worker's profile has an agency
+        if not self.worker.profile.agency:
+            raise ValidationError(
+                "Worker must be associated with an agency to be assigned to a shift."
+            )
 
-        # Ensure worker's agency matches the shift's agency
-        if self.worker.profile.agency != self.shift.agency:
+        # Validate that the worker's agency matches the shift's agency
+        if self.shift.agency != self.worker.profile.agency:
             raise ValidationError(
                 "Workers can only be assigned to shifts within their agency."
             )
