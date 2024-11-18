@@ -1,9 +1,11 @@
 <!-- /workspace/shiftwise/accounts/templates/accounts/user_form.html -->
-
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
-{% load custom_filters %}
+
 {% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+
 {% block title %}{% if form.instance.pk %}Edit User{% else %}Add New User{% endif %} | ShiftWise{% endblock %}
 
 {% block content %}
