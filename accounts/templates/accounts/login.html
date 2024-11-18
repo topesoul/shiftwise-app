@@ -1,8 +1,10 @@
 <!-- templates/account/login.html -->
-{% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% custom_filters}
+{% extends 'base.html' %}
+
 {% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
 
 {% block title %}Login{% endblock %}
 
