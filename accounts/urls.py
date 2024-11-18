@@ -8,7 +8,7 @@ app_name = "accounts"
 
 urlpatterns = [
     # Authentication URLs
-    path("login/", views.LoginView.as_view(), name="login_view"),
+    path("login/", views.CustomLoginView.as_view(), name="login_view"),
     path("logout/", views.LogoutView.as_view(), name="logout_view"),
     path("signup/", views.SignupSelectionView.as_view(), name="signup_selection"),
     path("signup/agency/", views.AgencySignUpView.as_view(), name="agency_signup"),
@@ -34,15 +34,15 @@ urlpatterns = [
     # Profile URL
     path("profile/", views.ProfileView.as_view(), name="profile"),
     # MFA URLs
+    path("mfa/verify/", views.MFAVerifyView.as_view(), name="mfa_verify"),
     path("mfa/activate/", views.ActivateTOTPView.as_view(), name="activate_totp"),
-    path("mfa/verify/", views.VerifyTOTPView.as_view(), name="verify_totp"),
     path("mfa/disable/", views.DisableTOTPView.as_view(), name="disable_totp"),
     path("mfa/resend/", views.ResendTOTPCodeView.as_view(), name="resend_totp"),
     # Agency Management URLs
     path("agencies/", views.AgencyListView.as_view(), name="manage_agencies"),
     path(
         "agencies/create/", views.AgencyCreateView.as_view(), name="agency_create"
-    ),  # Ensure correct name
+    ),
     path(
         "agencies/update/<int:pk>/",
         views.AgencyUpdateView.as_view(),
