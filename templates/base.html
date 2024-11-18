@@ -1,12 +1,13 @@
 <!-- /workspace/shiftwise/templates/base.html -->
 
+{% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+
 <!DOCTYPE html>
 <html lang="en" data-theme="light" data-user-id="{% if user.is_authenticated %}{{ user.id }}{% else %}0{% endif %}">
 <head>
-    {% load static %}
-    {% load custom_filters %}
-    {% load custom_tags %}
-    {% load crispy_forms_tags %}
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,13 +28,15 @@
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-
     <!-- Custom CSS Files -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
     <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
     <link rel="stylesheet" href="{% static 'css/subscription.css' %}">
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+
+    <!-- Extra CSS Block -->
+    {% block extra_css %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100">
 
@@ -66,7 +69,11 @@
 
     <!-- Font Awesome JS -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <!-- Custom JS -->
     <script src="{% static 'js/dark_mode_toggle.js' %}"></script>
+
+    <!-- Included to allow child templates to inject additional JavaScript -->
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
