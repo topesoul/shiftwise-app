@@ -10,7 +10,6 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from accounts.models import Agency
-
 from .models import Shift, ShiftAssignment, StaffPerformance
 
 User = get_user_model()
@@ -27,6 +26,7 @@ class ShiftForm(forms.ModelForm):
         model = Shift
         fields = [
             "name",
+            "shift_code",  # Added shift_code field
             "shift_date",
             "start_time",
             "end_time",
@@ -45,53 +45,55 @@ class ShiftForm(forms.ModelForm):
             "hourly_rate",
             "notes",
             "agency",
+            "is_active",  # Added is_active field
         ]
         widgets = {
-            "latitude": forms.HiddenInput(attrs={"id": "id_latitude"}),
-            "longitude": forms.HiddenInput(attrs={"id": "id_longitude"}),
+            # Address Fields with unique IDs
             "address_line1": forms.TextInput(
                 attrs={
                     "class": "form-control address-autocomplete",
                     "placeholder": "Enter address line 1",
-                    "id": "id_address_line1",
+                    "id": "id_shift_address_line1",
                 }
             ),
             "address_line2": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter address line 2",
-                    "id": "id_address_line2",
+                    "id": "id_shift_address_line2",
                 }
             ),
             "city": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter city",
-                    "id": "id_city",
+                    "id": "id_shift_city",
                 }
             ),
             "county": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter county",
-                    "id": "id_county",
+                    "id": "id_shift_county",
                 }
             ),
             "postcode": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter postcode",
-                    "id": "id_postcode",
+                    "id": "id_shift_postcode",
                 }
             ),
             "country": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter country",
-                    "id": "id_country",
+                    "id": "id_shift_country",
                 }
             ),
-            # Other widgets as needed...
+            # Hidden Fields with unique IDs
+            "latitude": forms.HiddenInput(attrs={"id": "id_shift_latitude"}),
+            "longitude": forms.HiddenInput(attrs={"id": "id_shift_longitude"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -104,23 +106,27 @@ class ShiftForm(forms.ModelForm):
         self.helper.layout = Layout(
             Row(
                 Column("name", css_class="form-group col-md-6 mb-0"),
+                Column("shift_code", css_class="form-group col-md-6 mb-0"),
+            ),
+            Row(
                 Column("shift_date", css_class="form-group col-md-6 mb-0"),
-            ),
-            Row(
                 Column("start_time", css_class="form-group col-md-6 mb-0"),
+            ),
+            Row(
                 Column("end_time", css_class="form-group col-md-6 mb-0"),
-            ),
-            Row(
                 Column("end_date", css_class="form-group col-md-6 mb-0"),
-                Column("is_overnight", css_class="form-group col-md-6 mb-0"),
             ),
             Row(
+                Column("is_overnight", css_class="form-group col-md-6 mb-0"),
                 Column("capacity", css_class="form-group col-md-6 mb-0"),
-                Column("hourly_rate", css_class="form-group col-md-6 mb-0"),
             ),
-            "shift_type",
+            Row(
+                Column("hourly_rate", css_class="form-group col-md-6 mb-0"),
+                Column("shift_type", css_class="form-group col-md-6 mb-0"),
+            ),
             "notes",
             Field("agency"),
+            "is_active",  # Include is_active in the layout
             "address_line1",
             "address_line2",
             Row(
@@ -134,11 +140,15 @@ class ShiftForm(forms.ModelForm):
             Field("longitude"),
         )
 
+        # Conditional display and requirement of 'agency' and 'is_active' fields
         if user and user.is_superuser:
             self.fields["agency"].required = True
+            self.fields["is_active"].required = True
         else:
             self.fields["agency"].widget = forms.HiddenInput()
             self.fields["agency"].required = False
+            self.fields["is_active"].widget = forms.HiddenInput()
+            self.fields["is_active"].required = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -235,6 +245,52 @@ class ShiftForm(forms.ModelForm):
         return shift
 
 
+class ShiftFilterForm(forms.Form):
+    """
+    Form for filtering shifts based on date range, status, search queries, shift code, and location/address.
+    """
+
+    STATUS_CHOICES = [
+        ('all', 'All'),
+        ('available', 'Available'),
+        ('booked', 'Booked'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        label='Date From'
+    )
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        label='Date To'
+    )
+    status = forms.ChoiceField(
+        choices=STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='Status'
+    )
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Search by name, agency, or shift type', 'class': 'form-control'}),
+        label='Search'
+    )
+    shift_code = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Search by shift code', 'class': 'form-control'}),
+        label='Shift Code'
+    )
+    address = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Search by address', 'class': 'form-control'}),
+        label='Address'
+    )
+
+
 class ShiftCompletionForm(forms.Form):
     """
     Form for completing a shift, capturing digital signature and location data.
@@ -242,8 +298,16 @@ class ShiftCompletionForm(forms.Form):
     """
 
     signature = forms.CharField(widget=forms.HiddenInput())
-    latitude = forms.DecimalField(widget=forms.HiddenInput())
-    longitude = forms.DecimalField(widget=forms.HiddenInput())
+    latitude = forms.DecimalField(
+        widget=forms.HiddenInput(attrs={"id": "id_shift_completion_latitude"}),
+        max_digits=9,
+        decimal_places=6,
+    )
+    longitude = forms.DecimalField(
+        widget=forms.HiddenInput(attrs={"id": "id_shift_completion_longitude"}),
+        max_digits=9,
+        decimal_places=6,
+    )
     attendance_status = forms.ChoiceField(
         choices=[("present", "Present"), ("absent", "Absent")],
         widget=forms.RadioSelect,
@@ -270,7 +334,6 @@ class ShiftCompletionForm(forms.Form):
             raise forms.ValidationError("Invalid attendance status selected.")
 
         return cleaned_data
-
 
 class StaffPerformanceForm(forms.ModelForm):
     class Meta:
