@@ -1,0 +1,20 @@
+<!-- /workspace/shiftwise/accounts/templates/accounts/recovery_codes.html -->
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Recovery Codes | ShiftWise{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Your Recovery Codes</h2>
+    <p>Please save these recovery codes in a secure place. Each code can be used once to access your account if you lose access to your authenticator app.</p>
+    <ul class="list-group">
+        {% for code in recovery_codes %}
+            <li class="list-group-item">{{ code }}</li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'accounts:profile' %}" class="btn btn-primary mt-3">Return to Profile</a>
+</div>
+{% endblock %}
