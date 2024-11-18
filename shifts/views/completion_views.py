@@ -9,7 +9,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -23,7 +22,6 @@ from core.mixins import (
 from shifts.forms import ShiftCompletionForm
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import haversine_distance
-from django.db.models import F
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -33,7 +31,6 @@ User = get_user_model()
 
 class ShiftCompleteView(
     LoginRequiredMixin,
-    AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
     View,
@@ -46,10 +43,15 @@ class ShiftCompleteView(
     required_features = ["shift_management"]
 
     def get(self, request, shift_id, *args, **kwargs):
-        shift = get_object_or_404(Shift, id=shift_id)
-        assignment = get_object_or_404(
-            ShiftAssignment, shift=shift, worker=request.user
-        )
+        shift = get_object_or_404(Shift, id=shift_id, is_active=True)
+
+        # Ensure the user is assigned to the shift or is a superuser
+        if not (
+            request.user.is_superuser
+            or ShiftAssignment.objects.filter(shift=shift, worker=request.user).exists()
+        ):
+            messages.error(request, "You are not assigned to this shift.")
+            return redirect("shifts:shift_detail", pk=shift.id)
 
         if shift.is_completed:
             messages.info(request, "This shift has already been completed.")
@@ -63,10 +65,21 @@ class ShiftCompleteView(
         return render(request, "shifts/shift_complete_modal.html", context)
 
     def post(self, request, shift_id, *args, **kwargs):
-        shift = get_object_or_404(Shift, id=shift_id)
-        assignment = get_object_or_404(
-            ShiftAssignment, shift=shift, worker=request.user
-        )
+        shift = get_object_or_404(Shift, id=shift_id, is_active=True)
+        user = request.user
+
+        # Ensure the shift date is not in the future
+        if shift.shift_date > timezone.now().date():
+            messages.error(request, "Cannot complete a shift scheduled in the future.")
+            return redirect("shifts:shift_detail", pk=shift.id)
+
+        # Ensure the user is assigned to the shift or is a superuser
+        if not (
+            user.is_superuser
+            or ShiftAssignment.objects.filter(shift=shift, worker=user).exists()
+        ):
+            messages.error(request, "You are not assigned to this shift.")
+            return redirect("shifts:shift_detail", pk=shift.id)
 
         if shift.is_completed:
             messages.info(request, "This shift has already been completed.")
@@ -89,7 +102,6 @@ class ShiftCompleteView(
                         base64.b64decode(imgstr),
                         name=f"shift_{shift.id}_signature_{uuid.uuid4()}.{ext}",
                     )
-                    assignment.signature = data
                 except Exception as e:
                     logger.exception(
                         f"Error processing signature for Shift ID {shift.id}: {e}"
@@ -98,7 +110,7 @@ class ShiftCompleteView(
                     return redirect("shifts:shift_detail", pk=shift.id)
 
             # Validate geolocation proximity unless user is superuser
-            if not request.user.is_superuser:
+            if not user.is_superuser:
                 try:
                     user_lat = float(latitude)
                     user_lon = float(longitude)
@@ -128,21 +140,42 @@ class ShiftCompleteView(
                     )
                     return redirect("shifts:shift_detail", pk=shift.id)
 
+            # Get or create the ShiftAssignment
+            assignment, created = ShiftAssignment.objects.get_or_create(
+                shift=shift, worker=user
+            )
+
+            # Ensure worker's profile has an agency
+            if not user.profile.agency:
+                messages.error(
+                    request, "Your profile is not associated with any agency."
+                )
+                return redirect("accounts:profile")
+
+            # Ensure worker's agency matches shift's agency
+            if shift.agency != user.profile.agency:
+                messages.error(
+                    request, "You can only complete shifts within your agency."
+                )
+                return redirect("shifts:shift_detail", pk=shift.id)
+
             # Update assignment with completion data
             assignment.completion_latitude = latitude
             assignment.completion_longitude = longitude
             assignment.completion_time = timezone.now()
+            assignment.signature = data
 
             # Set attendance status if provided
             if attendance_status:
                 assignment.attendance_status = attendance_status
 
-            # Mark shift as completed
-            shift.is_completed = True
-            shift.completion_time = timezone.now()
-
-            if signature_data:
-                shift.signature = data
+            # Mark shift as completed if all assignments are completed
+            all_assignments = ShiftAssignment.objects.filter(shift=shift)
+            if all(a.completion_time for a in all_assignments):
+                shift.is_completed = True
+                shift.completion_time = timezone.now()
+                if signature_data:
+                    shift.signature = data
 
             # Save both shift and assignment
             try:
@@ -154,7 +187,9 @@ class ShiftCompleteView(
                 return redirect("shifts:shift_detail", pk=shift.id)
 
             messages.success(request, "Shift completed successfully.")
-            logger.info(f"User {request.user.username} completed Shift ID {shift_id}.")
+            logger.info(
+                f"User {request.user.username} completed Shift ID {shift_id}."
+            )
             return redirect("shifts:shift_detail", pk=shift.id)
         else:
             messages.error(request, "Please correct the errors below.")
@@ -176,7 +211,7 @@ class ShiftCompleteForUserView(
     required_features = ["shift_management"]
 
     def get(self, request, shift_id, user_id, *args, **kwargs):
-        shift = get_object_or_404(Shift, id=shift_id)
+        shift = get_object_or_404(Shift, id=shift_id, is_active=True)
         user_to_complete = get_object_or_404(
             User, id=user_id, groups__name="Agency Staff", is_active=True
         )
@@ -187,9 +222,11 @@ class ShiftCompleteForUserView(
             and shift.agency != request.user.profile.agency
         ):
             messages.error(request, "You cannot complete shifts outside your agency.")
-            logger.warning(
-                f"User {request.user.username} attempted to complete Shift ID {shift.id} outside their agency."
-            )
+            return redirect("shifts:shift_detail", pk=shift.id)
+
+        # Ensure the worker belongs to the same agency as the shift
+        if user_to_complete.profile.agency != shift.agency:
+            messages.error(request, "The worker does not belong to the same agency as the shift.")
             return redirect("shifts:shift_detail", pk=shift.id)
 
         # Get or create the ShiftAssignment
@@ -210,7 +247,7 @@ class ShiftCompleteForUserView(
         return render(request, "shifts/shift_complete_for_user_modal.html", context)
 
     def post(self, request, shift_id, user_id, *args, **kwargs):
-        shift = get_object_or_404(Shift, id=shift_id)
+        shift = get_object_or_404(Shift, id=shift_id, is_active=True)
         user_to_complete = get_object_or_404(
             User, id=user_id, groups__name="Agency Staff", is_active=True
         )
@@ -357,7 +394,7 @@ class ShiftCompleteAjaxView(
 
     def post(self, request, shift_id, *args, **kwargs):
         user = request.user
-        shift = get_object_or_404(Shift, id=shift_id)
+        shift = get_object_or_404(Shift, id=shift_id, is_active=True)
 
         # Check if the user is assigned to this shift or is a superuser
         if not (
