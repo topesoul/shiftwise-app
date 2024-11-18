@@ -5,8 +5,6 @@ import logging
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ValidationError
-from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import (
@@ -32,7 +30,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-class StaffPerformanceView(
+class StaffPerformanceListView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
@@ -52,17 +50,13 @@ class StaffPerformanceView(
 
     def get_queryset(self):
         user = self.request.user
-        agency = user.profile.agency if not user.is_superuser else None
-        queryset = StaffPerformance.objects.all()
-
-        if not user.is_superuser:
-            queryset = queryset.filter(agency=agency)
+        if user.is_superuser:
+            queryset = StaffPerformance.objects.all()
+        else:
+            agency = user.profile.agency
+            queryset = StaffPerformance.objects.filter(agency=agency)
 
         return queryset.order_by("-created_at")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
 
 
 class StaffPerformanceDetailView(
@@ -83,11 +77,11 @@ class StaffPerformanceDetailView(
 
     def get_queryset(self):
         user = self.request.user
-        agency = user.profile.agency if not user.is_superuser else None
-        queryset = StaffPerformance.objects.all()
-
-        if not user.is_superuser:
-            queryset = queryset.filter(agency=agency)
+        if user.is_superuser:
+            queryset = StaffPerformance.objects.all()
+        else:
+            agency = user.profile.agency
+            queryset = StaffPerformance.objects.filter(agency=agency)
 
         return queryset
 
@@ -111,15 +105,16 @@ class StaffPerformanceCreateView(
 
     def form_valid(self, form):
         performance = form.save(commit=False)
-        if not self.request.user.is_superuser:
-            performance.agency = self.request.user.profile.agency
-        performance.shift_code = generate_shift_code()
+        user = self.request.user
+        if not user.is_superuser:
+            performance.agency = user.profile.agency
+        performance.created_by = user
         performance.save()
         form.save_m2m()
 
         messages.success(self.request, "Staff performance record created successfully.")
         logger.info(
-            f"Staff performance record '{performance}' created by {self.request.user.username}."
+            f"Staff performance record '{performance}' created by {user.username}."
         )
         return super().form_valid(form)
 
@@ -143,11 +138,11 @@ class StaffPerformanceUpdateView(
 
     def get_queryset(self):
         user = self.request.user
-        agency = user.profile.agency if not user.is_superuser else None
-        queryset = StaffPerformance.objects.all()
-
-        if not user.is_superuser:
-            queryset = queryset.filter(agency=agency)
+        if user.is_superuser:
+            queryset = StaffPerformance.objects.all()
+        else:
+            agency = user.profile.agency
+            queryset = StaffPerformance.objects.filter(agency=agency)
 
         return queryset
 
@@ -176,10 +171,20 @@ class StaffPerformanceDeleteView(
     template_name = "shifts/staff_performance_confirm_delete.html"
     success_url = reverse_lazy("shifts:staff_performance_list")
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            queryset = StaffPerformance.objects.all()
+        else:
+            agency = user.profile.agency
+            queryset = StaffPerformance.objects.filter(agency=agency)
+
+        return queryset
+
     def delete(self, request, *args, **kwargs):
         performance = self.get_object()
+        messages.success(request, "Staff performance record deleted successfully.")
         logger.info(
             f"Staff performance record '{performance}' deleted by {request.user.username}."
         )
-        messages.success(request, "Staff performance record deleted successfully.")
         return super().delete(request, *args, **kwargs)
