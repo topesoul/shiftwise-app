@@ -1,9 +1,11 @@
 <!-- /workspace/shiftwise/shifts/templates/shifts/book_shift.html -->
 
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
-{% custom_filters}
+
 {% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
 
 {% block title %}Book Shift: {{ shift.name }}{% endblock %}
 
@@ -12,8 +14,8 @@
     <h2 class="mb-4">Book Shift: {{ shift.name }}</h2>
     <div class="card">
         <div class="card-body">
-            <p><strong>Date:</strong> {{ shift.shift_date }}</p>
-            <p><strong>Time:</strong> {{ shift.start_time }} - {{ shift.end_time }}</p>
+            <p><strong>Date:</strong> {{ shift.shift_date|date:"F d, Y" }}</p>
+            <p><strong>Time:</strong> {{ shift.start_time|time:"H:i" }} - {{ shift.end_time|time:"H:i" }}</p>
             <p><strong>Duration:</strong> {{ shift.duration }} hours</p>
             <p><strong>Location:</strong> {{ shift.address_line1 }}, {{ shift.city }}, {{ shift.county }}, {{ shift.country }}, {{ shift.postcode }}</p>
             <p><strong>Hourly Rate:</strong> £{{ shift.hourly_rate }}</p>
