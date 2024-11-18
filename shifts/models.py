@@ -1,5 +1,6 @@
 # /workspace/shiftwise/shifts/models.py
 
+import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -64,6 +65,9 @@ class Shift(TimestampedModel):
     ]
 
     name = models.CharField(max_length=255)
+    shift_code = models.CharField(
+        max_length=100, unique=True, db_index=True, blank=True, null=True
+    )
     shift_date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -99,14 +103,28 @@ class Shift(TimestampedModel):
         upload_to="signatures/", null=True, blank=True, validators=[validate_image]
     )
     duration = models.FloatField(null=True, blank=True)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indicates whether the shift is active and available for assignments.",
+    )
 
     class Meta:
+        unique_together = ("agency", "shift_date", "name")
         ordering = ["shift_date", "start_time"]
         verbose_name = "Shift"
         verbose_name_plural = "Shifts"
 
     def __str__(self):
         return f"{self.name} on {self.shift_date}"
+
+    def generate_shift_code(self):
+        """
+        Generates a unique shift_code using agency_code and a UUID segment.
+        Format: <AGENCY_CODE>-<UUID_SEGMENT>
+        Example: LON123-ABCDEF
+        """
+        unique_segment = uuid.uuid4().hex[:6].upper()
+        return f"{self.agency.agency_code}-{unique_segment}"
 
     def clean(self, skip_date_validation=False):
         """
@@ -171,8 +189,11 @@ class Shift(TimestampedModel):
     def save(self, *args, **kwargs):
         """
         Overrides the save method to ensure clean is called.
+        Auto-generates shift_code if not provided.
         Allows passing 'skip_date_validation' through kwargs.
         """
+        if not self.shift_code:
+            self.shift_code = self.generate_shift_code()
         skip_date_validation = kwargs.pop("skip_date_validation", False)
         self.clean(skip_date_validation=skip_date_validation)
         super().save(*args, **kwargs)
@@ -188,9 +209,7 @@ class Shift(TimestampedModel):
         """
         Returns the number of available slots for the shift.
         """
-        assigned_count = self.assignments.filter(
-            status=ShiftAssignment.CONFIRMED
-        ).count()
+        assigned_count = self.assignments.filter(status=ShiftAssignment.CONFIRMED).count()
         return self.capacity - assigned_count
 
     @property
@@ -341,3 +360,17 @@ class StaffPerformance(models.Model):
 
     def __str__(self):
         return f"Performance of {self.worker.username} for Shift {self.shift.id}"
+
+    def clean(self):
+        """
+        Validates the StaffPerformance instance before saving.
+        """
+        super().clean()
+
+        # Validate wellness_score
+        if not (0 <= self.wellness_score <= 100):
+            raise ValidationError("Wellness score must be between 0 and 100.")
+
+        # Validate performance_rating
+        if not (0 <= self.performance_rating <= 5):
+            raise ValidationError("Performance rating must be between 0 and 5.")
