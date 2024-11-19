@@ -212,8 +212,8 @@ class Shift(TimestampedModel):
         assigned_count = self.assignments.filter(status=ShiftAssignment.CONFIRMED).count()
         return self.capacity - assigned_count
 
-    # Change the property to a method to avoid conflicts
-    def check_is_full(self):
+    @property
+    def is_full(self):
         """
         Returns True if the shift is fully booked.
         """
