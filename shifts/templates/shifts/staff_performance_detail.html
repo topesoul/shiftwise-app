@@ -7,18 +7,19 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-<div class="container">
-    <h2>Staff Performance Details</h2>
-    <ul class="list-group">
-        <li class="list-group-item"><strong>Worker:</strong> {{ performance.worker.get_full_name }}</li>
-        <li class="list-group-item"><strong>Shift:</strong> {{ performance.shift }}</li>
-        <li class="list-group-item"><strong>Wellness Score:</strong> {{ performance.wellness_score }}</li>
-        <li class="list-group-item"><strong>Performance Rating:</strong> {{ performance.performance_rating }}</li>
-        <li class="list-group-item"><strong>Status:</strong> {{ performance.get_status_display }}</li>
-        <li class="list-group-item"><strong>Comments:</strong> {{ performance.comments }}</li>
-        <li class="list-group-item"><strong>Recorded At:</strong> {{ performance.created_at }}</li>
-    </ul>
-    <a href="{% url 'shifts:staff_performance_update' performance.id %}" class="btn btn-warning mt-3">Edit</a>
-    <a href="{% url 'shifts:staff_performance_delete' performance.id %}" class="btn btn-danger mt-3">Delete</a>
+<div class="container my-5">
+    <div class="text-center">
+        <img src="{% static 'images/under_construction.svg' %}" alt="Under Construction" class="img-fluid">
+        <h1 class="mt-4">We're Working on Something Exciting!</h1>
+        <p class="lead mt-3">
+            This page is currently under construction. We're putting the finishing touches to provide you with an amazing experience.
+        </p>
+        <p class="mt-4">
+            In the meantime, feel free to explore other sections of the site or check back later for updates.
+        </p>
+        <a href="{% url 'home:home' %}" class="btn btn-primary mt-3">
+            <i class="fas fa-home"></i> Return to Home
+        </a>
+    </div>
 </div>
 {% endblock %}

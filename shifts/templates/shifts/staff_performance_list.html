@@ -7,63 +7,19 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-<div class="container">
-    <h2>Staff Performance Metrics</h2>
-    <a href="{% url 'shifts:staff_performance_create' %}" class="btn btn-success mb-3">Add Performance</a>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Worker</th>
-                <th>Shift</th>
-                <th>Wellness Score</th>
-                <th>Performance Rating</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for performance in performances %}
-            <tr>
-                <td>{{ performance.worker.get_full_name }}</td>
-                <td>{{ performance.shift }}</td>
-                <td>{{ performance.wellness_score }}</td>
-                <td>{{ performance.performance_rating }}</td>
-                <td>{{ performance.get_status_display }}</td>
-                <td>
-                    <a href="{% url 'shifts:staff_performance_detail' performance.id %}" class="btn btn-info btn-sm">View</a>
-                    <a href="{% url 'shifts:staff_performance_update' performance.id %}" class="btn btn-warning btn-sm">Edit</a>
-                    <a href="{% url 'shifts:staff_performance_delete' performance.id %}" class="btn btn-danger btn-sm">Delete</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% if is_paginated %}
-        <nav aria-label="Page navigation">
-            <ul class="pagination">
-                {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                {% endif %}
-                {% for num in paginator.page_range %}
-                    {% if page_obj.number == num %}
-                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                    {% endif %}
-                {% endfor %}
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-    {% endif %}
+<div class="container my-5">
+    <div class="text-center">
+        <img src="{% static 'images/under_construction.svg' %}" alt="Under Construction" class="img-fluid">
+        <h1 class="mt-4">We're Working on Something Exciting!</h1>
+        <p class="lead mt-3">
+            This page is currently under construction. We're putting the finishing touches to provide you with an amazing experience.
+        </p>
+        <p class="mt-4">
+            In the meantime, feel free to explore other sections of the site or check back later for updates.
+        </p>
+        <a href="{% url 'home:home' %}" class="btn btn-primary mt-3">
+            <i class="fas fa-home"></i> Return to Home
+        </a>
+    </div>
 </div>
 {% endblock %}
