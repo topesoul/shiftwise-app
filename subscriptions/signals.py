@@ -4,45 +4,28 @@ import logging
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.urls import reverse
 
-from core.utils import send_notification
+from subscriptions.utils import create_stripe_customer
 
 from .models import Subscription
+from accounts.models import Agency
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
 
-@receiver(post_save, sender=Subscription)
-def subscription_post_save(sender, instance, created, **kwargs):
-    """
-    Handle actions after a subscription is created or updated.
-    """
-    if created:
-        message = (
-            f"Your subscription to the {instance.plan.name} Plan has been activated."
-        )
-        subject = "Subscription Activated"
-    else:
-        message = (
-            f"Your subscription has been updated to the {instance.plan.name} Plan."
-        )
-        subject = "Subscription Updated"
-
-    url = reverse("subscriptions:manage_subscription")
-
-    # Notify the agency owner
-    try:
-        agency_owner = instance.agency.owner
-        if agency_owner:
-            send_notification(
-                user_id=agency_owner.id, message=message, subject=subject, url=url
+@receiver(post_save, sender=Agency)
+def create_stripe_customer_for_agency(sender, instance, created, **kwargs):
+    if created and not instance.stripe_customer_id:
+        # Create Stripe Customer
+        try:
+            customer = create_stripe_customer(instance)
+            instance.stripe_customer_id = customer.id
+            instance.save(update_fields=["stripe_customer_id"])
+            logger.info(
+                f"Stripe customer created for Agency: {instance.name} (ID: {customer.id})"
             )
-            logger.info(f"Notification sent to agency owner: {agency_owner.username}")
-        else:
-            logger.warning(f"Agency {instance.agency.name} has no associated owner.")
-    except AttributeError as e:
-        logger.exception(f"Error accessing agency owner: {e}")
-    except Exception as e:
-        logger.exception(f"Unexpected error in subscription_post_save: {e}")
+        except Exception as e:
+            logger.error(
+                f"Failed to create Stripe customer for Agency {instance.name}: {e}"
+            )
