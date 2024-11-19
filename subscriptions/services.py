@@ -21,8 +21,11 @@ class SubscriptionLimitChecker:
             if not plan:
                 return False
 
+            # Get the first day of the current month
+            first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
             shift_count = Shift.objects.filter(
-                agency=agency, created_at__gte=timezone.now().replace(day=1)
+                agency=agency, created_at__gte=first_day_of_month
             ).count()
             if plan.shift_management:
                 if plan.shift_limit:
