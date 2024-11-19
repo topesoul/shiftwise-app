@@ -1,3 +1,5 @@
+# /workspace/shiftwise/shifts/forms.py
+
 import re
 
 from crispy_forms.helper import FormHelper
@@ -46,6 +48,39 @@ class ShiftForm(forms.ModelForm):
             "is_active",
         ]
         widgets = {
+            # Date and Time Fields with appropriate widgets
+            "shift_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "class": "form-control",
+                    "placeholder": "Select shift date",
+                    "id": "id_shift_date",
+                }
+            ),
+            "end_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "class": "form-control",
+                    "placeholder": "Select end date",
+                    "id": "id_end_date",
+                }
+            ),
+            "start_time": forms.TimeInput(
+                attrs={
+                    "type": "time",
+                    "class": "form-control",
+                    "placeholder": "Select start time",
+                    "id": "id_start_time",
+                }
+            ),
+            "end_time": forms.TimeInput(
+                attrs={
+                    "type": "time",
+                    "class": "form-control",
+                    "placeholder": "Select end time",
+                    "id": "id_end_time",
+                }
+            ),
             # Address Fields with unique IDs
             "address_line1": forms.TextInput(
                 attrs={
@@ -108,11 +143,11 @@ class ShiftForm(forms.ModelForm):
             ),
             Row(
                 Column("shift_date", css_class="form-group col-md-6 mb-0"),
-                Column("start_time", css_class="form-group col-md-6 mb-0"),
+                Column("end_date", css_class="form-group col-md-6 mb-0"),
             ),
             Row(
+                Column("start_time", css_class="form-group col-md-6 mb-0"),
                 Column("end_time", css_class="form-group col-md-6 mb-0"),
-                Column("end_date", css_class="form-group col-md-6 mb-0"),
             ),
             Row(
                 Column("is_overnight", css_class="form-group col-md-6 mb-0"),
@@ -147,6 +182,11 @@ class ShiftForm(forms.ModelForm):
             self.fields["agency"].required = False
             self.fields["is_active"].widget = forms.HiddenInput()
             self.fields["is_active"].required = False
+
+        # Add 'form-control' class to all fields not already specified
+        for field_name, field in self.fields.items():
+            if field.widget.attrs.get("class") is None:
+                field.widget.attrs["class"] = "form-control"
 
     def clean(self):
         cleaned_data = super().clean()
@@ -197,7 +237,7 @@ class ShiftForm(forms.ModelForm):
         if not postcode:
             raise ValidationError("Postcode is required.")
         # UK postcode regex
-        uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$"
+        uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
         if not re.match(uk_postcode_regex, postcode.upper()):
             raise ValidationError("Enter a valid UK postcode.")
         return postcode.upper()
@@ -332,6 +372,7 @@ class ShiftCompletionForm(forms.Form):
             raise forms.ValidationError("Invalid attendance status selected.")
 
         return cleaned_data
+
 
 class StaffPerformanceForm(forms.ModelForm):
     class Meta:
