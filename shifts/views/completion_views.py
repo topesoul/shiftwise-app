@@ -229,11 +229,7 @@ class ShiftCompleteForUserView(
             messages.error(request, "The worker does not belong to the same agency as the shift.")
             return redirect("shifts:shift_detail", pk=shift.id)
 
-        # Get or create the ShiftAssignment
-        assignment, created = ShiftAssignment.objects.get_or_create(
-            shift=shift, worker=user_to_complete
-        )
-
+        # Check if shift is already completed
         if shift.is_completed:
             messages.info(request, "This shift has already been completed.")
             return redirect("shifts:shift_detail", pk=shift.id)
@@ -248,6 +244,7 @@ class ShiftCompleteForUserView(
 
     def post(self, request, shift_id, user_id, *args, **kwargs):
         shift = get_object_or_404(Shift, id=shift_id, is_active=True)
+        user = request.user
         user_to_complete = get_object_or_404(
             User, id=user_id, groups__name="Agency Staff", is_active=True
         )
@@ -263,11 +260,12 @@ class ShiftCompleteForUserView(
             )
             return redirect("shifts:shift_detail", pk=shift.id)
 
-        # Get or create the ShiftAssignment
-        assignment, created = ShiftAssignment.objects.get_or_create(
-            shift=shift, worker=user_to_complete
-        )
+        # Ensure the worker belongs to the same agency as the shift
+        if user_to_complete.profile.agency != shift.agency:
+            messages.error(request, "The worker does not belong to the same agency as the shift.")
+            return redirect("shifts:shift_detail", pk=shift.id)
 
+        # Check if shift is already completed
         if shift.is_completed:
             messages.info(request, "This shift has already been completed.")
             return redirect("shifts:shift_detail", pk=shift.id)
@@ -289,7 +287,6 @@ class ShiftCompleteForUserView(
                         base64.b64decode(imgstr),
                         name=f"shift_{shift.id}_signature_{uuid.uuid4()}.{ext}",
                     )
-                    assignment.signature = data
                 except Exception as e:
                     logger.exception(
                         f"Error processing signature for Shift ID {shift.id}: {e}"
@@ -297,7 +294,7 @@ class ShiftCompleteForUserView(
                     messages.error(request, "Invalid signature data.")
                     return redirect("shifts:shift_detail", pk=shift.id)
 
-            # If completing on behalf, you might want to bypass location validation or use shift's location
+            # If completing on behalf, use shift's location if not superuser
             if (
                 request.user.is_superuser
                 or request.user.groups.filter(name="Agency Managers").exists()
@@ -335,26 +332,32 @@ class ShiftCompleteForUserView(
                         request,
                         f"You are too far from the shift location ({distance:.2f} miles). You must be within 0.5 miles to complete the shift.",
                     )
-                    logger.info(
-                        f"User {request.user.username} is too far from shift {shift.id} location ({distance:.2f} miles)."
-                    )
                     return redirect("shifts:shift_detail", pk=shift.id)
+
+            # Now, safely create or retrieve the ShiftAssignment
+            assignment, created = ShiftAssignment.objects.get_or_create(
+                shift=shift, worker=user_to_complete
+            )
+
+            # At this point, the worker has an agency and matches the shift's agency
 
             # Update assignment with completion data
             assignment.completion_latitude = latitude
             assignment.completion_longitude = longitude
             assignment.completion_time = timezone.now()
+            assignment.signature = data
 
             # Set attendance status if provided
             if attendance_status:
                 assignment.attendance_status = attendance_status
 
-            # Mark shift as completed
-            shift.is_completed = True
-            shift.completion_time = timezone.now()
-
-            if signature_data:
-                shift.signature = data
+            # Mark shift as completed if all assignments are completed
+            all_assignments = ShiftAssignment.objects.filter(shift=shift)
+            if all(a.completion_time for a in all_assignments):
+                shift.is_completed = True
+                shift.completion_time = timezone.now()
+                if signature_data:
+                    shift.signature = data
 
             # Save both shift and assignment
             try:
