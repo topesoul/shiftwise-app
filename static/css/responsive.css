@@ -33,6 +33,23 @@
   padding: 0.5rem 1rem;
 }
 
+.form-inline .form-control, .form-inline .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+.table-action-button {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+/* Navbar adjustments */
+.navbar-nav {
+    text-align: center;
+}
+.navbar-nav .nav-item {
+    margin: 0.5rem 0;
+}
+
 /* Hover and Transition Effects */
 .card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
