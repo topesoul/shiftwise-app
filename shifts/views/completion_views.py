@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -88,12 +89,12 @@ class ShiftCompleteView(
         form = ShiftCompletionForm(request.POST, request.FILES)
         if form.is_valid():
             # Extract form data
-            signature_data = form.cleaned_data["signature"]
-            latitude = form.cleaned_data["latitude"]
-            longitude = form.cleaned_data["longitude"]
+            signature_data = form.cleaned_data.get("signature")
+            latitude = form.cleaned_data.get("latitude")
+            longitude = form.cleaned_data.get("longitude")
             attendance_status = form.cleaned_data.get("attendance_status")
 
-            # Handle signature
+            # Handle signature if provided
             if signature_data:
                 try:
                     format, imgstr = signature_data.split(";base64,")
@@ -108,37 +109,43 @@ class ShiftCompleteView(
                     )
                     messages.error(request, "Invalid signature data.")
                     return redirect("shifts:shift_detail", pk=shift.id)
+            else:
+                data = None  # No signature provided
 
             # Validate geolocation proximity unless user is superuser
             if not user.is_superuser:
-                try:
-                    user_lat = float(latitude)
-                    user_lon = float(longitude)
-                    shift_lat = float(shift.latitude)
-                    shift_lon = float(shift.longitude)
+                if latitude and longitude and shift.latitude and shift.longitude:
+                    try:
+                        user_lat = float(latitude)
+                        user_lon = float(longitude)
+                        shift_lat = float(shift.latitude)
+                        shift_lon = float(shift.longitude)
 
-                    distance = haversine_distance(
-                        user_lat,
-                        user_lon,
-                        shift_lat,
-                        shift_lon,
-                        unit="miles",
-                    )
+                        distance = haversine_distance(
+                            user_lat,
+                            user_lon,
+                            shift_lat,
+                            shift_lon,
+                            unit="miles",
+                        )
 
-                except (ValueError, TypeError) as e:
-                    logger.exception(
-                        f"Invalid geolocation data for Shift ID {shift.id}: {e}"
-                    )
-                    messages.error(request, "Invalid location data.")
-                    return redirect("shifts:shift_detail", pk=shift.id)
+                    except (ValueError, TypeError) as e:
+                        logger.exception(
+                            f"Invalid geolocation data for Shift ID {shift.id}: {e}"
+                        )
+                        messages.error(request, "Invalid location data.")
+                        return redirect("shifts:shift_detail", pk=shift.id)
 
-                # Proceed with distance check
-                if distance > 0.5:
-                    messages.error(
-                        request,
-                        f"You are too far from the shift location ({distance:.2f} miles). You must be within 0.5 miles to complete the shift.",
-                    )
-                    return redirect("shifts:shift_detail", pk=shift.id)
+                    # Proceed with distance check
+                    if distance > 0.5:
+                        messages.error(
+                            request,
+                            f"You are too far from the shift location ({distance:.2f} miles).",
+                        )
+                        return redirect("shifts:shift_detail", pk=shift.id)
+                else:
+                    # If geo data is not provided, allow manual address
+                    pass  # No distance check if location is not provided
 
             # Get or create the ShiftAssignment
             assignment, created = ShiftAssignment.objects.get_or_create(
@@ -159,11 +166,13 @@ class ShiftCompleteView(
                 )
                 return redirect("shifts:shift_detail", pk=shift.id)
 
-            # Update assignment with completion data
-            assignment.completion_latitude = latitude
-            assignment.completion_longitude = longitude
+            # Update assignment with completion data if provided
+            if data:
+                assignment.signature = data
+            if latitude and longitude:
+                assignment.completion_latitude = latitude
+                assignment.completion_longitude = longitude
             assignment.completion_time = timezone.now()
-            assignment.signature = data
 
             # Set attendance status if provided
             if attendance_status:
@@ -174,7 +183,7 @@ class ShiftCompleteView(
             if all(a.completion_time for a in all_assignments):
                 shift.is_completed = True
                 shift.completion_time = timezone.now()
-                if signature_data:
+                if data:
                     shift.signature = data
 
             # Save both shift and assignment
@@ -273,12 +282,12 @@ class ShiftCompleteForUserView(
         form = ShiftCompletionForm(request.POST, request.FILES)
         if form.is_valid():
             # Extract form data
-            signature_data = form.cleaned_data["signature"]
-            latitude = form.cleaned_data["latitude"]
-            longitude = form.cleaned_data["longitude"]
+            signature_data = form.cleaned_data.get("signature")
+            latitude = form.cleaned_data.get("latitude")
+            longitude = form.cleaned_data.get("longitude")
             attendance_status = form.cleaned_data.get("attendance_status")
 
-            # Handle signature
+            # Handle signature if provided
             if signature_data:
                 try:
                     format, imgstr = signature_data.split(";base64,")
@@ -293,6 +302,8 @@ class ShiftCompleteForUserView(
                     )
                     messages.error(request, "Invalid signature data.")
                     return redirect("shifts:shift_detail", pk=shift.id)
+            else:
+                data = None  # No signature provided
 
             # If completing on behalf, use shift's location if not superuser
             if (
@@ -305,34 +316,38 @@ class ShiftCompleteForUserView(
 
             # Validate geolocation proximity unless user is superuser
             if not request.user.is_superuser:
-                try:
-                    user_lat = float(latitude)
-                    user_lon = float(longitude)
-                    shift_lat = float(shift.latitude)
-                    shift_lon = float(shift.longitude)
+                if latitude and longitude and shift.latitude and shift.longitude:
+                    try:
+                        user_lat = float(latitude)
+                        user_lon = float(longitude)
+                        shift_lat = float(shift.latitude)
+                        shift_lon = float(shift.longitude)
 
-                    distance = haversine_distance(
-                        user_lat,
-                        user_lon,
-                        shift_lat,
-                        shift_lon,
-                        unit="miles",
-                    )
+                        distance = haversine_distance(
+                            user_lat,
+                            user_lon,
+                            shift_lat,
+                            shift_lon,
+                            unit="miles",
+                        )
 
-                except (ValueError, TypeError) as e:
-                    logger.exception(
-                        f"Invalid geolocation data for Shift ID {shift.id}: {e}"
-                    )
-                    messages.error(request, "Invalid location data.")
-                    return redirect("shifts:shift_detail", pk=shift.id)
+                    except (ValueError, TypeError) as e:
+                        logger.exception(
+                            f"Invalid geolocation data for Shift ID {shift.id}: {e}"
+                        )
+                        messages.error(request, "Invalid location data.")
+                        return redirect("shifts:shift_detail", pk=shift.id)
 
-                # Proceed with distance check
-                if distance > 0.5:
-                    messages.error(
-                        request,
-                        f"You are too far from the shift location ({distance:.2f} miles). You must be within 0.5 miles to complete the shift.",
-                    )
-                    return redirect("shifts:shift_detail", pk=shift.id)
+                    # Proceed with distance check
+                    if distance > 0.5:
+                        messages.error(
+                            request,
+                            f"You are too far from the shift location ({distance:.2f} miles).",
+                        )
+                        return redirect("shifts:shift_detail", pk=shift.id)
+                else:
+                    # If geo data is not provided, allow manual address
+                    pass  # No distance check if location is not provided
 
             # Now, safely create or retrieve the ShiftAssignment
             assignment, created = ShiftAssignment.objects.get_or_create(
@@ -342,10 +357,12 @@ class ShiftCompleteForUserView(
             # At this point, the worker has an agency and matches the shift's agency
 
             # Update assignment with completion data
-            assignment.completion_latitude = latitude
-            assignment.completion_longitude = longitude
+            if data:
+                assignment.signature = data
+            if latitude and longitude:
+                assignment.completion_latitude = latitude
+                assignment.completion_longitude = longitude
             assignment.completion_time = timezone.now()
-            assignment.signature = data
 
             # Set attendance status if provided
             if attendance_status:
@@ -356,7 +373,7 @@ class ShiftCompleteForUserView(
             if all(a.completion_time for a in all_assignments):
                 shift.is_completed = True
                 shift.completion_time = timezone.now()
-                if signature_data:
+                if data:
                     shift.signature = data
 
             # Save both shift and assignment
@@ -368,10 +385,7 @@ class ShiftCompleteForUserView(
                 messages.error(request, ve.message)
                 return redirect("shifts:shift_detail", pk=shift.id)
 
-            messages.success(
-                request,
-                f"Shift '{shift.name}' completed successfully for {user_to_complete.get_full_name()}.",
-            )
+            messages.success(request, f"Shift '{shift.name}' completed successfully for {user_to_complete.get_full_name()}.")
             logger.info(
                 f"Shift ID {shift.id} completed by {request.user.username} for user {user_to_complete.username}."
             )
@@ -425,91 +439,117 @@ class ShiftCompleteAjaxView(
             "attendance_status"
         )  # Capture attendance status from AJAX
 
-        if not all([signature, latitude, longitude]):
-            return JsonResponse(
-                {
-                    "success": False,
-                    "message": "All fields are required to complete the shift.",
-                },
-                status=400,
-            )
+        # 'signature' can be optional
+        # 'latitude' and 'longitude' can be optional
+        # So, adjust validation accordingly
 
-        # Validate geolocation proximity (within 0.5 miles) if not superuser
-        if not user.is_superuser:
+        # Handle signature if provided
+        if signature:
             try:
-                user_lat = float(latitude)
-                user_lon = float(longitude)
-                shift_lat = float(shift.latitude)
-                shift_lon = float(shift.longitude)
+                format, imgstr = signature.split(";base64,")
+                ext = format.split("/")[-1]
+                data = ContentFile(
+                    base64.b64decode(imgstr),
+                    name=f"shift_{shift.id}_signature_{uuid.uuid4()}.{ext}",
+                )
+            except Exception as e:
+                logger.exception(
+                    f"Error decoding signature from user {user.username} for Shift ID {shift_id}: {e}"
+                )
+                return JsonResponse(
+                    {"success": False, "message": "Invalid signature data."}, status=400
+                )
+        else:
+            data = None  # No signature provided
 
-                if not shift_lat or not shift_lon:
+        # Validate geolocation proximity unless user is superuser
+        if not user.is_superuser:
+            if latitude and longitude and shift.latitude and shift.longitude:
+                try:
+                    user_lat = float(latitude)
+                    user_lon = float(longitude)
+                    shift_lat = float(shift.latitude)
+                    shift_lon = float(shift.longitude)
+
+                    distance = haversine_distance(
+                        user_lat, user_lon, shift_lat, shift_lon, unit="miles"
+                    )
+
+                except (ValueError, TypeError):
+                    return JsonResponse(
+                        {"success": False, "message": "Invalid location data."}, status=400
+                    )
+
+                # Proceed with distance check
+                if distance > 0.5:
                     return JsonResponse(
                         {
                             "success": False,
-                            "message": "Shift location is not properly set.",
+                            "message": "You are not within the required 0.5-mile distance to complete this shift.",
                         },
                         status=400,
                     )
+            else:
+                # If geo data is not provided, allow manual address
+                pass  # No distance check if location is not provided
 
-                distance = haversine_distance(
-                    user_lat, user_lon, shift_lat, shift_lon, unit="miles"
-                )
+        # Save the signature image if provided
+        if data:
+            shift.signature = data
 
-            except (ValueError, TypeError):
-                return JsonResponse(
-                    {"success": False, "message": "Invalid location data."}, status=400
-                )
+        # Mark shift as completed
+        shift.is_completed = True
+        shift.completion_time = timezone.now()
+        if data:
+            shift.signature = data
 
-            # Proceed with distance check
-            if distance > 0.5:
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "message": "You are not within the required 0.5-mile distance to complete this shift.",
-                    },
-                    status=400,
-                )
-
-        # Save the signature image
+        # Update attendance status for the assignment if provided
         try:
-            format, imgstr = signature.split(";base64,")
-            ext = format.split("/")[-1]
-            data = ContentFile(
-                base64.b64decode(imgstr),
-                name=f"shift_{shift.id}_signature_{uuid.uuid4()}.{ext}",
+            if not user.is_superuser:
+                assignment = ShiftAssignment.objects.get(shift=shift, worker=user)
+                if data:
+                    assignment.signature = data
+                if latitude and longitude:
+                    assignment.completion_latitude = latitude
+                    assignment.completion_longitude = longitude
+                assignment.completion_time = timezone.now()
+                if attendance_status:
+                    assignment.attendance_status = attendance_status
+                assignment.save()
+        except ShiftAssignment.DoesNotExist:
+            logger.error(
+                f"ShiftAssignment does not exist for user {user.username} and shift {shift.id}."
+            )
+            return JsonResponse(
+                {"success": False, "message": "Shift assignment not found."},
+                status=404,
             )
         except Exception as e:
             logger.exception(
-                f"Error decoding signature from user {user.username} for Shift ID {shift_id}: {e}"
+                f"Error updating ShiftAssignment for user {user.username} and shift {shift.id}: {e}"
             )
             return JsonResponse(
-                {"success": False, "message": "Invalid signature data."}, status=400
+                {"success": False, "message": "An error occurred while completing the shift."},
+                status=500,
             )
 
-        # Update shift with signature and mark as completed
-        shift.signature = data
-        shift.is_completed = True
-        shift.completion_time = timezone.now()
-        shift.save()
+        # Check if all assignments are completed
+        all_assignments = ShiftAssignment.objects.filter(shift=shift)
+        if all(a.completion_time for a in all_assignments):
+            shift.is_completed = True
+            shift.completion_time = timezone.now()
+            if data:
+                shift.signature = data
+            shift.save()
 
-        # If not superuser, update the assignment
-        if not user.is_superuser:
-            try:
-                assignment = ShiftAssignment.objects.get(shift=shift, worker=user)
-                assignment.signature = data
-                assignment.completion_latitude = latitude
-                assignment.completion_longitude = longitude
-                assignment.completion_time = timezone.now()
-                assignment.attendance_status = attendance_status
-                assignment.save()
-            except ShiftAssignment.DoesNotExist:
-                logger.error(
-                    f"ShiftAssignment does not exist for user {user.username} and shift {shift.id}."
-                )
-                return JsonResponse(
-                    {"success": False, "message": "Shift assignment not found."},
-                    status=404,
-                )
+        # Save shift
+        try:
+            shift.clean(skip_date_validation=True)
+            shift.save()
+        except ValidationError as ve:
+            return JsonResponse(
+                {"success": False, "message": ve.message}, status=400
+            )
 
         logger.info(f"User {user.username} completed Shift ID {shift_id} via AJAX.")
         return JsonResponse(
