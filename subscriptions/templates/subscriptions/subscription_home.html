@@ -1,11 +1,23 @@
-<!-- /workspace/shiftwise/templates/subscriptions/subscription_home.html -->
+<!-- /workspace/shiftwise/subscriptions/templates/subscriptions/subscription_home.html -->
 
 {% extends 'base.html' %}
+
+{% load static %}
+{% load crispy_forms_tags %}
 
 {% block title %}Subscription Plans - ShiftWise{% endblock %}
 
 {% block content %}
     {% include 'subscriptions/_subscription_home_content.html' %}
+    
+    <!-- Add Manage Subscriptions Link Here -->
+    <div class="text-center mt-4">
+        {% if has_active_subscription %}
+            <a href="{% url 'subscriptions:manage_subscription' %}" class="btn btn-secondary">
+                <i class="fas fa-cogs"></i> Manage Your Subscription
+            </a>
+        {% endif %}
+    </div>
 {% endblock %}
 
 {% block extra_js %}
