@@ -46,7 +46,7 @@ class ShiftAssignmentAdmin(admin.ModelAdmin):
         "attendance_status",
     )
     ordering = ("-assigned_at",)
-    raw_id_fields = ("worker", "shift")  # Improves performance for large datasets
+    raw_id_fields = ("worker", "shift")
 
     # Adding filters and actions for better admin management
     actions = ["mark_attended", "mark_late", "mark_no_show"]
