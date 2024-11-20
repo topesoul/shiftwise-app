@@ -1,7 +1,7 @@
 # /workspace/shiftwise/core/templatetags/custom_tags.py
 
 from django import template
-from geopy.distance import geodesic
+from subscriptions.models import Plan
 
 register = template.Library()
 
@@ -24,3 +24,16 @@ def get_distance(shift, lat, lng):
         return distance
     except (ValueError, TypeError):
         return None
+
+
+@register.filter(name="get_plan_name")
+def get_plan_name(price_id):
+    """
+    Retrieves the local Plan name based on the Stripe Price ID.
+    Usage: {{ price_id|get_plan_name }}
+    """
+    try:
+        plan = Plan.objects.get(stripe_price_id=price_id)
+        return plan.name
+    except Plan.DoesNotExist:
+        return "Unknown Plan"
