@@ -9,7 +9,9 @@ from django.utils import timezone
 
 from shifts.validators import validate_image
 
-User = settings.AUTH_USER_MODEL
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class TimestampedModel(models.Model):
@@ -72,7 +74,7 @@ class Shift(TimestampedModel):
     start_time = models.TimeField()
     end_time = models.TimeField()
     end_date = models.DateField(
-        help_text="Specify the date when the shift ends.", null=True, blank=True
+        help_text="Specify the date when the shift ends."
     )
     is_overnight = models.BooleanField(
         default=False, help_text="Check this box if the shift spans into the next day."
@@ -121,7 +123,7 @@ class Shift(TimestampedModel):
         """
         Generates a unique shift_code using agency_code and a UUID segment.
         Format: <AGENCY_CODE>-<UUID_SEGMENT>
-        Example: LON123-ABCDEF
+        Example: AG-1A2B3C
         """
         unique_segment = uuid.uuid4().hex[:6].upper()
         return f"{self.agency.agency_code}-{unique_segment}"
@@ -234,7 +236,7 @@ class ShiftAssignment(TimestampedModel):
         (CANCELED, "Canceled"),
     ]
 
-    # Role Choices
+    # Shift Role Choices
     ROLE_CHOICES = (
         ("Staff", "Staff"),
         ("Manager", "Manager"),
@@ -272,7 +274,7 @@ class ShiftAssignment(TimestampedModel):
         choices=ATTENDANCE_STATUS_CHOICES,
         null=True,
         blank=True,
-        help_text="Select attendance status after the shift.",
+        help_text="Select attendance status after completing the shift.",
     )
     completion_latitude = models.DecimalField(
         max_digits=9, decimal_places=6, null=True, blank=True
