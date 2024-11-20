@@ -21,48 +21,15 @@
 </div>
 
 <!-- Sub-Sections -->
-{% include 'includes/sections/subscription_tiers.html' %}
+<!-- Include the partial subscription content -->
+{% include 'subscriptions/_subscription_home_content.html' %}
 
 {% include 'includes/sections/testimonials.html' %}
 {% include 'includes/sections/social_media.html' %}
 
-{% if available_plans %}
-    <!-- Display Available Plans -->
-    <section id="subscription-plans">
-        <div class="container">
-            <h2 class="text-center">Choose Your Plan</h2>
-            <div class="row">
-                {% for plan in available_plans %}
-                    <div class="col-md-4">
-                        <div class="card mb-4 shadow-sm">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ plan.name }}</h5>
-                                <p class="card-text">{{ plan.description }}</p>
-                                <ul>
-                                    {% for plan_option in plan.plans %}
-                                        <li>{{ plan_option.view_limit }} Views - {{ plan_option.price }} {{ plan_option.currency }}</li>
-                                    {% endfor %}
-                                </ul>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="btn-group">
-                                        {% for plan_option in plan.plans %}
-                                            <a href="{% url 'subscriptions:subscribe' plan_option.id %}" class="btn btn-sm btn-outline-secondary">Subscribe</a>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
-
-<!-- Include the billing.js script for toggling billing cycles and plans -->
-<script src="{% static 'js/billing.js' %}"></script>
-
+    <!-- Include the billing.js script for toggling billing cycles and plans -->
+    <script src="{% static 'js/billing.js' %}"></script>
 {% endblock %}
