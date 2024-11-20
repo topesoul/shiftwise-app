@@ -6,12 +6,8 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.messages import get_messages
-from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
-from django.urls import reverse
 from django.utils import timezone
-
-from subscriptions.models import Subscription
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -99,7 +95,11 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
             if not agency:
                 return False
             subscription = agency.subscription
-            if not (subscription and subscription.is_active):
+            if not (
+                subscription
+                and subscription.is_active
+                and subscription.current_period_end > timezone.now()
+            ):
                 return False
             plan = subscription.plan
             if plan and self.required_features:
@@ -108,7 +108,9 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
                         return False
             return True
         except Exception as e:
-            logger.exception(f"Error in SubscriptionRequiredMixin for user {user.username}: {e}")
+            logger.exception(
+                f"Error in SubscriptionRequiredMixin for user {user.username}: {e}"
+            )
             return False
 
     def handle_no_permission(self):
@@ -143,11 +145,12 @@ class FeatureRequiredMixin(UserPassesTestMixin):
         if not user.is_authenticated:
             return False
         try:
-            subscription_features = getattr(user.profile, "subscription_features", [])
-            return all(feature in subscription_features for feature in self.required_features)
+            return all(
+                user.profile.has_feature(feature) for feature in self.required_features
+            )
         except AttributeError:
             logger.exception(
-                f"User {user.username} does not have 'subscription_features' attribute."
+                f"User {user.username} does not have a profile or 'has_feature' method."
             )
             return False
 
