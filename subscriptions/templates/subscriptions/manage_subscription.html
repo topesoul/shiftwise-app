@@ -1,53 +1,125 @@
 <!-- /workspace/shiftwise/subscriptions/templates/subscriptions/manage_subscription.html -->
+
 {% extends 'base.html' %}
 
 {% load static %}
-{% load custom_filters %}
-{% load custom_tags %}
 {% load crispy_forms_tags %}
+{% load custom_tags %}
+
+{% block title %}Manage Subscription - ShiftWise{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <h2>Manage Your Subscription</h2>
+<div class="row">
+    <div class="col-md-12">
+        <h3>Manage Your Subscription</h3>
+        <hr>
+    </div>
+</div>
 
-    {% if subscription %}
+<div class="row">
+    <!-- Current Subscription Details -->
+    <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <h4>{{ subscription.plan.name }} Plan ({{ subscription.plan.get_billing_cycle_display }})</h4>
+                <h5>Current Subscription</h5>
             </div>
             <div class="card-body">
-                <p><strong>Price:</strong> £{{ subscription.plan.price }}</p>
-                <p><strong>Billing Cycle:</strong> {{ subscription.plan.get_billing_cycle_display }}</p>
-                <p><strong>Current Period:</strong> {{ subscription.current_period_start|date:"F j, Y" }} - {{ subscription.current_period_end|date:"F j, Y" }}</p>
-                <p><strong>Features:</strong></p>
-                <ul>
-                    {% for feature in subscription_features %}
-                        <li>{{ feature|format_feature }}</li>
-                    {% endfor %}
-                </ul>
-                <p><strong>Next Billing Date:</strong> {{ subscription.current_period_end|date:"F j, Y" }}</p>
+                {% if subscription %}
+                    <p><strong>Plan:</strong> {{ subscription.plan.name }}</p>
+                    <p><strong>Status:</strong> {{ subscription.is_active|yesno:"Active,Inactive" }}</p>
+                    <p><strong>Current Period Start:</strong> {{ subscription.current_period_start|date:"F j, Y" }}</p>
+                    <p><strong>Current Period Ends:</strong> {{ subscription.current_period_end|date:"F j, Y" }}</p>
+                    <p><strong>Stripe Subscription ID:</strong> {{ subscription.stripe_subscription_id }}</p>
+                {% else %}
+                    <p>You currently have no active subscription.</p>
+                {% endif %}
             </div>
         </div>
+    </div>
 
-        <div class="mb-4">
-            <h4>Upgrade or Downgrade Your Plan</h4>
-            <p>Select a new plan below to change your current subscription.</p>
-            <a href="{% url 'subscriptions:upgrade_subscription' %}" class="btn btn-success">Upgrade Plan</a>
-            <a href="{% url 'subscriptions:downgrade_subscription' %}" class="btn btn-warning">Downgrade Plan</a>
+    <!-- Subscription Actions -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Actions</h5>
+            </div>
+            <div class="card-body">
+                {% if subscription %}
+                    <!-- Upgrade Subscription Button -->
+                    <a href="{% url 'subscriptions:upgrade_subscription' %}" class="btn btn-success btn-block mb-2">
+                        <i class="fas fa-arrow-up"></i> Upgrade Subscription
+                    </a>
+                    <!-- Downgrade Subscription Button -->
+                    <a href="{% url 'subscriptions:downgrade_subscription' %}" class="btn btn-warning btn-block mb-2">
+                        <i class="fas fa-arrow-down"></i> Downgrade Subscription
+                    </a>
+                    <!-- Cancel Subscription Button -->
+                    <form action="{% url 'subscriptions:cancel_subscription' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-block" onclick="return confirm('Are you sure you want to cancel your subscription? This action cannot be undone.');">
+                            <i class="fas fa-ban"></i> Cancel Subscription
+                        </button>
+                    </form>
+                    <!-- Update Payment Method Button -->
+                    <a href="{% url 'subscriptions:update_payment_method' %}" class="btn btn-info btn-block mt-3">
+                        <i class="fas fa-credit-card"></i> Update Payment Method
+                    </a>
+                {% else %}
+                    <!-- View Subscription Plans Button -->
+                    <a href="{% url 'subscriptions:subscription_home' %}" class="btn btn-primary btn-block">
+                        <i class="fas fa-shopping-cart"></i> View Subscription Plans
+                    </a>
+                {% endif %}
+            </div>
         </div>
+    </div>
+</div>
 
-        <div class="mb-4">
-            <h4>Cancel Subscription</h4>
-            <p>If you wish to cancel your subscription, please proceed below.</p>
-            <form method="post" action="{% url 'subscriptions:cancel_subscription' %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger">Cancel Subscription</button>
-            </form>
-        </div>
-    {% else %}
-        <div class="alert alert-info" role="alert">
-            You do not have an active subscription. Please <a href="{% url 'subscriptions:subscribe' available_plans.0.monthly_plan.id %}" class="alert-link">subscribe now</a> to access premium features.
-        </div>
-    {% endif %}
+<!-- Display All Subscriptions -->
+<div class="row">
+    <div class="col-md-12">
+        <h4>All Subscriptions</h4>
+        <hr>
+        {% if subscriptions.data %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Subscription ID</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Current Period End</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sub in subscriptions.data %}
+                            <tr>
+                                <td>{{ sub.id }}</td>
+                                <td>
+                                    {% with price_id=sub.items.data.0.price.id %}
+                                        {{ price_id|get_plan_name }}
+                                    {% endwith %}
+                                </td>
+                                <td>{{ sub.status|capfirst }}</td>
+                                <td>{{ sub.current_period_end|date:"F j, Y" }}</td>
+                                <td>
+                                    {% if sub.status == "active" %}
+                                        <a href="{{ billing_portal_url }}" class="btn btn-sm btn-primary" target="_blank">
+                                            <i class="fas fa-cogs"></i> Manage
+                                        </a>
+                                    {% else %}
+                                        <span class="badge badge-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>You have no subscriptions.</p>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
