@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Agency, Invitation, Profile
+from .models import Agency, Profile, Invitation
 
 User = get_user_model()
 
@@ -93,8 +93,12 @@ class AgencyAdmin(admin.ModelAdmin):
     ]
     list_filter = ["agency_type", "is_active", "country", "county"]
 
+    # Add 'agency_code' to readonly_fields
+    readonly_fields = ("agency_code",)
+
     fieldsets = (
-        (None, {"fields": ("name", "agency_code", "agency_type", "is_active")}),
+        (None, {"fields": ("name", "agency_type", "is_active")}),
+        ("Agency Code", {"fields": ("agency_code",)}),  # Display as a separate section
         ("Contact Information", {"fields": ("email", "phone_number", "website")}),
         (
             "Address Information",
