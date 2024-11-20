@@ -2,6 +2,7 @@
 
 import logging
 from decimal import Decimal
+from collections import defaultdict  # Ensure defaultdict is imported
 
 import stripe
 from django.conf import settings
@@ -9,14 +10,13 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import TemplateView
 
-from accounts.forms import UpdateProfileForm
 from accounts.models import Agency, Profile
 from core.mixins import AgencyOwnerRequiredMixin
 from subscriptions.models import Plan, Subscription
@@ -30,19 +30,18 @@ logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-class SubscriptionHomeView(TemplateView):
+class SubscriptionHomeView(LoginRequiredMixin, TemplateView):
     """
     Displays the available subscription plans and the agency's current subscription status.
+    Accessible to authenticated users.
     """
 
     template_name = "subscriptions/subscription_home.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         user = self.request.user
 
-        # Ensure the user has a profile if authenticated
         if user.is_authenticated:
             try:
                 profile = user.profile
@@ -57,43 +56,69 @@ class SubscriptionHomeView(TemplateView):
 
             if agency is None:
                 messages.error(
-                    self.request,
-                    "Your agency information is missing. Please contact support.",
+                    self.request, "Your agency information is missing. Please contact support."
                 )
                 logger.error(f"Agency is None for user: {user.username}")
                 return context
 
             # Get current subscription
-            subscription = Subscription.objects.filter(
-                agency=agency, is_active=True, current_period_end__gt=timezone.now()
-            ).first()
-            context["subscription"] = subscription
+            try:
+                subscription = agency.subscription
+                if subscription.is_active and subscription.current_period_end > timezone.now():
+                    context["subscription"] = subscription
+                else:
+                    context["subscription"] = None
+            except Subscription.DoesNotExist:
+                context["subscription"] = None
+                logger.warning(f"No active subscription for agency: {agency.name}")
+            except Exception as e:
+                messages.error(
+                    self.request, "An error occurred while retrieving your subscription."
+                )
+                logger.exception(f"Error retrieving subscription: {e}")
+                context["subscription"] = None
 
-        # Retrieve all active plans
-        plans = Plan.objects.filter(is_active=True).order_by("name", "billing_cycle")
+            # Retrieve all active plans
+            plans = Plan.objects.filter(is_active=True).order_by("name", "billing_cycle")
 
-        # Group plans by name
-        plan_dict = {}
-        for plan in plans:
-            plan_group = plan_dict.setdefault(
-                plan.name,
-                {
-                    "name": plan.name,
-                    "description": plan.description,
-                    "custom_integrations": plan.custom_integrations,
-                    "monthly_plan": None,
-                    "yearly_plan": None,
-                },
-            )
-            if plan.billing_cycle == "monthly":
-                plan_group["monthly_plan"] = plan
-            elif plan.billing_cycle == "yearly":
-                plan_group["yearly_plan"] = plan
+            # Group plans by name
+            plan_dict = defaultdict(dict)
+            for plan in plans:
+                if plan.billing_cycle.lower() == "monthly":
+                    plan_dict[plan.name]["monthly_plan"] = plan
+                elif plan.billing_cycle.lower() == "yearly":
+                    plan_dict[plan.name]["yearly_plan"] = plan
 
-        # Convert plan_dict to a list
-        available_plans = list(plan_dict.values())
+            # Structure available_plans as a list of dictionaries
+            available_plans = []
+            for plan_name, plans in plan_dict.items():
+                # Ensure at least one plan exists
+                if not plans.get("monthly_plan") and not plans.get("yearly_plan"):
+                    logger.warning(f"No monthly or yearly plan found for {plan_name}. Skipping.")
+                    continue
 
-        context["available_plans"] = available_plans
+                # Use the description from either monthly or yearly plan
+                description = (
+                    plans.get("monthly_plan").description
+                    if plans.get("monthly_plan")
+                    else plans.get("yearly_plan").description
+                )
+
+                available_plans.append(
+                    {
+                        "name": plan_name,
+                        "description": description,
+                        "monthly_plan": plans.get("monthly_plan"),
+                        "yearly_plan": plans.get("yearly_plan"),
+                    }
+                )
+
+            # Log available plans for debugging
+            logger.debug(f"Available Plans: {[plan['name'] for plan in available_plans]}")
+
+            context["available_plans"] = available_plans
+
+            # Pass all features for display in templates via context processor
 
         return context
 
@@ -117,63 +142,53 @@ class SubscribeView(LoginRequiredMixin, View):
             profile = user.profile
         except Profile.DoesNotExist:
             messages.error(request, "Please complete your profile before subscribing.")
+            logger.error(f"Profile does not exist for user: {user.username}")
             return redirect("accounts:update_profile")
 
         # Ensure the user has an agency
-        if not hasattr(profile, "agency") or profile.agency is None:
-            messages.error(request, "Please create an agency before subscribing.")
-            return redirect("accounts:create_agency")
-
         agency = profile.agency
+        if not agency:
+            messages.error(request, "Please create an agency before subscribing.")
+            logger.error(f"Agency is None for user: {user.username}")
+            return redirect("accounts:create_agency")
 
         # Check if user is an agency owner
         if not user.groups.filter(name="Agency Owners").exists():
             messages.error(request, "Only agency owners can subscribe.")
+            logger.warning(f"User {user.username} attempted to subscribe without being an agency owner.")
             return redirect("subscriptions:subscription_home")
 
         # Get the selected plan
         plan = get_object_or_404(Plan, id=plan_id, is_active=True)
 
-        # Create or retrieve a Stripe Customer
+        # At this point, the Stripe customer should already be created via signals.py
         if not agency.stripe_customer_id:
-            try:
-                # Use the Utility Function to Create Stripe Customer
-                customer = create_stripe_customer(agency)
-                # Save the returned customer ID to the agency
-                agency.stripe_customer_id = customer.id
-                agency.save()
-                logger.info(
-                    f"Stripe customer created for agency: {agency.name}, Customer ID: {customer.id}"
-                )
-            except stripe.error.StripeError as e:
-                messages.error(
-                    request, "There was an error with Stripe. Please try again."
-                )
-                logger.exception(f"Stripe error while creating customer: {e}")
-                return redirect("subscriptions:subscription_home")
-            except Exception as e:
-                messages.error(
-                    request, "An unexpected error occurred. Please try again."
-                )
-                logger.exception(f"Unexpected error while creating customer: {e}")
-                return redirect("subscriptions:subscription_home")
-        else:
-            try:
-                # Retrieve Existing Stripe Customer
-                customer = stripe.Customer.retrieve(agency.stripe_customer_id)
-                logger.info(
-                    f"Stripe customer retrieved for agency: {agency.name}, Customer ID: {customer.id}"
-                )
-            except stripe.error.StripeError as e:
-                messages.error(request, "Failed to retrieve Stripe customer.")
-                logger.exception(f"Stripe error while retrieving customer: {e}")
-                return redirect("subscriptions:subscription_home")
-            except Exception as e:
-                messages.error(
-                    request, "An unexpected error occurred. Please try again."
-                )
-                logger.exception(f"Unexpected error while retrieving customer: {e}")
-                return redirect("subscriptions:subscription_home")
+            messages.error(request, "Stripe customer ID is missing. Please contact support.")
+            logger.error(f"Stripe customer ID is missing for agency: {agency.name}")
+            return redirect("subscriptions:subscription_home")
+
+        try:
+            # Retrieve Existing Stripe Customer
+            customer = stripe.Customer.retrieve(agency.stripe_customer_id)
+            logger.info(
+                f"Stripe customer retrieved for agency: {agency.name}, Customer ID: {customer.id}"
+            )
+        except stripe.error.StripeError as e:
+            messages.error(request, "Failed to retrieve Stripe customer.")
+            logger.exception(f"Stripe error while retrieving customer: {e}")
+            return redirect("subscriptions:subscription_home")
+        except Exception as e:
+            messages.error(
+                request, "An unexpected error occurred. Please try again."
+            )
+            logger.exception(f"Unexpected error while retrieving customer: {e}")
+            return redirect("subscriptions:subscription_home")
+
+        # Prevent Creating Duplicate Subscriptions
+        if hasattr(agency, 'subscription') and agency.subscription.is_active:
+            messages.info(request, "You already have an active subscription. Manage your subscription instead.")
+            logger.info(f"Agency {agency.name} already has an active subscription.")
+            return redirect("subscriptions:manage_subscription")
 
         # Create a Stripe Checkout Session
         try:
@@ -260,6 +275,8 @@ class StripeWebhookView(View):
         elif event.type == "customer.subscription.updated":
             subscription = event.data.object
             self.handle_subscription_updated(subscription)
+        else:
+            logger.info(f"Unhandled event type: {event.type}")
 
         return HttpResponse(status=200)
 
@@ -270,36 +287,45 @@ class StripeWebhookView(View):
         customer_id = session.get("customer")
         subscription_id = session.get("subscription")
 
-        # Retrieve plan ID from the checkout session's line items
         try:
-            line_items = stripe.checkout.Session.list_line_items(session.id, limit=1)
-            plan_id = line_items.data[0].price.id if line_items.data else None
-        except stripe.error.StripeError as e:
-            logger.exception(f"Error retrieving line items: {e}")
-            return
+            # Retrieve the Stripe Subscription object
+            stripe_subscription = stripe.Subscription.retrieve(subscription_id)
+            plan_id = stripe_subscription["items"]["data"][0]["price"]["id"]
+            current_period_start = timezone.datetime.fromtimestamp(
+                stripe_subscription["current_period_start"], tz=timezone.utc
+            )
+            current_period_end = timezone.datetime.fromtimestamp(
+                stripe_subscription["current_period_end"], tz=timezone.utc
+            )
 
-        if not plan_id:
-            logger.error("No plan_id found in checkout session.")
-            return
-
-        try:
             agency = Agency.objects.get(stripe_customer_id=customer_id)
             plan = Plan.objects.get(stripe_price_id=plan_id)
-            subscription = Subscription.objects.create(
+
+            # Update existing subscription or create if it doesn't exist
+            subscription, created = Subscription.objects.get_or_create(
                 agency=agency,
-                plan=plan,
-                stripe_subscription_id=subscription_id,
-                is_active=True,
-                current_period_start=timezone.now(),
-                current_period_end=timezone.now() + timezone.timedelta(days=30),
+                defaults={
+                    'plan': plan,
+                    'stripe_subscription_id': subscription_id,
+                    'is_active': True,
+                    'current_period_start': current_period_start,
+                    'current_period_end': current_period_end,
+                },
             )
-            # Deactivate any old subscriptions
-            Subscription.objects.filter(agency=agency).exclude(
-                id=subscription.id
-            ).update(is_active=False)
-            logger.info(
-                f"Subscription created for agency {agency.name}, Subscription ID: {subscription_id}"
-            )
+
+            if not created:
+                # Update existing subscription
+                subscription.plan = plan
+                subscription.stripe_subscription_id = subscription_id
+                subscription.is_active = True
+                subscription.current_period_start = current_period_start
+                subscription.current_period_end = current_period_end
+                subscription.is_expired = False
+                subscription.save()
+                logger.info(f"Subscription updated for agency {agency.name}")
+            else:
+                logger.info(f"Subscription created for agency {agency.name}")
+
         except Agency.DoesNotExist:
             logger.exception(f"Agency with customer ID {customer_id} does not exist.")
         except Plan.DoesNotExist:
@@ -329,13 +355,9 @@ class StripeWebhookView(View):
             local_subscription.save()
             logger.info(f"Subscription {stripe_subscription_id} deactivated.")
         except Subscription.DoesNotExist:
-            logger.exception(
-                f"Subscription with ID {stripe_subscription_id} does not exist."
-            )
+            logger.exception(f"Subscription with ID {stripe_subscription_id} does not exist.")
         except Exception as e:
-            logger.exception(
-                f"Unexpected error while handling subscription deletion: {e}"
-            )
+            logger.exception(f"Unexpected error while handling subscription deletion: {e}")
 
     def handle_subscription_updated(self, subscription):
         """
@@ -357,81 +379,166 @@ class StripeWebhookView(View):
             local_subscription.plan = new_plan
             local_subscription.save()
             logger.info(
-                f"Subscription {stripe_subscription_id} updated for agency: {local_subscription.agency.name}"
+                f"Subscription updated to {new_plan.name} for agency: {local_subscription.agency.name}"
             )
         except Subscription.DoesNotExist:
-            logger.exception(
-                f"Subscription with ID {stripe_subscription_id} does not exist."
-            )
+            logger.exception(f"Subscription with ID {stripe_subscription_id} does not exist.")
         except Plan.DoesNotExist:
             logger.exception(
                 f"Plan with price ID {subscription['items']['data'][0]['price']['id']} does not exist."
             )
         except Exception as e:
-            logger.exception(
-                f"Unexpected error while handling subscription update: {e}"
-            )
+            logger.exception(f"Unexpected error while handling subscription update: {e}")
 
 
 stripe_webhook = StripeWebhookView.as_view()
 
 
-class ManageSubscriptionView(
-    LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView
-):
+class SubscriptionChangeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView):
     """
-    Allows agency owners to manage their subscriptions.
+    Base class for handling subscription changes (upgrade/downgrade).
     """
 
-    template_name = "subscriptions/manage_subscription.html"
+    template_name = "subscriptions/subscription_form_base.html"
+    change_type = None  # 'upgrade' or 'downgrade'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        # Ensure the user has a profile
+        if not self.change_type:
+            raise NotImplementedError("Change type must be defined in subclasses.")
+
         try:
             profile = user.profile
+            agency = profile.agency
+            subscription = agency.subscription
+            if subscription.is_active and subscription.current_period_end > timezone.now():
+                context["current_plan"] = subscription.plan
+            else:
+                messages.error(
+                    self.request, "Active subscription not found. Please subscribe first."
+                )
+                logger.error(f"No active subscription for agency: {agency.name if agency else 'N/A'}")
+                return context
+
+            if self.change_type == 'upgrade':
+                available_plans = Plan.objects.filter(
+                    price__gt=subscription.plan.price,
+                    is_active=True
+                ).order_by("price")
+                form_title = "Upgrade Your Subscription"
+                button_label = "Upgrade Subscription"
+            elif self.change_type == 'downgrade':
+                available_plans = Plan.objects.filter(
+                    price__lt=subscription.plan.price,
+                    is_active=True
+                ).order_by("-price")
+                form_title = "Downgrade Your Subscription"
+                button_label = "Downgrade Subscription"
+            else:
+                available_plans = []
+                form_title = "Change Subscription"
+                button_label = "Change Subscription"
+
+            context["available_plans"] = available_plans
+            context["form_title"] = form_title
+            context["button_label"] = button_label
+
         except Profile.DoesNotExist:
             messages.error(
                 self.request, "User profile does not exist. Please contact support."
             )
             logger.error(f"Profile does not exist for user: {user.username}")
-            return context
-
-        agency = profile.agency
-
-        if agency is None:
+        except Subscription.DoesNotExist:
             messages.error(
-                self.request,
-                "Your agency information is missing. Please contact support.",
+                self.request, "Active subscription not found. Please subscribe first."
             )
-            logger.error(f"Agency is None for user: {user.username}")
-            return context
-
-        if not agency.stripe_customer_id:
-            messages.error(
-                self.request, "No Stripe customer ID found. Please contact support."
-            )
-            logger.error(f"Stripe customer ID is missing for agency: {agency.name}")
-            return context
-
-        try:
-            subscriptions = stripe.Subscription.list(customer=agency.stripe_customer_id)
-            context["subscriptions"] = subscriptions
-            logger.info(f"Retrieved subscriptions for agency: {agency.name}")
-        except stripe.error.StripeError as e:
-            messages.error(self.request, "Unable to retrieve subscription details.")
-            logger.exception(f"Stripe error while retrieving subscriptions: {e}")
-            return redirect("subscriptions:subscription_home")
+            logger.error(f"No active subscription for agency: {agency.name if agency else 'N/A'}")
         except Exception as e:
             messages.error(
                 self.request, "An unexpected error occurred. Please try again."
             )
-            logger.exception(f"Unexpected error while retrieving subscriptions: {e}")
-            return redirect("subscriptions:subscription_home")
+            logger.exception(f"Unexpected error in SubscriptionChangeView: {e}")
 
         return context
+
+    def post(self, request, *args, **kwargs):
+        if not self.change_type:
+            messages.error(request, "Invalid subscription change type.")
+            logger.error("SubscriptionChangeView called without a valid change_type.")
+            return redirect("subscriptions:subscription_home")
+
+        plan_id = request.POST.get("plan_id")
+        new_plan = get_object_or_404(Plan, id=plan_id, is_active=True)
+
+        user = request.user
+
+        try:
+            profile = user.profile
+            agency = profile.agency
+            subscription = agency.subscription
+
+            # Update Stripe subscription
+            stripe_subscription = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+            current_item_id = stripe_subscription["items"]["data"][0].id
+
+            stripe.Subscription.modify(
+                subscription.stripe_subscription_id,
+                cancel_at_period_end=False,
+                items=[
+                    {
+                        "id": current_item_id,
+                        "price": new_plan.stripe_price_id,
+                    }
+                ],
+                proration_behavior='create_prorations',  # Adjust proration as needed
+            )
+
+            # Update local subscription
+            subscription.plan = new_plan
+            subscription.save()
+
+            action = "upgraded" if self.change_type == 'upgrade' else "downgraded"
+            messages.success(
+                request, f"Subscription {action} to {new_plan.name} plan successfully."
+            )
+            logger.info(
+                f"Subscription {action} to {new_plan.name} by user: {user.username}"
+            )
+            return redirect("subscriptions:manage_subscription")
+
+        except Subscription.DoesNotExist:
+            messages.error(
+                request, "Active subscription not found. Please subscribe first."
+            )
+            logger.error(f"No active subscription for agency: {agency.name if agency else 'N/A'}")
+            return redirect("subscriptions:subscription_home")
+        except stripe.error.StripeError as e:
+            messages.error(
+                request,
+                "An error occurred while changing your subscription. Please try again.",
+            )
+            logger.exception(f"Stripe error during subscription change: {e}")
+            return redirect("subscriptions:subscription_home")
+        except Exception as e:
+            messages.error(request, "An unexpected error occurred. Please try again.")
+            logger.exception(f"Unexpected error during subscription change: {e}")
+            return redirect("subscriptions:subscription_home")
+
+
+class UpgradeSubscriptionView(SubscriptionChangeView):
+    """
+    Allows agency owners to upgrade their subscription plans.
+    """
+    change_type = 'upgrade'
+
+
+class DowngradeSubscriptionView(SubscriptionChangeView):
+    """
+    Allows agency owners to downgrade their subscription plans.
+    """
+    change_type = 'downgrade'
 
 
 class CancelSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View):
@@ -454,9 +561,10 @@ class CancelSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View)
 
         agency = profile.agency
 
-        if agency is None:
+        if not agency:
             messages.error(
-                request, "Your agency information is missing. Please contact support."
+                request,
+                "Your agency information is missing. Please contact support.",
             )
             logger.error(f"Agency is None for user: {user.username}")
             return redirect("subscriptions:subscription_home")
@@ -469,7 +577,9 @@ class CancelSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View)
             return redirect("subscriptions:subscription_home")
 
         try:
-            subscriptions = stripe.Subscription.list(customer=agency.stripe_customer_id)
+            # Fetch active subscriptions
+            subscriptions = stripe.Subscription.list(customer=agency.stripe_customer_id, status='active')
+
             for subscription in subscriptions.auto_paging_iter():
                 stripe.Subscription.delete(subscription.id)
                 # Update local subscription record
@@ -479,9 +589,8 @@ class CancelSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View)
                 if local_subscription:
                     local_subscription.is_active = False
                     local_subscription.save()
-                    logger.info(
-                        f"Subscription {subscription.id} deactivated for agency: {agency.name}"
-                    )
+                    logger.info(f"Subscription {subscription.id} deactivated for agency: {agency.name}")
+
             messages.success(request, "Your subscription has been cancelled.")
             return redirect("subscriptions:subscription_home")
         except stripe.error.StripeError as e:
@@ -494,18 +603,88 @@ class CancelSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View)
             return redirect("subscriptions:subscription_home")
 
 
+class ManageSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView):
+    """
+    Allows agency owners to manage their subscriptions.
+    """
+
+    template_name = "subscriptions/manage_subscription.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        try:
+            profile = user.profile
+        except Profile.DoesNotExist:
+            messages.error(
+                self.request, "User profile does not exist. Please contact support."
+            )
+            logger.error(f"Profile does not exist for user: {user.username}")
+            return context
+
+        agency = profile.agency
+
+        if not agency:
+            messages.error(
+                self.request,
+                "Your agency information is missing. Please contact support.",
+            )
+            logger.error(f"Agency is None for user: {user.username}")
+            return context
+
+        if not agency.stripe_customer_id:
+            messages.error(
+                self.request, "No Stripe customer ID found. Please contact support."
+            )
+            logger.error(f"Stripe customer ID is missing for agency: {agency.name}")
+            return context
+
+        try:
+            # Fetch subscription from local database
+            try:
+                subscription = agency.subscription
+                if subscription.is_active and subscription.current_period_end > timezone.now():
+                    context["subscription"] = subscription
+                else:
+                    context["subscription"] = None
+            except Subscription.DoesNotExist:
+                context["subscription"] = None
+                logger.warning(f"No active subscription for agency: {agency.name}")
+
+            # Fetch subscriptions from Stripe
+            subscriptions = stripe.Subscription.list(customer=agency.stripe_customer_id, limit=10)
+            context["subscriptions"] = subscriptions
+
+            # Generate Billing Portal session link
+            billing_portal_session = stripe.billing_portal.Session.create(
+                customer=agency.stripe_customer_id,
+                return_url=self.request.build_absolute_uri(reverse("subscriptions:manage_subscription"))
+            )
+            context["billing_portal_url"] = billing_portal_session.url
+
+        except stripe.error.StripeError as e:
+            messages.error(self.request, "Unable to retrieve subscription details.")
+            logger.exception(f"Stripe error while retrieving subscriptions: {e}")
+            return redirect("subscriptions:subscription_home")
+        except Exception as e:
+            messages.error(
+                self.request, "An unexpected error occurred. Please try again."
+            )
+            logger.exception(f"Unexpected error while retrieving subscriptions: {e}")
+            return redirect("subscriptions:subscription_home")
+
+        return context
+
+
 class UpdatePaymentMethodView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View):
     """
-    Allows agency owners to update their payment method.
+    Allows agency owners to update their payment methods via Stripe's Billing Portal.
     """
 
     def get(self, request, *args, **kwargs):
-        """
-        Redirects to Stripe's Billing Portal for payment method updates.
-        """
         user = request.user
 
-        # Ensure the user has a profile
         try:
             profile = user.profile
         except Profile.DoesNotExist:
@@ -517,7 +696,7 @@ class UpdatePaymentMethodView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View
 
         agency = profile.agency
 
-        if agency is None:
+        if not agency:
             messages.error(
                 request, "Your agency information is missing. Please contact support."
             )
@@ -532,236 +711,18 @@ class UpdatePaymentMethodView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View
             return redirect("subscriptions:subscription_home")
 
         try:
-            billing_portal_session = stripe.billing_portal.Session.create(
+            # Create a Billing Portal session
+            session = stripe.billing_portal.Session.create(
                 customer=agency.stripe_customer_id,
-                return_url=request.build_absolute_uri(
-                    reverse("subscriptions:subscription_home")
-                ),
+                return_url=self.request.build_absolute_uri(reverse("subscriptions:manage_subscription"))
             )
-            logger.info(
-                f"Billing portal session created for agency: {agency.name}, Session ID: {billing_portal_session.id}"
-            )
-            return redirect(billing_portal_session.url)
+            logger.info(f"Billing Portal session created: {session.id} for agency: {agency.name}")
+            return redirect(session.url)
         except stripe.error.StripeError as e:
-            messages.error(request, "Unable to update your payment method.")
-            logger.exception(f"Stripe error while creating billing portal session: {e}")
+            messages.error(request, "Unable to redirect to Billing Portal.")
+            logger.exception(f"Stripe error while creating Billing Portal session: {e}")
             return redirect("subscriptions:subscription_home")
         except Exception as e:
             messages.error(request, "An unexpected error occurred. Please try again.")
-            logger.exception(
-                f"Unexpected error while creating billing portal session: {e}"
-            )
-            return redirect("subscriptions:subscription_home")
-
-
-class UpgradeSubscriptionView(
-    LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView
-):
-    """
-    Allows agency owners to upgrade their subscription plans.
-    """
-
-    template_name = "subscriptions/upgrade_subscription.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-
-        # Ensure the user has a profile
-        try:
-            profile = user.profile
-            agency = profile.agency
-            subscription = Subscription.objects.get(agency=agency, is_active=True)
-            context["current_plan"] = subscription.plan
-            # Fetch higher-tier plans
-            context["available_plans"] = Plan.objects.filter(
-                price__gt=subscription.plan.price, is_active=True
-            ).order_by("price")
-        except Profile.DoesNotExist:
-            messages.error(
-                self.request, "User profile does not exist. Please contact support."
-            )
-            logger.error(f"Profile does not exist for user: {user.username}")
-        except Subscription.DoesNotExist:
-            messages.error(
-                self.request, "Active subscription not found. Please subscribe first."
-            )
-            logger.error(
-                f"No active subscription for agency: {agency.name if agency else 'N/A'}"
-            )
-        except Exception as e:
-            messages.error(
-                self.request, "An unexpected error occurred. Please try again."
-            )
-            logger.exception(f"Unexpected error in UpgradeSubscriptionView: {e}")
-
-        return context
-
-    def post(self, request, *args, **kwargs):
-        plan_id = request.POST.get("plan_id")
-        new_plan = get_object_or_404(Plan, id=plan_id, is_active=True)
-
-        user = request.user
-        try:
-            profile = user.profile
-            agency = profile.agency
-            subscription = Subscription.objects.get(agency=agency, is_active=True)
-
-            # Update Stripe subscription
-            stripe_subscription = stripe.Subscription.retrieve(
-                subscription.stripe_subscription_id
-            )
-            current_item_id = stripe_subscription["items"]["data"][0].id
-
-            stripe.Subscription.modify(
-                subscription.stripe_subscription_id,
-                cancel_at_period_end=False,
-                items=[
-                    {
-                        "id": current_item_id,
-                        "price": new_plan.stripe_price_id,
-                    }
-                ],
-            )
-
-            # Update local subscription
-            subscription.plan = new_plan
-            subscription.current_period_end = timezone.now() + timezone.timedelta(
-                days=30
-            )
-            subscription.save()
-
-            messages.success(
-                request, f"Subscription upgraded to {new_plan.name} plan successfully."
-            )
-            logger.info(
-                f"Subscription upgraded to {new_plan.name} by user: {user.username}"
-            )
-            return redirect("subscriptions:subscription_home")
-
-        except Subscription.DoesNotExist:
-            messages.error(
-                request, "Active subscription not found. Please subscribe first."
-            )
-            logger.error(
-                f"No active subscription for agency: {agency.name if agency else 'N/A'}"
-            )
-            return redirect("subscriptions:subscription_home")
-        except stripe.error.StripeError as e:
-            messages.error(
-                request,
-                "An error occurred while upgrading your subscription. Please try again.",
-            )
-            logger.exception(f"Stripe error during subscription upgrade: {e}")
-            return redirect("subscriptions:subscription_home")
-        except Exception as e:
-            messages.error(request, "An unexpected error occurred. Please try again.")
-            logger.exception(f"Unexpected error during subscription upgrade: {e}")
-            return redirect("subscriptions:subscription_home")
-
-
-class DowngradeSubscriptionView(
-    LoginRequiredMixin, AgencyOwnerRequiredMixin, TemplateView
-):
-    """
-    Allows agency owners to downgrade their subscription plans.
-    """
-
-    template_name = "subscriptions/downgrade_subscription.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-
-        # Ensure the user has a profile
-        try:
-            profile = user.profile
-            agency = profile.agency
-            subscription = Subscription.objects.get(agency=agency, is_active=True)
-            context["current_plan"] = subscription.plan
-            # Fetch lower-tier plans
-            context["available_plans"] = Plan.objects.filter(
-                price__lt=subscription.plan.price, is_active=True
-            ).order_by("-price")
-        except Profile.DoesNotExist:
-            messages.error(
-                self.request, "User profile does not exist. Please contact support."
-            )
-            logger.error(f"Profile does not exist for user: {user.username}")
-        except Subscription.DoesNotExist:
-            messages.error(
-                self.request, "Active subscription not found. Please subscribe first."
-            )
-            logger.error(
-                f"No active subscription for agency: {agency.name if agency else 'N/A'}"
-            )
-        except Exception as e:
-            messages.error(
-                self.request, "An unexpected error occurred. Please try again."
-            )
-            logger.exception(f"Unexpected error in DowngradeSubscriptionView: {e}")
-
-        return context
-
-    def post(self, request, *args, **kwargs):
-        plan_id = request.POST.get("plan_id")
-        new_plan = get_object_or_404(Plan, id=plan_id, is_active=True)
-
-        user = request.user
-        try:
-            profile = user.profile
-            agency = profile.agency
-            subscription = Subscription.objects.get(agency=agency, is_active=True)
-
-            # Update Stripe subscription
-            stripe_subscription = stripe.Subscription.retrieve(
-                subscription.stripe_subscription_id
-            )
-            current_item_id = stripe_subscription["items"]["data"][0].id
-
-            stripe.Subscription.modify(
-                subscription.stripe_subscription_id,
-                cancel_at_period_end=False,
-                items=[
-                    {
-                        "id": current_item_id,
-                        "price": new_plan.stripe_price_id,
-                    }
-                ],
-            )
-
-            # Update local subscription
-            subscription.plan = new_plan
-            subscription.current_period_end = timezone.now() + timezone.timedelta(
-                days=30
-            )
-            subscription.save()
-
-            messages.success(
-                request,
-                f"Subscription downgraded to {new_plan.name} plan successfully.",
-            )
-            logger.info(
-                f"Subscription downgraded to {new_plan.name} by user: {user.username}"
-            )
-            return redirect("subscriptions:subscription_home")
-
-        except Subscription.DoesNotExist:
-            messages.error(
-                request, "Active subscription not found. Please subscribe first."
-            )
-            logger.error(
-                f"No active subscription for agency: {agency.name if agency else 'N/A'}"
-            )
-            return redirect("subscriptions:subscription_home")
-        except stripe.error.StripeError as e:
-            messages.error(
-                request,
-                "An error occurred while downgrading your subscription. Please try again.",
-            )
-            logger.exception(f"Stripe error during subscription downgrade: {e}")
-            return redirect("subscriptions:subscription_home")
-        except Exception as e:
-            messages.error(request, "An unexpected error occurred. Please try again.")
-            logger.exception(f"Unexpected error during subscription downgrade: {e}")
+            logger.exception(f"Unexpected error while creating Billing Portal session: {e}")
             return redirect("subscriptions:subscription_home")
