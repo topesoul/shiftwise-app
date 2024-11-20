@@ -157,12 +157,11 @@ class ShiftListView(
         return context
 
 
-class ShiftDetailView(LoginRequiredMixin, DetailView):
+class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, DetailView):
     """
-    Displays details of a specific shift, including distance from the user's location.
-    Superusers can view any shift regardless of agency association.
+    Displays details of a specific shift, including assigned and available workers.
     """
-
+    required_features = ["shift_management"]
     model = Shift
     template_name = "shifts/shift_detail.html"
     context_object_name = "shift"
@@ -207,7 +206,7 @@ class ShiftDetailView(LoginRequiredMixin, DetailView):
             )
 
         # Annotate with number of assignments and is_full_shift
-        shift.assignments_count = shift.assignments.count()
+        shift.assignments_count = shift.assignments.filter(status=ShiftAssignment.CONFIRMED).count()
         shift.is_full_shift = shift.assignments_count >= shift.capacity
 
         context["distance_to_shift"] = distance
@@ -300,12 +299,11 @@ class ShiftCreateView(
     def form_valid(self, form):
         shift = form.save(commit=False)
         if self.request.user.is_superuser:
-            # Superuser must assign an agency
+            # Superuser must assign an agency if provided
             agency = form.cleaned_data.get("agency")
-            if not agency:
-                form.add_error("agency", "Agency is required for creating a shift.")
-                return self.form_invalid(form)
-            shift.agency = agency
+            # Agency is optional; no action needed if not provided
+            if agency:
+                shift.agency = agency
         else:
             # Agency managers assign shifts to their own agency
             agency = self.request.user.profile.agency
@@ -350,6 +348,7 @@ class ShiftCreateView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["GOOGLE_PLACES_API_KEY"] = settings.GOOGLE_PLACES_API_KEY
+        context["form_title"] = "Create Shift"
         return context
 
 
@@ -382,12 +381,11 @@ class ShiftUpdateView(
     def form_valid(self, form):
         shift = form.save(commit=False)
         if self.request.user.is_superuser:
-            # Superuser can change the agency
+            # Superuser can change the agency if provided
             agency = form.cleaned_data.get("agency")
-            if not agency:
-                form.add_error("agency", "Agency is required for updating a shift.")
-                return self.form_invalid(form)
-            shift.agency = agency
+            # Agency is optional; no action needed if not provided
+            if agency:
+                shift.agency = agency
         else:
             # Agency managers cannot change the agency of a shift
             shift.agency = self.request.user.profile.agency
@@ -412,6 +410,12 @@ class ShiftUpdateView(
             "There was an error updating the shift. Please correct the errors below.",
         )
         return super().form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form_title"] = "Update Shift"
+        context["GOOGLE_PLACES_API_KEY"] = settings.GOOGLE_PLACES_API_KEY
+        return context
 
 
 class ShiftDeleteView(
