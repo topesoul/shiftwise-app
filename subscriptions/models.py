@@ -109,6 +109,22 @@ class Plan(models.Model):
         verbose_name = "Subscription Plan"
         verbose_name_plural = "Subscription Plans"
 
+    def get_features_list(self):
+        features = []
+        if self.notifications_enabled:
+            features.append("notifications_enabled")
+        if self.advanced_reporting:
+            features.append("advanced_reporting")
+        if self.priority_support:
+            features.append("priority_support")
+        if self.shift_management:
+            features.append("shift_management")
+        if self.staff_performance:
+            features.append("staff_performance")
+        if self.custom_integrations:
+            features.append("custom_integrations")
+        return features
+
     def __str__(self):
         return f"{self.name} ({self.get_billing_cycle_display()})"
 
@@ -176,9 +192,14 @@ class Subscription(models.Model):
 
     def renew_subscription(self):
         """
-        Placeholder method to handle subscription renewal logic.
+        Renew the subscription by extending the current_period_end.
         """
-        pass
+        if self.plan.billing_cycle == 'monthly':
+            self.current_period_end += timezone.timedelta(days=30)
+        elif self.plan.billing_cycle == 'yearly':
+            self.current_period_end += timezone.timedelta(days=365)
+        self.is_active = True
+        self.save()
 
     def cancel_subscription(self):
         """
@@ -188,12 +209,14 @@ class Subscription(models.Model):
         self.is_expired = True
         self.save()
 
-    def activate_subscription(self):
+    def activate_subscription(self, start_date, end_date):
         """
-        Activates the subscription.
+        Activates the subscription with provided dates.
         """
         self.is_active = True
         self.is_expired = False
+        self.current_period_start = start_date
+        self.current_period_end = end_date
         self.save()
 
     def clean(self):
