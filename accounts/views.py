@@ -14,7 +14,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 from django.core.mail import send_mail
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -50,9 +50,10 @@ from .forms import (
     InvitationForm,
     SignUpForm,
     UpdateProfileForm,
+    ProfilePictureForm,
     UserForm,
     UserUpdateForm,
-    MFAForm,  # Ensure MFAForm is imported
+    MFAForm,
 )
 from .models import Agency, Invitation, Profile
 
@@ -378,49 +379,46 @@ class ResendTOTPCodeView(LoginRequiredMixin, View):
 # Profile and Dashboard CBVs
 # ---------------------------
 
-class ProfileView(LoginRequiredMixin, UpdateView):
+class ProfileView(LoginRequiredMixin, View):
     """Renders the user profile with upcoming and past shifts and handles profile updates."""
-    
-    model = Profile
-    form_class = UpdateProfileForm
+
     template_name = "accounts/profile.html"
-    success_url = reverse_lazy("accounts:profile")
-    
-    def get_object(self):
-        profile, created = Profile.objects.get_or_create(user=self.request.user)
-        return profile
-    
-    def form_valid(self, form):
-        if 'delete_profile_picture' in self.request.POST:
-            # Handle profile picture deletion
-            self.object.profile_picture.delete(save=True)
-            self.object.save()
-            messages.success(self.request, "Profile picture deleted successfully.")
-            logger.info(f"Profile picture deleted for user {self.request.user.username}")
+
+    def get(self, request, *args, **kwargs):
+        profile, created = Profile.objects.get_or_create(user=request.user)
+        profile_form = UpdateProfileForm(instance=profile)
+        picture_form = ProfilePictureForm(instance=profile)
+
+        context = self.get_context_data(profile_form=profile_form, picture_form=picture_form)
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        profile, created = Profile.objects.get_or_create(user=request.user)
+        profile_form = UpdateProfileForm(request.POST, instance=profile)
+        picture_form = ProfilePictureForm(request.POST, request.FILES, instance=profile)
+
+        if profile_form.is_valid() and picture_form.is_valid():
+            profile_form.save()
+            picture_form.save()
+            messages.success(request, "Your profile has been updated successfully.")
+            logger.info(f"Profile updated for user {request.user.username}")
+            return redirect('accounts:profile')
         else:
-            # Save the form if no delete action was requested
-            form.save()
-            messages.success(self.request, "Your profile has been updated successfully.")
-            logger.info(f"Profile updated for user {self.request.user.username}")
-    
-        return super().form_valid(form)
-    
-    def form_invalid(self, form):
-        messages.error(self.request, "Please correct the errors below.")
-        logger.warning(
-            f"Profile update failed for user {self.request.user.username}: {form.errors}"
-        )
-        # Add a flag to open the modal
-        return self.render_to_response(self.get_context_data(form=form, open_modal=True))
-    
+            messages.error(request, "Please correct the errors below.")
+            logger.warning(
+                f"Profile update failed for user {request.user.username}: {profile_form.errors}, {picture_form.errors}"
+            )
+            context = self.get_context_data(profile_form=profile_form, picture_form=picture_form, open_modal=True)
+            return render(request, self.template_name, context)
+
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = {}
         user = self.request.user
-    
+
         # Fetch all shift assignments for the user
         assigned_shifts = ShiftAssignment.objects.filter(worker=user)
         assigned_shift_ids = list(assigned_shifts.values_list("shift_id", flat=True))
-    
+
         # Fetch upcoming and past shifts for the user
         today = timezone.now().date()
         upcoming_shifts = (
@@ -428,28 +426,22 @@ class ProfileView(LoginRequiredMixin, UpdateView):
             .select_related("shift")
             .order_by("shift__shift_date")
         )
-    
+
         past_shifts = (
             assigned_shifts.filter(shift__shift_date__lt=today)
             .select_related("shift")
             .order_by("-shift__shift_date")
         )
-    
+
         context.update(
             {
                 "upcoming_shifts": upcoming_shifts,
                 "past_shifts": past_shifts,
                 "assigned_shift_ids": assigned_shift_ids,
+                "GOOGLE_PLACES_API_KEY": settings.GOOGLE_PLACES_API_KEY,
             }
         )
-    
-        # Handle the modal opening
-        if kwargs.get('open_modal'):
-            context['open_modal'] = True
-    
-        # Pass the Google Places API key to the template
-        context["GOOGLE_PLACES_API_KEY"] = settings.GOOGLE_PLACES_API_KEY
-    
+        context.update(kwargs)
         return context
 
 
@@ -718,7 +710,6 @@ class AgencyCreateView(
 ):
     """Allows superusers to create a new agency."""
     
-    # Only superusers should create agencies; agency owners manage their own
     model = Agency
     form_class = AgencyForm
     template_name = "accounts/agency_form.html"
@@ -726,9 +717,13 @@ class AgencyCreateView(
     
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, "Agency created successfully.")
+        user = self.request.user
+        profile = user.profile
+        profile.agency = form.instance
+        profile.save()
+        messages.success(self.request, "Agency created and linked to your profile successfully.")
         logger.info(
-            f"Agency '{form.instance.name}' created by user {self.request.user.username}."
+            f"Agency '{form.instance.name}' created and linked to user {user.username}."
         )
         return response
 
