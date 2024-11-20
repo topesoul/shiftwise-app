@@ -1,51 +1,65 @@
 # /workspace/shiftwise/core/utils.py
 
 import logging
+import os
+import uuid
+import hashlib
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from django.conf import settings
 from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
-User = get_user_model()
 
-
-def send_notification(user_id, message, subject="Notification", url=""):
+def send_notification(user_id, message, subject="Notification", url=None):
     """
-    Sends an email notification to a specific user.
+    Sends an email notification to the user with the given user_id.
     """
+    User = get_user_model()
     try:
         user = User.objects.get(id=user_id)
-        user_email = user.email
-
-        if not user_email:
-            logger.error(f"User {user.username} does not have an email address.")
-            return
-
-        full_message = message
-        if url:
-            site_url = getattr(settings, "SITE_URL", "")
-            if site_url:
-                full_message += f"\n\nYou can view more details here: {site_url}{url}"
-            else:
-                full_message += f"\n\nYou can view more details here: {url}"
-
+        recipient = user.email
+        full_message = f"{message}\n\nVisit: {settings.SITE_URL}{url}" if url else message
         send_mail(
-            subject=subject,
-            message=full_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user_email],
+            subject,
+            full_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [recipient],
             fail_silently=False,
         )
-        logger.debug(
-            f"Email notification sent to user {user.username} ({user_email}): {subject}"
-        )
+        logger.info(f"Notification sent to {user.username} at {recipient}.")
     except User.DoesNotExist:
-        logger.error(f"User with ID {user_id} does not exist. Notification not sent.")
+        logger.error(f"User with id {user_id} does not exist.")
+
+
+def assign_user_to_group(user, group_name):
+    """
+    Assigns the given user to the specified group.
+    """
+    try:
+        group, created = Group.objects.get_or_create(name=group_name)
+        user.groups.add(group)
+        logger.info(f"User {user.username} assigned to group '{group_name}'.")
     except Exception as e:
-        logger.exception(f"Failed to send notification to user ID {user_id}: {e}")
+        logger.error(f"Error assigning user {user.username} to group '{group_name}': {e}")
+
+
+def generate_unique_code(prefix="", length=6):
+    """
+    Generates a unique code with an optional prefix.
+    """
+    return f"{prefix}{uuid.uuid4().hex[:length].upper()}"
+
+
+def create_unique_filename(instance, filename):
+    """
+    Generates a unique filename using UUID to prevent name collisions.
+    """
+    ext = filename.split('.')[-1]
+    unique_filename = f"{uuid.uuid4().hex}.{ext}"
+    return os.path.join("uploads/", unique_filename)
 
 
 def send_email_notification(
