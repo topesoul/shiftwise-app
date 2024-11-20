@@ -1,0 +1,164 @@
+<!-- /workspace/shiftwise/subscriptions/templates/subscriptions/_subscription_home_content.html -->
+
+{% load static %}
+{% load custom_filters %}
+{% load custom_tags %}
+
+<div class="container my-5">
+    <h2 class="text-center mb-4">Choose Your Subscription Plan</h2>
+
+    <!-- Display Current Subscription Status -->
+    <div class="row">
+        <div class="col-md-12">
+            {% if subscription %}
+                <div class="card mb-4 subscription-status-card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Current Subscription</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Plan:</strong> {{ subscription.plan.name }}</p>
+                        <p><strong>Status:</strong> Active</p>
+                        <p><strong>Current Period Start:</strong> {{ subscription.current_period_start|date:"F j, Y" }}</p>
+                        <p><strong>Current Period Ends:</strong> {{ subscription.current_period_end|date:"F j, Y" }}</p>
+                        <p><strong>Stripe Subscription ID:</strong> {{ subscription.stripe_subscription_id }}</p>
+                        <a href="{% url 'subscriptions:manage_subscription' %}" class="btn btn-primary manage-subscription-button">
+                            <i class="fas fa-cogs"></i> Manage Subscription
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    You do not have an active subscription. Please choose a plan to subscribe.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Global Billing Cycle Toggle -->
+    <div class="d-flex justify-content-center mb-4 subscription-toggle">
+        <div class="btn-group" role="group" aria-label="Billing Cycle Toggle">
+            <input type="radio" class="btn-check" name="billingCycleToggle" id="monthlyToggle" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="monthlyToggle">Monthly</label>
+
+            <input type="radio" class="btn-check" name="billingCycleToggle" id="yearlyToggle" autocomplete="off">
+            <label class="btn btn-outline-primary" for="yearlyToggle">Yearly</label>
+        </div>
+    </div>
+
+    <!-- Subscription Plans -->
+    <div class="row">
+        {% for plan_group in available_plans %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm position-relative subscription-card">
+                    <!-- Highlight Most Popular Plan -->
+                    {% if plan_group.name == "Pro" %}
+                        <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">Most Popular</span>
+                    {% endif %}
+
+                    <div class="card-header text-center bg-primary text-white">
+                        <h4 class="my-0 font-weight-bold">{{ plan_group.name }}</h4>
+                        <small>{{ plan_group.description }}</small>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <!-- Pricing Display -->
+                        <h2 class="card-title pricing-card-title text-center">
+                            £<span class="price-value"
+                                data-monthly-price="{% if plan_group.monthly_plan %}{{ plan_group.monthly_plan.price }}{% else %}{{ '' }}{% endif %}"
+                                data-yearly-price="{% if plan_group.yearly_plan %}{{ plan_group.yearly_plan.price }}{% else %}{{ '' }}{% endif %}">
+                                {% if plan_group.monthly_plan %}
+                                    {{ plan_group.monthly_plan.price }}
+                                {% elif plan_group.yearly_plan %}
+                                    {{ plan_group.yearly_plan.price }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                            <small class="text-muted">
+                                {% if plan_group.monthly_plan and plan_group.yearly_plan %}
+                                    /mo or /yr
+                                {% elif plan_group.monthly_plan %}
+                                    /mo
+                                {% elif plan_group.yearly_plan %}
+                                    /yr
+                                {% else %}
+                                    /n/a
+                                {% endif %}
+                            </small>
+                        </h2>
+
+                        <!-- Features List and Subscribe Button within the Same Context -->
+                        {% with selected_plan=plan_group.monthly_plan|default:plan_group.yearly_plan %}
+                            <ul class="list-unstyled mt-3 mb-4 features-list">
+                                {% if selected_plan %}
+                                    {% for feature_field, feature_display in all_features %}
+                                        <li class="feature-item">
+                                            {% if selected_plan|attr:feature_field %}
+                                                <i class="fas fa-check-circle text-success"></i> {{ feature_display }}
+                                            {% else %}
+                                                <i class="fas fa-times-circle text-danger"></i> {{ feature_display }}
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                    <!-- Shift Limit Display -->
+                                    <li class="feature-item">
+                                        {% if selected_plan.shift_limit %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            {{ selected_plan.shift_limit }} Shifts per Month
+                                        {% else %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            Unlimited Shifts
+                                        {% endif %}
+                                    </li>
+                                {% else %}
+                                    <li class="feature-item">No features available.</li>
+                                {% endif %}
+                            </ul>
+
+                            <!-- Subscribe Button -->
+                            <div class="mt-auto">
+                                {% if selected_plan %}
+                                    {% if subscription %}
+                                        {% if subscription.plan.price < selected_plan.price %}
+                                            <a href="{% url 'subscriptions:upgrade_subscription' selected_plan.id %}" class="btn btn-success btn-block subscribe-button">
+                                                <i class="fas fa-arrow-up"></i> Upgrade to {{ selected_plan.name }}
+                                            </a>
+                                        {% elif subscription.plan.price > selected_plan.price %}
+                                            <a href="{% url 'subscriptions:downgrade_subscription' selected_plan.id %}" class="btn btn-warning btn-block subscribe-button">
+                                                <i class="fas fa-arrow-down"></i> Downgrade to {{ selected_plan.name }}
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-secondary btn-block subscribe-button" disabled>
+                                                <i class="fas fa-check-circle"></i> Current Plan
+                                            </button>
+                                        {% endif %}
+                                    {% else %}
+                                        <a href="{% url 'subscriptions:subscribe' selected_plan.id %}" class="btn btn-primary btn-block subscribe-button">
+                                            <i class="fas fa-shopping-cart"></i> Subscribe to {{ selected_plan.name }}
+                                        </a>
+                                    {% endif %}
+                                {% else %}
+                                    <a href="#" class="btn btn-primary btn-block subscribe-button disabled">
+                                        <i class="fas fa-shopping-cart"></i> Subscribe
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <p class="text-center">No subscription plans available at the moment.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Manage Subscription Link -->
+    {% if subscription %}
+        <div class="text-center mt-4">
+            <a href="{% url 'subscriptions:manage_subscription' %}" class="btn btn-secondary manage-subscription-button">
+                <i class="fas fa-cogs"></i> Manage Your Subscription
+            </a>
+        </div>
+    {% endif %}
+</div>
