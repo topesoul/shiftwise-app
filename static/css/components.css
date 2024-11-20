@@ -196,7 +196,7 @@
     margin: 1rem 0;
     font-size: var(--font-size-base);
     background-color: var(--light-color);
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .table th, .table td {
@@ -383,4 +383,16 @@
 
 .form-row .form-control {
     width: 100%;
+}
+
+/* Checkbox Styling */
+.form-check-input {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+}
+
+.form-check-label {
+    font-size: 1rem;
+    color: var(--dark-color);
 }
