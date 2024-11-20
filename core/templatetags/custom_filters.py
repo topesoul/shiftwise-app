@@ -24,11 +24,12 @@ def has_feature(user, feature_name):
     """
     if not user.is_authenticated:
         return False
-    # Superusers have all features
     if user.is_superuser:
         return True
-    # Check if the feature is in the user's subscription_features
-    return feature_name in getattr(user.profile, "subscription_features", [])
+    try:
+        return user.profile.has_feature(feature_name)
+    except AttributeError:
+        return False
 
 
 @register.filter(name="is_in")
@@ -42,3 +43,12 @@ def is_in(value, list_values):
     if isinstance(list_values, str):
         list_values = [item.strip() for item in list_values.split(",")]
     return value in list_values
+
+
+@register.filter(name="attr")
+def attr(obj, attr_name):
+    """
+    Retrieves the attribute named attr_name from obj.
+    Usage: {{ obj|attr:"attribute_name" }}
+    """
+    return getattr(obj, attr_name, False)
