@@ -8,19 +8,17 @@ import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+
 from encrypted_model_fields.fields import EncryptedCharField
 
-from subscriptions.models import Plan, Subscription
+from core.constants import AGENCY_TYPE_CHOICES, ROLE_CHOICES
+from core.models import AddressModel
+from core.utils import generate_unique_code, create_unique_filename
 
 logger = logging.getLogger(__name__)
 
 
 class User(AbstractUser):
-    ROLE_CHOICES = (
-        ("staff", "Staff"),
-        ("agency_manager", "Agency Manager"),
-        ("agency_owner", "Agency Owner"),
-    )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="staff")
     email = models.EmailField(max_length=254, unique=True)
 
@@ -28,18 +26,10 @@ class User(AbstractUser):
         return self.username
 
 
-class Agency(models.Model):
+class Agency(AddressModel, models.Model):
     """
     Represents an agency managing multiple shifts.
     """
-
-    AGENCY_TYPE_CHOICES = [
-        ("staffing", "Staffing"),
-        ("healthcare", "Healthcare"),
-        ("training", "Training"),
-        ("education", "Education"),
-        ("other", "Other"),
-    ]
 
     name = models.CharField(max_length=255, unique=True)
     agency_code = models.CharField(max_length=20, editable=False, unique=True)
@@ -49,18 +39,9 @@ class Agency(models.Model):
         default="staffing",
     )
     is_active = models.BooleanField(default=True)
-    address_line1 = models.CharField(max_length=255, default="Unknown Address")
-    address_line2 = models.CharField(max_length=255, blank=True, null=True)
-    city = models.CharField(max_length=100, default="Unknown City")
-    county = models.CharField(max_length=100, blank=True, null=True)
-    state = models.CharField(max_length=100, blank=True, null=True)
-    country = models.CharField(max_length=100, default="UK")
-    postcode = models.CharField(max_length=20)
     email = models.EmailField(max_length=254, unique=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     website = models.URLField(blank=True, null=True)
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
     owner = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -79,25 +60,32 @@ class Agency(models.Model):
     def save(self, *args, **kwargs):
         if not self.agency_code:
             # Generate a unique agency_code with "AG-" prefix followed by 8 uppercase characters
-            self.agency_code = f"AG-{uuid.uuid4().hex[:8].upper()}"
+            self.agency_code = generate_unique_code(prefix="AG-", length=8)
+        # Ensure that Agency email matches the Owner's email
+        if self.owner and self.email != self.owner.email:
+            self.email = self.owner.email
         super().save(*args, **kwargs)
 
+    @property
+    def is_subscription_active(self):
+        """
+        Checks if the agency's subscription is active.
+        """
+        if hasattr(self, 'subscription') and self.subscription:
+            return self.subscription.is_active
+        else:
+            return False
 
-class Profile(models.Model):
+
+class Profile(AddressModel, models.Model):
+    """
+    Represents a user's profile with additional information.
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     agency = models.ForeignKey(Agency, on_delete=models.SET_NULL, null=True, blank=True)
-    address_line1 = models.CharField(max_length=255, blank=True, null=True)
-    address_line2 = models.CharField(max_length=255, blank=True, null=True)
-    city = models.CharField(max_length=100, blank=True, null=True)
-    county = models.CharField(max_length=100, blank=True, null=True)
-    state = models.CharField(max_length=100, blank=True, null=True)
-    country = models.CharField(max_length=100, default="UK")
-    postcode = models.CharField(max_length=20, blank=True, null=True)
     travel_radius = models.FloatField(default=0.0)
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
     profile_picture = models.ImageField(
-        upload_to="profile_pictures/", null=True, blank=True
+        upload_to=create_unique_filename, null=True, blank=True
     )
     totp_secret = EncryptedCharField(max_length=32, null=True, blank=True)
     recovery_codes = EncryptedCharField(
@@ -105,6 +93,10 @@ class Profile(models.Model):
     )  # To store hashed codes
     monthly_view_count = models.PositiveIntegerField(default=0)
     view_count_reset_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Profile"
+        verbose_name_plural = "Profiles"
 
     def generate_recovery_codes(self, num_codes=5):
         """
@@ -145,23 +137,58 @@ class Profile(models.Model):
         return f"Profile of {self.user.username}"
 
     @property
+    def is_agency_subscription_active(self):
+        """
+        Checks if the associated agency's subscription is active.
+        """
+        return self.agency.is_subscription_active if self.agency else False
+
+    @property
     def subscription_features(self):
-        if self.subscription and self.subscription.plan:
+        """
+        Retrieves the features enabled by the agency's active subscription.
+        """
+        if self.user.is_superuser:
+            return [
+                "notifications_enabled",
+                "advanced_reporting",
+                "priority_support",
+                "shift_management",
+                "staff_performance",
+                "custom_integrations",
+            ]
+        if (
+            self.agency
+            and hasattr(self.agency, 'subscription')
+            and self.agency.subscription
+            and self.agency.subscription.plan
+        ):
             features = []
-            if self.subscription.plan.notifications_enabled:
+            plan = self.agency.subscription.plan
+            if plan.notifications_enabled:
                 features.append("notifications_enabled")
-            if self.subscription.plan.advanced_reporting:
+            if plan.advanced_reporting:
                 features.append("advanced_reporting")
-            if self.subscription.plan.priority_support:
+            if plan.priority_support:
                 features.append("priority_support")
-            if self.subscription.plan.shift_management:
+            if plan.shift_management:
                 features.append("shift_management")
-            if self.subscription.plan.staff_performance:
+            if plan.staff_performance:
                 features.append("staff_performance")
-            if self.subscription.plan.custom_integrations:
+            if plan.custom_integrations:
                 features.append("custom_integrations")
             return features
         return []
+
+    def has_feature(self, feature_name):
+        """
+        Checks if the profile has access to a specific feature based on the subscription.
+        """
+        if self.user.is_superuser:
+            return True
+        if not self.is_agency_subscription_active:
+            return False
+        return feature_name in self.subscription_features
 
     def save(self, *args, **kwargs):
         try:
@@ -174,7 +201,7 @@ class Profile(models.Model):
                             f"Old profile picture deleted for user {self.user.username}."
                         )
         except Profile.DoesNotExist:
-            pass  # New profile, no action needed
+            pass
         super(Profile, self).save(*args, **kwargs)
 
 
