@@ -1,19 +1,8 @@
 # /workspace/shiftwise/accounts/admin.py
 
 from django.contrib import admin
-from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
-
-from .models import Agency, Profile, Invitation
-
-User = get_user_model()
-
-# Unregister the default User admin to register a customized one
-try:
-    admin.site.unregister(User)
-except admin.sites.NotRegistered:
-    pass
-
+from .models import Agency, Profile, Invitation, User
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -23,126 +12,28 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ["username", "email", "first_name", "last_name"]
     ordering = ["username"]
 
-    fieldsets = UserAdmin.fieldsets + ((None, {"fields": ("role",)}),)
-
-    add_fieldsets = UserAdmin.add_fieldsets + ((None, {"fields": ("role",)}),)
-
-
-@admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    list_display = [
-        "user",
-        "agency",
-        "monthly_view_count",
-        "view_count_reset_date",
-        "city",
-        "county",
-        "postcode",
-    ]
-    search_fields = ["user__username", "agency__name", "city", "county", "postcode"]
-    list_filter = ["agency", "country", "county"]
-
-    fieldsets = (
-        (None, {"fields": ("user", "agency")}),
-        (
-            "Address Information",
-            {
-                "fields": (
-                    "address_line1",
-                    "address_line2",
-                    "city",
-                    "county",
-                    "state",
-                    "country",
-                    "postcode",
-                )
-            },
-        ),
-        (
-            "Additional Information",
-            {"fields": ("travel_radius", "latitude", "longitude", "profile_picture")},
-        ),
-        (
-            "Subscription Info",
-            {
-                "fields": ("monthly_view_count", "view_count_reset_date"),
-            },
-        ),
+    fieldsets = UserAdmin.fieldsets + (
+        (None, {"fields": ("role",)}),
     )
-
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        (None, {"fields": ("role",)}),
+    )
 
 @admin.register(Agency)
 class AgencyAdmin(admin.ModelAdmin):
-    list_display = [
-        "name",
-        "agency_code",
-        "postcode",
-        "city",
-        "county",
-        "state",
-        "country",
-    ]
-    search_fields = [
-        "name",
-        "agency_code",
-        "postcode",
-        "city",
-        "county",
-        "state",
-        "country",
-    ]
-    list_filter = ["agency_type", "is_active", "country", "county"]
+    list_display = ('agency_code', 'name', 'owner', 'is_active', 'agency_type')
+    search_fields = ('name', 'agency_code', 'owner__username', 'email')
+    list_filter = ('is_active', 'agency_type')
+    raw_id_fields = ('owner',)
 
-    # Add 'agency_code' to readonly_fields
-    readonly_fields = ("agency_code",)
-
-    fieldsets = (
-        (None, {"fields": ("name", "agency_type", "is_active")}),
-        ("Agency Code", {"fields": ("agency_code",)}),  # Display as a separate section
-        ("Contact Information", {"fields": ("email", "phone_number", "website")}),
-        (
-            "Address Information",
-            {
-                "fields": (
-                    "address_line1",
-                    "address_line2",
-                    "city",
-                    "county",
-                    "state",
-                    "country",
-                    "postcode",
-                )
-            },
-        ),
-        ("Location Coordinates", {"fields": ("latitude", "longitude")}),
-    )
-
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'agency', 'travel_radius')
+    search_fields = ('user__username', 'agency__name')
+    list_filter = ('agency',)
 
 @admin.register(Invitation)
 class InvitationAdmin(admin.ModelAdmin):
-    list_display = [
-        "email",
-        "invited_by",
-        "agency",
-        "created_at",
-        "is_active",
-        "accepted_at",
-        "is_expired",
-    ]
-    search_fields = ["email", "invited_by__username", "agency__name"]
-    list_filter = ["is_active", "created_at", "accepted_at"]
-    ordering = ["-created_at"]
-    exclude = ("token",)
-    readonly_fields = ("invited_at", "invited_by", "agency", "is_active", "accepted_at")
-
-    fieldsets = (
-        (None, {"fields": ("email", "invited_by", "agency")}),
-        ("Invitation Status", {"fields": ("is_active", "invited_at", "accepted_at")}),
-        ("Timestamps", {"fields": ("created_at",)}),
-    )
-
-    def is_expired(self, obj):
-        return obj.is_expired()
-
-    is_expired.boolean = True
-    is_expired.short_description = "Expired?"
+    list_display = ('email', 'invited_by', 'agency', 'is_active', 'invited_at', 'accepted_at')
+    search_fields = ('email', 'invited_by__username', 'agency__name')
+    list_filter = ('is_active', 'agency')
