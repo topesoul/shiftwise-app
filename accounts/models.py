@@ -26,9 +26,10 @@ class User(AbstractUser):
         return self.username
 
 
-class Agency(AddressModel, models.Model):
+class Agency(AddressModel):
     """
     Represents an agency managing multiple shifts.
+    Inherits address fields from AddressModel.
     """
 
     name = models.CharField(max_length=255, unique=True)
@@ -77,10 +78,12 @@ class Agency(AddressModel, models.Model):
             return False
 
 
-class Profile(AddressModel, models.Model):
+class Profile(AddressModel):
     """
     Represents a user's profile with additional information.
+    Inherits address fields from AddressModel.
     """
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     agency = models.ForeignKey(Agency, on_delete=models.SET_NULL, null=True, blank=True)
     travel_radius = models.FloatField(default=0.0)
