@@ -1,26 +1,91 @@
 <!-- /workspace/shiftwise/accounts/templates/accounts/staff_dashboard.html -->
 
 {% extends 'base.html' %}
-
-{% load static %}
 {% load crispy_forms_tags %}
+{% custom_filters}
+{% load static %}
 
 {% block title %}Staff Dashboard{% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <div class="text-center">
-        <img src="{% static 'images/under_construction.svg' %}" alt="Under Construction" class="img-fluid">
-        <h1 class="mt-4">We're Working on Something Exciting!</h1>
-        <p class="lead mt-3">
-            The Staff Dashboard is currently under construction. We're putting the finishing touches to provide you with an amazing experience.
-        </p>
-        <p class="mt-4">
-            In the meantime, feel free to explore other sections of the site or check back later for updates.
-        </p>
-        <a href="{% url 'home:home' %}" class="btn btn-primary mt-3">
-            <i class="fas fa-home"></i> Return to Home
-        </a>
+    <h1 class="mb-4">Staff Dashboard</h1>
+
+    <!-- Upcoming Shifts -->
+    <div class="mb-5">
+        <h2 class="h5 mb-3">Upcoming Shifts</h2>
+        {% if upcoming_shifts %}
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Shift Date</th>
+                            <th>Shift Name</th>
+                            <th>Agency</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for shift in upcoming_shifts %}
+                            <tr>
+                                <td>{{ shift.shift_date|date:"D, d M Y" }}</td>
+                                <td>{{ shift.name }}</td>
+                                <td>{{ shift.agency.name }}</td>
+                                <td>
+                                    <a href="{% url 'shifts:shift_detail' shift.pk %}" class="btn btn-sm btn-info" title="View Shift Details">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    {% if not shift.is_full and shift.id not in assigned_shift_ids %}
+                                        <a href="{% url 'shifts:book_shift' shift.pk %}" class="btn btn-sm btn-success" title="Book Shift">
+                                            <i class="fas fa-bookmark"></i> Book
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">You have no upcoming shifts.</p>
+        {% endif %}
+    </div>
+
+    <!-- Past Shifts -->
+    <div>
+        <h2 class="h5 mb-3">Past Shifts</h2>
+        {% if past_shifts %}
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Shift Date</th>
+                            <th>Shift Name</th>
+                            <th>Agency</th>
+                            <th>Completed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for shift in past_shifts %}
+                            <tr>
+                                <td>{{ shift.shift_date|date:"D, d M Y" }}</td>
+                                <td>{{ shift.name }}</td>
+                                <td>{{ shift.agency.name }}</td>
+                                <td>
+                                    {% if shift.is_completed %}
+                                        <span class="badge badge-success">Yes</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">No</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">You have no past shifts.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
