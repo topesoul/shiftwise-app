@@ -32,7 +32,7 @@ from core.mixins import (
     FeatureRequiredMixin,
     SubscriptionRequiredMixin,
 )
-from shifts.forms import ShiftForm, ShiftFilterForm
+from shifts.forms import ShiftForm, ShiftFilterForm, AssignWorkerForm
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import generate_shift_code, haversine_distance
 
@@ -187,12 +187,13 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
         context = super().get_context_data(**kwargs)
         shift = self.object
         user = self.request.user
-        profile = user.profile
+        profile = user.profile if hasattr(user, 'profile') else None
 
         # Calculate distance if user has a registered address and shift has coordinates
         distance = None
         if (
-            profile.latitude
+            profile
+            and profile.latitude
             and profile.longitude
             and shift.latitude
             and shift.longitude
@@ -205,9 +206,8 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
                 unit="miles",
             )
 
-        # Annotate with number of assignments and is_full_shift
+        # Annotate with number of assignments
         shift.assignments_count = shift.assignments.filter(status=ShiftAssignment.CONFIRMED).count()
-        shift.is_full_shift = shift.assignments_count >= shift.capacity
 
         context["distance_to_shift"] = distance
 
@@ -218,7 +218,7 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
 
         context["can_book"] = (
             user.groups.filter(name="Agency Staff").exists()
-            and not shift.is_full_shift
+            and not shift.is_full
             and not context["is_assigned"]
             and shift.is_active
         )
@@ -228,7 +228,7 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
         )
         context["can_edit"] = user.is_superuser or (
             user.groups.filter(name="Agency Managers").exists()
-            and shift.agency == profile.agency
+            and shift.agency == profile.agency if profile else False
         )
 
         # Only include assigned_workers if user is superuser or agency manager
@@ -253,6 +253,25 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
                     is_active=True,
                 ).exclude(shift_assignments__shift=shift)
             context["available_workers"] = available_workers
+
+            # Initialize AssignWorkerForm for each available worker with 'worker' as a kwarg
+            assign_forms = []
+            for worker in available_workers:
+                form = AssignWorkerForm(
+                    shift=shift,
+                    user=user,
+                    worker=worker,
+                )
+                assign_forms.append({
+                    'worker': worker,
+                    'form': form
+                })
+            context["assign_forms"] = assign_forms
+            context["role_choices"] = ShiftAssignment.ROLE_CHOICES
+        else:
+            context["available_workers"] = None
+            context["assign_forms"] = []
+            context["role_choices"] = ShiftAssignment.ROLE_CHOICES
 
         return context
 
