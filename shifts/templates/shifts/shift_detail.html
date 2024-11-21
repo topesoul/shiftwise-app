@@ -1,3 +1,5 @@
+<!-- /workspace/shiftwise/shifts/templates/shifts/shift_detail.html -->
+
 {% extends 'base.html' %}
 
 {% load static %}
@@ -19,18 +21,24 @@
         </div>
         <div class="card-body">
             <!-- Shift Details -->
-            <p><strong>Shift Code:</strong> {{ shift.shift_code }}</p>
-            <p><strong>Date:</strong> {{ shift.shift_date|date:"D, d M Y" }}</p>
-            <p><strong>Start Time:</strong> {{ shift.start_time|time:"H:i" }}</p>
-            <p><strong>End Time:</strong> {{ shift.end_time|time:"H:i" }}</p>
-            <p><strong>Duration:</strong> {{ shift.duration|floatformat:2 }} hours</p>
-            <p><strong>Capacity:</strong> {{ shift.capacity }}</p>
-            <p><strong>Available Slots:</strong> {{ shift.available_slots }}</p>
-            <p><strong>Agency:</strong> {{ shift.agency.name }}</p>
-            <p><strong>Address:</strong> {{ shift.address_line1 }}, {{ shift.city }}, {{ shift.county }}, {{ shift.country }}, {{ shift.postcode }}</p>
-            <p><strong>Shift Type:</strong> {{ shift.get_shift_type_display }}</p>
-            <p><strong>Hourly Rate:</strong> £{{ shift.hourly_rate|floatformat:2 }}</p>
-            <p><strong>Notes:</strong> {{ shift.notes }}</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Shift Code:</strong> {{ shift.shift_code }}</p>
+                    <p><strong>Date:</strong> {{ shift.shift_date|date:"D, d M Y" }}</p>
+                    <p><strong>Start Time:</strong> {{ shift.start_time|time:"H:i" }}</p>
+                    <p><strong>End Time:</strong> {{ shift.end_time|time:"H:i" }}</p>
+                    <p><strong>Duration:</strong> {{ shift.duration|floatformat:2 }} hours</p>
+                    <p><strong>Capacity:</strong> {{ shift.capacity }}</p>
+                    <p><strong>Available Slots:</strong> {{ shift.available_slots }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Agency:</strong> {{ shift.agency.name }}</p>
+                    <p><strong>Address:</strong> {{ shift.address_line1 }}, {{ shift.city }}, {{ shift.county }}, {{ shift.country }}, {{ shift.postcode }}</p>
+                    <p><strong>Shift Type:</strong> {{ shift.get_shift_type_display }}</p>
+                    <p><strong>Hourly Rate:</strong> £{{ shift.hourly_rate|floatformat:2 }}</p>
+                    <p><strong>Notes:</strong> {{ shift.notes }}</p>
+                </div>
+            </div>
 
             <!-- Display Distance -->
             <p><strong>Distance from Your Location:</strong>
@@ -49,64 +57,76 @@
             {% if shift.is_completed %}
             <hr>
             <h5>Completion Details</h5>
-            <p><strong>Completed At:</strong> {{ shift.completion_time|date:"D, d M Y H:i" }}</p>
-            {% if shift.signature %}
-            <p><strong>Signature:</strong></p>
-            <img src="{{ shift.signature.url }}" alt="Signature" class="img-fluid mb-3 signature-img">
-            {% endif %}
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Completed At:</strong> {{ shift.completion_time|date:"D, d M Y H:i" }}</p>
+                </div>
+                <div class="col-md-6">
+                    {% if shift.signature %}
+                    <p><strong>Signature:</strong></p>
+                    <img src="{{ shift.signature.url }}" alt="Signature" class="img-fluid mb-3 signature-img">
+                    {% endif %}
+                </div>
+            </div>
             {% if shift.completion_latitude and shift.completion_longitude %}
-            <p><strong>Completion Location:</strong> Latitude: {{ shift.completion_latitude }}, Longitude: {{ shift.completion_longitude }}</p>
-            <p><strong>Distance from Shift Location:</strong>
-                {% get_distance shift shift.completion_latitude shift.completion_longitude as distance %}
-                {% if distance %}
-                    {{ distance|floatformat:2 }} miles
-                {% else %}
-                    <span class="text-muted">N/A</span>
-                {% endif %}
-            </p>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Completion Location:</strong> Latitude: {{ shift.completion_latitude }}, Longitude: {{ shift.completion_longitude }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Distance from Shift Location:</strong>
+                        {% get_distance shift shift.completion_latitude shift.completion_longitude as distance %}
+                        {% if distance %}
+                            {{ distance|floatformat:2 }} miles
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
             {% endif %}
             {% endif %}
 
         </div>
-        <div class="card-footer d-flex justify-content-between align-items-center">
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap">
             {% if user.is_authenticated %}
-            <div>
+            <div class="mb-2">
                 {% if can_edit %}
-                <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-primary">
+                <a href="{% url 'shifts:shift_update' shift.pk %}" class="btn btn-primary mr-2 mb-2">
                     <i class="fas fa-edit"></i> Edit Shift
                 </a>
-                <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this shift?');">
+                <a href="{% url 'shifts:shift_delete' shift.pk %}" class="btn btn-danger mr-2 mb-2" onclick="return confirm('Are you sure you want to delete this shift?');">
                     <i class="fas fa-trash-alt"></i> Delete Shift
                 </a>
                 {% endif %}
                 {% if can_book and shift.is_active and not shift.is_full %}
                 <form method="post" action="{% url 'shifts:book_shift' shift.id %}" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success mr-2 mb-2">
                         <i class="fas fa-bookmark"></i> Book Shift
                     </button>
                 </form>
                 {% elif can_unbook %}
                 <form method="post" action="{% url 'shifts:unbook_shift' shift.id %}" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to unbook this shift?');">
+                    <button type="submit" class="btn btn-warning mr-2 mb-2" onclick="return confirm('Are you sure you want to unbook this shift?');">
                         <i class="fas fa-undo"></i> Unbook Shift
                     </button>
                 </form>
                 {% elif shift.is_full %}
-                <span class="text-muted">Shift is Full</span>
+                <span class="text-muted mb-2">Shift is Full</span>
                 {% endif %}
-                <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary">
+                <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary mb-2">
                     <i class="fas fa-arrow-left"></i> Back to Shifts
                 </a>
                 {% if can_edit and not shift.is_completed and shift.is_active %}
                 <!-- Button to trigger Complete Shift Modal -->
-                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#completeShiftModal">
+                <button type="button" class="btn btn-success mb-2" data-toggle="modal" data-target="#completeShiftModal">
                     <i class="fas fa-check-circle"></i> Complete Shift
                 </button>
                 {% endif %}
             </div>
-            <div>
+            <div class="mb-2">
                 <a href="{% url 'shifts:download_timesheet' %}" class="btn btn-outline-success">
                     <i class="fas fa-download"></i> Download Timesheet
                 </a>
@@ -119,32 +139,6 @@
         </div>
     </div>
 
-    <!-- Assign Workers Section -->
-    {% if can_assign_workers %}
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h4 class="mb-0">Assign Workers</h4>
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'shifts:assign_worker' shift.id %}" class="form-inline">
-                    {% csrf_token %}
-                    <div class="form-group mr-2">
-                        <label for="workerSelect" class="sr-only">Select Worker</label>
-                        <select name="worker_id" id="workerSelect" class="form-control mr-2" required>
-                            <option value="" disabled selected>Choose a worker</option>
-                            {% for worker in available_workers %}
-                                <option value="{{ worker.id }}">{{ worker.get_full_name }} ({{ worker.email }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-plus-circle"></i> Assign Worker
-                    </button>
-                </form>
-            </div>
-        </div>
-    {% endif %}
-
     <!-- Assigned Workers List -->
     {% if assigned_workers %}
         <div class="card mb-4">
@@ -153,23 +147,30 @@
             </div>
             <div class="card-body">
                 {% if assigned_workers %}
-                    <ul class="list-group">
+                    <div class="row">
                         {% for assignment in assigned_workers %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="fas fa-user-tie mr-2"></i> {{ assignment.worker.get_full_name }} ({{ assignment.worker.email }})
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ assignment.worker.get_full_name }}</h5>
+                                        <p class="card-text"><strong>Email:</strong> {{ assignment.worker.email }}</p>
+                                        <p class="card-text"><strong>Agency:</strong> {{ assignment.worker.profile.agency.name }}</p>
+                                        <p class="card-text"><strong>Role:</strong> {{ assignment.get_role_display }}</p>
+                                    </div>
+                                    <div class="card-footer">
+                                        {% if can_assign_workers %}
+                                            <form method="post" action="{% url 'shifts:unassign_worker' shift.id assignment.id %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to unassign this worker?');">
+                                                    <i class="fas fa-user-minus"></i> Unassign
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                {% if can_assign_workers %}
-                                    <form method="post" action="{% url 'shifts:unassign_worker' shift.id assignment.id %}" style="display:inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to unassign this worker?');">
-                                            <i class="fas fa-user-minus"></i> Unassign
-                                        </button>
-                                    </form>
-                                {% endif %}
-                            </li>
+                            </div>
                         {% endfor %}
-                    </ul>
+                    </div>
                 {% else %}
                     <p class="text-muted">No workers assigned to this shift.</p>
                 {% endif %}
@@ -177,14 +178,66 @@
         </div>
     {% endif %}
 
-<!-- Include the Shift Completion Modal -->
-{% if can_edit and not shift.is_completed and shift.is_active %}
-    {% include 'shifts/shift_complete_modal.html' %}
-{% endif %}
+    <!-- Available Workers List -->
+    {% if can_assign_workers and available_workers %}
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">Available Workers</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for worker in available_workers %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ worker.get_full_name }}</h5>
+                                    <p class="card-text"><strong>Email:</strong> {{ worker.email }}</p>
+                                    <p class="card-text"><strong>Agency:</strong> {{ worker.profile.agency.name }}</p>
+                                    <p class="card-text"><strong>Role:</strong> {{ worker.profile.get_role_display }}</p>
+                                </div>
+                                <div class="card-footer">
+                                    <form method="post" action="{% url 'shifts:assign_worker' shift.id %}">
+                                        {% csrf_token %}
+                                        <!-- Hidden Worker Field -->
+                                        <input type="hidden" name="worker" value="{{ worker.id }}">
+                                        <!-- Role Dropdown -->
+                                        <select name="role" class="form-control mb-2" required>
+                                            <option value="">Select Role</option>
+                                            {% for key, value in role_choices %}
+                                                <option value="{{ key }}">{{ value }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Assign {{ worker.get_full_name }} to this shift?');">
+                                            <i class="fas fa-user-plus"></i> Assign
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% elif can_assign_workers %}
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">Available Workers</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">No available workers to assign.</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Include the Shift Completion Modal -->
+    {% if can_edit and not shift.is_completed and shift.is_active %}
+        {% include 'shifts/shift_complete_modal.html' %}
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Include SignaturePad -->
+<!-- Include necessary JS libraries -->
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@2.3.2/dist/signature_pad.min.js"></script>
 
 <!-- Include the Shift Completion Modal JavaScript -->
