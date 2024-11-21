@@ -8,7 +8,6 @@ from django.dispatch import receiver
 from django.urls import reverse
 from PIL import Image, ImageOps
 from .models import Agency, Profile
-from core.utils import send_notification
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +25,6 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
     else:
         instance.profile.save()
         logger.info(f"Profile updated for user {instance.username}.")
-
-    # Send notification via email
-    subject = "Profile Update Notification"
-    message = "Your profile has been updated successfully."
-    url = reverse("accounts:profile")  # Now reverse is defined
-    send_notification(instance.id, message, subject=subject, url=url)
 
 
 @receiver(post_save, sender=Profile)
