@@ -12,7 +12,6 @@ from django.utils import timezone
 from encrypted_model_fields.fields import EncryptedCharField
 
 from core.constants import AGENCY_TYPE_CHOICES, ROLE_CHOICES
-from core.models import AddressModel
 from core.utils import generate_unique_code, create_unique_filename
 
 logger = logging.getLogger(__name__)
@@ -26,10 +25,9 @@ class User(AbstractUser):
         return self.username
 
 
-class Agency(AddressModel):
+class Agency(models.Model):
     """
     Represents an agency managing multiple shifts.
-    Inherits address fields from AddressModel.
     """
 
     name = models.CharField(max_length=255, unique=True)
@@ -52,6 +50,16 @@ class Agency(AddressModel):
     )
     stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
 
+    # Address Fields
+    address_line1 = models.CharField(max_length=255, blank=True, null=True)
+    address_line2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    county = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, default="UK", blank=True, null=True)
+    postcode = models.CharField(max_length=20, blank=True, null=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
     class Meta:
         verbose_name_plural = "Agencies"
 
@@ -73,15 +81,14 @@ class Agency(AddressModel):
         Checks if the agency's subscription is active.
         """
         if hasattr(self, 'subscription') and self.subscription:
-            return self.subscription.is_active
+            return self.subscription.is_active and self.subscription.current_period_end > timezone.now()
         else:
             return False
 
 
-class Profile(AddressModel):
+class Profile(models.Model):
     """
     Represents a user's profile with additional information.
-    Inherits address fields from AddressModel.
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
@@ -96,6 +103,16 @@ class Profile(AddressModel):
     )  # To store hashed codes
     monthly_view_count = models.PositiveIntegerField(default=0)
     view_count_reset_date = models.DateField(null=True, blank=True)
+
+    # Address Fields
+    address_line1 = models.CharField(max_length=255, blank=True, null=True)
+    address_line2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    county = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, default="UK", blank=True, null=True)
+    postcode = models.CharField(max_length=20, blank=True, null=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Profile"
@@ -160,27 +177,8 @@ class Profile(AddressModel):
                 "staff_performance",
                 "custom_integrations",
             ]
-        if (
-            self.agency
-            and hasattr(self.agency, 'subscription')
-            and self.agency.subscription
-            and self.agency.subscription.plan
-        ):
-            features = []
-            plan = self.agency.subscription.plan
-            if plan.notifications_enabled:
-                features.append("notifications_enabled")
-            if plan.advanced_reporting:
-                features.append("advanced_reporting")
-            if plan.priority_support:
-                features.append("priority_support")
-            if plan.shift_management:
-                features.append("shift_management")
-            if plan.staff_performance:
-                features.append("staff_performance")
-            if plan.custom_integrations:
-                features.append("custom_integrations")
-            return features
+        if self.is_agency_subscription_active and self.agency.subscription.plan:
+            return self.agency.subscription.plan.get_features_list()
         return []
 
     def has_feature(self, feature_name):
