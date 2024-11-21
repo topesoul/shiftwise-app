@@ -128,11 +128,30 @@ class Plan(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_billing_cycle_display()})"
 
+    def clean(self):
+        """
+        Custom validation to ensure stripe_price_id is set for active plans.
+        """
+        if self.is_active and not self.stripe_price_id:
+            raise ValidationError("Active plans must have a Stripe Price ID.")
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
 
 class Subscription(models.Model):
     """
     Represents an agency's subscription.
     """
+
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+        ('canceled', 'Canceled'),
+        ('past_due', 'Past Due'),
+        ('unpaid', 'Unpaid'),
+    ]
 
     agency = models.OneToOneField(
         "accounts.Agency",
@@ -145,19 +164,22 @@ class Subscription(models.Model):
         on_delete=models.PROTECT,
         related_name="subscriptions",
         help_text="Subscription plan chosen by the agency.",
-        null=False,
-        blank=False,
     )
     stripe_subscription_id = models.CharField(
         max_length=255,
-        blank=True,
         null=True,
-        unique=True,
+        blank=True,
         help_text="Stripe Subscription ID associated with this subscription.",
     )
     is_active = models.BooleanField(
         default=False,
         help_text="Indicates whether the subscription is currently active.",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='inactive',
+        help_text="Current status of the subscription.",
     )
     current_period_start = models.DateTimeField(
         null=True,
@@ -165,8 +187,8 @@ class Subscription(models.Model):
         help_text="Start date of the current billing period.",
     )
     current_period_end = models.DateTimeField(
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
         help_text="End date of the current billing period.",
     )
     created_at = models.DateTimeField(
@@ -185,6 +207,7 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = "Subscription"
         verbose_name_plural = "Subscriptions"
+        unique_together = [('stripe_subscription_id', 'agency')]
 
     def __str__(self):
         plan_name = self.plan.name if self.plan else "No Plan"
@@ -222,13 +245,19 @@ class Subscription(models.Model):
     def clean(self):
         """
         Custom validation to ensure subscription aligns with plan's constraints.
+        Enforce uniqueness of stripe_subscription_id when it's not null.
         """
         if not self.plan:
             raise ValidationError("Subscription must be associated with a Plan.")
         if not self.agency:
             raise ValidationError("Subscription must be associated with an Agency.")
+        # Enforce that stripe_subscription_id is unique when provided
+        if self.stripe_subscription_id:
+            if Subscription.objects.filter(
+                stripe_subscription_id=self.stripe_subscription_id
+            ).exclude(pk=self.pk).exists():
+                raise ValidationError("Stripe Subscription ID must be unique.")
         super().clean()
 
     def save(self, *args, **kwargs):
-        self.clean()
         super().save(*args, **kwargs)
