@@ -66,6 +66,23 @@ class Shift(TimestampedModel):
         (STATUS_CLOSED, "Closed"),
     ]
 
+    # Shift Role Choices
+    ROLE_CHOICES = (
+        ("Staff", "Staff"),
+        ("Manager", "Manager"),
+        ("Admin", "Admin"),
+        ("Care Worker", "Healthcare Worker"),
+        ("Kitchen Staff", "Kitchen"),
+        ("Front Office Staff", "Front Office"),
+        ("Receptionist", "Receptionist"),
+        ("Chef", "Chef"),
+        ("Waiter", "Waiter"),
+        ("Dishwasher", "Dishwasher"),
+        ("Laundry Staff", "Laundry"),
+        ("Housekeeping Staff", "Housekeeping"),
+        ("Other", "Other"),
+    )
+
     name = models.CharField(max_length=255)
     shift_code = models.CharField(
         max_length=100, unique=True, db_index=True, blank=True, null=True
@@ -93,6 +110,12 @@ class Shift(TimestampedModel):
     longitude = models.FloatField(null=True, blank=True)
     shift_type = models.CharField(
         max_length=50, choices=SHIFT_TYPE_CHOICES, default=REGULAR
+    )
+    shift_role = models.CharField(
+        max_length=100,
+        choices=ROLE_CHOICES,
+        default="Staff",
+        help_text="Select the role required for this shift.",
     )
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2)
     notes = models.TextField(blank=True, null=True)
@@ -268,7 +291,9 @@ class ShiftAssignment(TimestampedModel):
     )
     assigned_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(max_length=100, default="Staff", choices=ROLE_CHOICES)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=CONFIRMED)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=CONFIRMED
+    )
     attendance_status = models.CharField(
         max_length=20,
         choices=ATTENDANCE_STATUS_CHOICES,
@@ -306,7 +331,7 @@ class ShiftAssignment(TimestampedModel):
         super().clean()
 
         # Ensure worker's profile has an agency
-        if not self.worker.profile.agency:
+        if not hasattr(self.worker, 'profile') or not self.worker.profile.agency:
             raise ValidationError(
                 "Worker must be associated with an agency to be assigned to a shift."
             )
@@ -319,7 +344,7 @@ class ShiftAssignment(TimestampedModel):
 
         # Prevent assignment if shift is full and status is CONFIRMED
         if self.shift.is_full and self.status == self.CONFIRMED:
-            raise ValidationError("This shift is already fully booked.")
+            raise ValidationError("Cannot confirm assignment. The shift is already full.")
 
     def save(self, *args, **kwargs):
         """
