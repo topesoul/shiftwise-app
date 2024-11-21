@@ -104,33 +104,46 @@ def user_roles_and_subscriptions(request):
             dashboard_url = reverse("accounts:profile")
 
         try:
-            profile = user.profile
-            agency = profile.agency
-            if agency and hasattr(agency, 'subscription'):
-                subscription = agency.subscription
-                if subscription.is_active and subscription.current_period_end > timezone.now():
-                    has_active_subscription = True
-                    current_plan = subscription.plan
-                    # Collect features
-                    subscription_features = profile.subscription_features
-                    # Update can_manage_shifts based on features
-                    can_manage_shifts = profile.has_feature("shift_management") or is_superuser or is_agency_manager
-
-                    # Implement Usage Limit Check based on number of shifts
-                    current_shift_count = agency.shifts.count()
-                    if subscription.plan.shift_management and subscription.plan.shift_limit:
-                        if current_shift_count >= subscription.plan.shift_limit:
-                            needs_upgrade = True
-                            logger.debug(
-                                f"Agency '{agency.name}' has reached the shift limit ({current_shift_count}/{subscription.plan.shift_limit}). Upgrade needed."
+            if hasattr(user, 'profile') and user.profile:
+                profile = user.profile
+                agency = profile.agency or getattr(user, 'owned_agency', None)
+                if agency:
+                    profile.agency = agency
+                    profile.save()
+                    if hasattr(agency, 'subscription'):
+                        subscription = agency.subscription
+                        if subscription.is_active and subscription.current_period_end > timezone.now():
+                            has_active_subscription = True
+                            current_plan = subscription.plan
+                            # Collect features
+                            subscription_features = profile.subscription_features
+                            # Update can_manage_shifts based on features
+                            can_manage_shifts = (
+                                profile.has_feature("shift_management") 
+                                or is_superuser 
+                                or is_agency_manager
                             )
+
+                            # Implement Usage Limit Check based on number of shifts
+                            current_shift_count = agency.shifts.count()
+                            if subscription.plan.shift_management and subscription.plan.shift_limit:
+                                if current_shift_count >= subscription.plan.shift_limit:
+                                    needs_upgrade = True
+                                    logger.debug(
+                                        f"Agency '{agency.name}' has reached the shift limit ({current_shift_count}/{subscription.plan.shift_limit}). Upgrade needed."
+                                    )
             else:
-                logger.warning(
-                    f"User {user.username} does not have an associated agency or subscription."
-                )
+                if is_superuser:
+                    # Superusers may not have profiles; skip agency-related logic
+                    logger.info(f"Superuser {user.username} does not have a profile or agency.")
+                else:
+                    logger.warning(
+                        f"User {user.username} does not have an associated agency or profile."
+                    )
         except ObjectDoesNotExist:
             # User does not have a profile or agency
-            logger.warning(f"User {user.username} does not have a profile or agency.")
+            if not is_superuser:
+                logger.warning(f"User {user.username} does not have a profile or agency.")
         except Exception as e:
             logger.exception(f"Error in context processor: {e}")
 
