@@ -217,7 +217,7 @@ else:
     # Production: Use SMTP Email Backend (SendGrid)
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.sendgrid.net"
-    EMAIL_HOST_USER = "apikey"  # This is the literal string 'apikey' for SendGrid
+    EMAIL_HOST_USER = "apikey"  # This is the string 'apikey' for SendGrid
     EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
