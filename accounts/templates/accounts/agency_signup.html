@@ -1,34 +1,51 @@
 <!-- /workspace/shiftwise/accounts/templates/accounts/agency_signup.html -->
+
 {% extends 'base.html' %}
-
-{% load static %}
-{% load custom_filters %}
-{% load custom_tags %}
 {% load crispy_forms_tags %}
+{% load static %}
 
-{% block title %}Agency Signup{% endblock %}
+{% block title %}Agency Sign-Up | ShiftWise{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2 class="mb-4">Sign Up Your Agency</h2>
-    <form method="post" enctype="multipart/form-data">
+<div class="container my-5">
+    <h2>Agency Sign-Up</h2>
+    <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
-        {{ form.non_field_errors }}
 
-        <!-- Render Form Fields using Crispy Forms -->
+        <!-- Display non-field errors -->
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <!-- Display field-specific errors above the form -->
+        {% for field in form %}
+            {% if field.errors %}
+                <div class="alert alert-danger">
+                    <strong>{{ field.label }}:</strong>
+                    {% for error in field.errors %}
+                        {{ error }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- Render the form using crispy_forms -->
         {{ form|crispy }}
 
         <!-- Submit and Cancel Buttons -->
-        <button type="submit" class="btn btn-primary">Sign Up</button>
-        <a href="{% url 'home:home' %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary mt-3">Register Agency</button>
+        <a href="{% url 'home:home' %}" class="btn btn-secondary mt-3">Cancel</a>
     </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Include the Google Maps JavaScript API with Places and Geocoding Libraries -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places"></script>
+    <!-- Include the Address Autocomplete JavaScript -->
+    <script src="{% static 'js/address_autocomplete.js' %}"></script>
 
-<!-- Include the Address Autocomplete JavaScript -->
-<script src="{% static 'js/address_autocomplete.js' %}"></script>
+    <!-- Google Maps JavaScript API with Places and Geocoding Libraries -->
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places" async defer></script>
 {% endblock %}
+
