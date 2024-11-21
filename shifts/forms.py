@@ -8,14 +8,15 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-
+from core.forms import AddressFormMixin
 from accounts.models import Agency
 from shifts.models import Shift, StaffPerformance, ShiftAssignment
+from shifts.validators import validate_image
 
 User = get_user_model()
 
 
-class ShiftForm(forms.ModelForm):
+class ShiftForm(AddressFormMixin, forms.ModelForm):
     """
     Form for creating and updating Shift instances.
     Integrates Google Places Autocomplete for address fields.
@@ -33,22 +34,22 @@ class ShiftForm(forms.ModelForm):
             "end_date",
             "is_overnight",
             "capacity",
-            "address_line1",
-            "address_line2",
-            "city",
-            "county",
-            "postcode",
-            "country",
-            "latitude",
-            "longitude",
             "shift_type",
             "hourly_rate",
             "notes",
             "agency",
             "is_active",
+            "address_line1",
+            "address_line2",
+            "city",
+            "county",
+            "country",
+            "postcode",
+            "latitude",
+            "longitude",
         ]
         widgets = {
-            # Date and Time Fields with appropriate widgets
+            # Date and Time Fields widgets
             "shift_date": forms.DateInput(
                 attrs={
                     "type": "date",
@@ -81,52 +82,24 @@ class ShiftForm(forms.ModelForm):
                     "id": "id_end_time",
                 }
             ),
-            # Address Fields with unique IDs
-            "address_line1": forms.TextInput(
-                attrs={
-                    "class": "form-control address-autocomplete",
-                    "placeholder": "Enter address line 1",
-                    "id": "id_shift_address_line1",
-                }
-            ),
-            "address_line2": forms.TextInput(
+            "shift_type": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter address line 2",
-                    "id": "id_shift_address_line2",
+                    "id": "id_shift_type",
                 }
             ),
-            "city": forms.TextInput(
+            "agency": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter city",
-                    "id": "id_shift_city",
+                    "id": "id_agency",
                 }
             ),
-            "county": forms.TextInput(
+            "is_active": forms.CheckboxInput(
                 attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter county",
-                    "id": "id_shift_county",
+                    "class": "form-check-input",
+                    "id": "id_is_active",
                 }
             ),
-            "postcode": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter postcode",
-                    "id": "id_shift_postcode",
-                }
-            ),
-            "country": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter country",
-                    "id": "id_shift_country",
-                }
-            ),
-            # Hidden Fields with unique IDs
-            "latitude": forms.HiddenInput(attrs={"id": "id_shift_latitude"}),
-            "longitude": forms.HiddenInput(attrs={"id": "id_shift_longitude"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -175,8 +148,8 @@ class ShiftForm(forms.ModelForm):
 
         # Conditional display and requirement of 'agency' and 'is_active' fields
         if user and user.is_superuser:
-            self.fields["agency"].required = True
-            self.fields["is_active"].required = True
+            self.fields["agency"].required = False
+            self.fields["is_active"].required = False
         else:
             self.fields["agency"].widget = forms.HiddenInput()
             self.fields["agency"].required = False
@@ -235,7 +208,8 @@ class ShiftForm(forms.ModelForm):
         """
         postcode = self.cleaned_data.get("postcode", "").strip()
         if not postcode:
-            raise ValidationError("Postcode is required.")
+            # Postcode is optional; no error raised
+            return postcode
         # UK postcode regex
         uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
         if not re.match(uk_postcode_regex, postcode.upper()):
@@ -248,7 +222,7 @@ class ShiftForm(forms.ModelForm):
         """
         latitude = self.cleaned_data.get("latitude")
         if latitude is None:
-            raise ValidationError("Latitude is required.")
+            return latitude  # Make it optional
         try:
             latitude = float(latitude)
         except ValueError:
@@ -263,7 +237,7 @@ class ShiftForm(forms.ModelForm):
         """
         longitude = self.cleaned_data.get("longitude")
         if longitude is None:
-            raise ValidationError("Longitude is required.")
+            return longitude  # Make it optional
         try:
             longitude = float(longitude)
         except ValueError:
@@ -277,6 +251,9 @@ class ShiftForm(forms.ModelForm):
         Overrides the save method to rely solely on client-side address and coordinate data.
         """
         shift = super().save(commit=False)
+        if not self.shift_code:
+            shift.shift_code = self.generate_shift_code()
+        shift.clean(skip_date_validation=False)
         if commit:
             shift.save()
             self.save_m2m()
@@ -335,16 +312,18 @@ class ShiftCompletionForm(forms.Form):
     Includes attendance status for supervisors or managers to set.
     """
 
-    signature = forms.CharField(widget=forms.HiddenInput())
+    signature = forms.CharField(widget=forms.HiddenInput(), required=False)
     latitude = forms.DecimalField(
         widget=forms.HiddenInput(attrs={"id": "id_shift_completion_latitude"}),
         max_digits=9,
         decimal_places=6,
+        required=False,
     )
     longitude = forms.DecimalField(
         widget=forms.HiddenInput(attrs={"id": "id_shift_completion_longitude"}),
         max_digits=9,
         decimal_places=6,
+        required=False,
     )
     attendance_status = forms.ChoiceField(
         choices=ShiftAssignment.ATTENDANCE_STATUS_CHOICES,
@@ -353,6 +332,26 @@ class ShiftCompletionForm(forms.Form):
         help_text="Select attendance status after completing the shift.",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize FormHelper for crispy_forms
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            "signature",
+            "latitude",
+            "longitude",
+            Row(
+                Column("attendance_status", css_class="form-group col-md-12 mb-0"),
+            ),
+            Row(
+                Column(
+                    forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                    css_class="form-group col-md-12 mb-0",
+                ),
+            )
+        )
+
     def clean(self):
         cleaned_data = super().clean()
         signature = cleaned_data.get("signature")
@@ -360,16 +359,21 @@ class ShiftCompletionForm(forms.Form):
         longitude = cleaned_data.get("longitude")
         attendance_status = cleaned_data.get("attendance_status")
 
-        if not signature:
-            raise forms.ValidationError("Signature is required.")
-        if latitude is None or longitude is None:
-            raise forms.ValidationError("Location data is required.")
-        if (
-            attendance_status
-            and attendance_status
-            not in dict(ShiftAssignment.ATTENDANCE_STATUS_CHOICES).keys()
-        ):
-            raise forms.ValidationError("Invalid attendance status selected.")
+        # If signature is provided, validate its format
+        if signature:
+            try:
+                format, imgstr = signature.split(";base64,")
+                ext = format.split("/")[-1]
+            except Exception as e:
+                raise ValidationError("Invalid signature data.")
+
+        # If latitude and longitude are provided, validate their ranges
+        if (latitude is not None and longitude is None) or (latitude is None and longitude is not None):
+            raise ValidationError("Both latitude and longitude must be provided together.")
+
+        # Validate attendance_status if provided
+        if attendance_status and attendance_status not in dict(ShiftAssignment.ATTENDANCE_STATUS_CHOICES).keys():
+            raise ValidationError("Invalid attendance status selected.")
 
         return cleaned_data
 
@@ -399,28 +403,53 @@ class StaffPerformanceForm(forms.ModelForm):
 
 
 class AssignWorkerForm(forms.Form):
+    """
+    Form for assigning a worker to a shift.
+    Includes a hidden 'worker' field and a 'role' dropdown.
+    """
+
     worker = forms.ModelChoiceField(
         queryset=User.objects.none(),
-        label="Select Worker",
+        widget=forms.HiddenInput(),
+        required=True,
+    )
+    role = forms.ChoiceField(
+        choices=ShiftAssignment.ROLE_CHOICES,
+        required=True,
         widget=forms.Select(attrs={"class": "form-control"}),
+        label="Role",
     )
 
     def __init__(self, *args, **kwargs):
         shift = kwargs.pop("shift", None)
+        user = kwargs.pop("user", None)
+        worker = kwargs.pop("worker", None)
         super().__init__(*args, **kwargs)
-        if shift:
-            # Filter workers to only those in the same agency and active
-            self.fields["worker"].queryset = User.objects.filter(
-                groups__name="Agency Staff",
-                is_active=True,
-                profile__agency=shift.agency,
-            )
-        else:
-            # Fallback: list all active agency staff
-            self.fields["worker"].queryset = User.objects.filter(
-                groups__name="Agency Staff", is_active=True
-            )
+        if shift and user and worker:
+            # Set the queryset to only include the specific worker
+            self.fields["worker"].queryset = User.objects.filter(pk=worker.pk)
+            self.fields["worker"].initial = worker.pk
+
+            # Additional filtering based on user permissions
+            if user.is_superuser:
+                self.fields["worker"].queryset = User.objects.filter(
+                    groups__name="Agency Staff",
+                    is_active=True,
+                ).exclude(shift_assignments__shift=shift)
+            elif user.groups.filter(name="Agency Managers").exists():
+                self.fields["worker"].queryset = User.objects.filter(
+                    profile__agency=shift.agency,
+                    groups__name="Agency Staff",
+                    is_active=True,
+                ).exclude(shift_assignments__shift=shift)
+            else:
+                self.fields["worker"].queryset = User.objects.none()
 
 
 class UnassignWorkerForm(forms.Form):
+    """
+    Form for unassigning a worker from a shift.
+    Includes a hidden 'worker_id' field.
+    """
+
     worker_id = forms.IntegerField(widget=forms.HiddenInput())
