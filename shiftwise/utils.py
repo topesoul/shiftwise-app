@@ -33,14 +33,6 @@ def haversine_distance(lat1, lon1, lat2, lon2, unit="miles"):
     return c * r
 
 
-def predict_staffing_needs(date):
-    """
-    Function for predicting staffing needs.
-    Implement integrate a machine learning model here.
-    """
-    return 5
-
-
 def generate_shift_code():
     """
     Generates a unique shift code using UUID4.
