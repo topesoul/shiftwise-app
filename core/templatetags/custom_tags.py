@@ -2,6 +2,7 @@
 
 from django import template
 from subscriptions.models import Plan
+from geopy.distance import geodesic
 
 register = template.Library()
 
