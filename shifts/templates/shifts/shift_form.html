@@ -1,17 +1,16 @@
 <!-- /workspace/shiftwise/shifts/templates/shifts/shift_form.html -->
+
 {% extends 'base.html' %}
 
-{% load static %}
-{% load custom_filters %}
-{% load custom_tags %}
 {% load crispy_forms_tags %}
+{% load static %}
 
-{% block title %}{{ form_title }}{% endblock %}
+{% block title %}{{ form_title }} | ShiftWise{% endblock %}
 
 {% block content %}
 <div class="container my-5">
     <h2>{{ form_title }}</h2>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         
         <!-- Display non-field errors -->
@@ -36,16 +35,17 @@
         <!-- Render the form using crispy_forms -->
         {{ form|crispy }}
 
-        <!-- Submit Button -->
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <!-- Submit and Cancel Buttons -->
+        <button type="submit" class="btn btn-primary mt-3">Submit</button>
+        <a href="{% url 'shifts:shift_list' %}" class="btn btn-secondary mt-3">Cancel</a>
     </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Google Maps JavaScript API with Places and Geocoding Libraries -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
+    <!-- Include the Address Autocomplete JavaScript first -->
+    <script src="{% static 'js/address_autocomplete.js' %}"></script>
 
-<!-- Include the Address Autocomplete JavaScript -->
-<script src="{% static 'js/address_autocomplete.js' %}"></script>
+    <!-- Google Maps JavaScript API with Places and Geocoding Libraries -->
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock %}
