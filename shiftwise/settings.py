@@ -33,12 +33,8 @@ if not FIELD_ENCRYPTION_KEY:
 AUTH_USER_MODEL = "accounts.User"
 
 INSTALLED_APPS = [
-    # Third-party apps
-    "crispy_forms",
-    "crispy_bootstrap4",
-    "django_extensions",
-    "django_filters",
-    # Django-allauth apps
+    # Django-allauth apps and custom account app
+    "accounts.apps.AccountsConfig",
     "django.contrib.sites",
     "allauth",
     "allauth.account",
@@ -49,7 +45,6 @@ INSTALLED_APPS = [
     "allauth.usersessions",
     # Custom apps
     "core",
-    "accounts.apps.AccountsConfig",
     "subscriptions",
     "shifts",
     "home",
@@ -62,6 +57,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Third-party apps
+    "crispy_forms",
+    "crispy_bootstrap4",
+    "django_extensions",
+    "django_filters",
     # Additional apps
     "django.contrib.humanize",
 ]
