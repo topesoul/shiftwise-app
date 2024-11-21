@@ -55,7 +55,7 @@ from .forms import (
     UserUpdateForm,
     MFAForm,
 )
-from .models import Agency, Invitation, Profile
+from .models import User, Agency, Profile
 
 User = get_user_model()
 
@@ -204,24 +204,34 @@ class SignupSelectionView(TemplateView):
 
 class AgencySignUpView(CreateView):
     """Handles agency signup."""
-    
+
     model = User
     form_class = AgencySignUpForm
     template_name = "accounts/agency_signup.html"
     success_url = reverse_lazy("accounts:profile")
-    
+
     def form_valid(self, form):
         user = form.save()
-        # Assign user to Agency Owners group
-        agency_owners_group, _ = Group.objects.get_or_create(name="Agency Owners")
-        user.groups.add(agency_owners_group)
-        logger.info(f"User {user.username} assigned to 'Agency Owners' group.")
-    
-        # Log the user in
-        login(self.request, user)
-        messages.success(self.request, "Your agency account has been created.")
-        logger.info(f"Agency account created for user {user.username}.")
-        return redirect("accounts:profile")
+
+        # Authenticate the user to set the backend attribute
+        username = user.username
+        password = form.cleaned_data.get("password1")
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            # Assign user to Agency Owners group
+            agency_owners_group, _ = Group.objects.get_or_create(name="Agency Owners")
+            user.groups.add(agency_owners_group)
+            logger.info(f"User {user.username} assigned to 'Agency Owners' group.")
+
+            # Log the user in
+            login(self.request, user)
+            messages.success(self.request, "Your agency account has been created.")
+            logger.info(f"Agency account created for user {user.username}.")
+            return redirect("accounts:profile")
+        else:
+            messages.error(self.request, "Authentication failed. Please try again.")
+            logger.error(f"Authentication failed for user {username} during signup.")
+            return self.form_invalid(form)
 
 
 # ---------------------------
@@ -549,7 +559,7 @@ class InviteStaffView(
                 )
                 return redirect("accounts:profile")
         else:
-            # Superusers can optionally assign an agency
+            # Superusers can assign an agency
             invitation.agency = form.cleaned_data.get("agency")
             if invitation.agency:
                 logger.debug(
@@ -575,7 +585,7 @@ class InviteStaffView(
             "invite_link": invite_link,
         }
         subject = "ShiftWise Staff Invitation"
-        message = render_to_string("accounts/email/invite_staff_email.txt", context)
+        message = render_to_string("account/emails/invite_staff_email.txt", context)
     
         try:
             send_mail(
@@ -633,7 +643,7 @@ class AcceptInvitationView(View):
             user.groups.add(agency_staff_group)
             logger.info(f"User {user.username} assigned to 'Agency Staff' group.")
     
-            # Link the user to the agency associated with the invitation if applicable
+            # Link the user to the agency associated with the invitation
             if invitation.agency:
                 user.profile.agency = invitation.agency
                 user.profile.save()
