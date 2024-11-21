@@ -3,14 +3,11 @@
 import logging
 
 from django.contrib import messages
-from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.contrib.messages import get_messages
 from django.shortcuts import redirect
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
-User = get_user_model()
 
 
 class SuperuserRequiredMixin(UserPassesTestMixin):
@@ -43,12 +40,16 @@ class AgencyOwnerRequiredMixin(UserPassesTestMixin):
 
 class AgencyManagerRequiredMixin(UserPassesTestMixin):
     """
-    Mixin to ensure that the user is an agency manager or superuser.
+    Mixin to ensure that the user is an agency manager, agency owner, or superuser.
     """
 
     def test_func(self):
         user = self.request.user
-        return user.is_superuser or user.groups.filter(name="Agency Managers").exists()
+        return (
+            user.is_superuser
+            or user.groups.filter(name="Agency Owners").exists()
+            or user.groups.filter(name="Agency Managers").exists()
+        )
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access this page.")
@@ -60,12 +61,15 @@ class AgencyManagerRequiredMixin(UserPassesTestMixin):
 
 class AgencyStaffRequiredMixin(UserPassesTestMixin):
     """
-    Mixin to ensure that the user is agency staff or a superuser.
+    Mixin to ensure that the user is agency staff, agency manager, agency owner, or superuser.
     """
 
     def test_func(self):
         user = self.request.user
-        return user.is_superuser or user.groups.filter(name="Agency Staff").exists()
+        return (
+            user.is_superuser
+            or user.groups.filter(name__in=["Agency Owners", "Agency Managers", "Agency Staff"]).exists()
+        )
 
     def handle_no_permission(self):
         messages.error(
@@ -116,8 +120,7 @@ class SubscriptionRequiredMixin(UserPassesTestMixin):
     def handle_no_permission(self):
         user = self.request.user
         # Clear existing messages
-        storage = get_messages(self.request)
-        list(storage)  # Force evaluation to clear messages
+        messages.get_messages(self.request)
         if not user.is_authenticated:
             messages.error(self.request, "You must be logged in to access this page.")
             return redirect("accounts:login_view")
