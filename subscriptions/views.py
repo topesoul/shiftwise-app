@@ -1,16 +1,16 @@
 # /workspace/shiftwise/subscriptions/views.py
 
 import logging
-from decimal import Decimal
-from collections import defaultdict  # Ensure defaultdict is imported
+from collections import defaultdict
 
 import stripe
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -64,7 +64,11 @@ class SubscriptionHomeView(LoginRequiredMixin, TemplateView):
             # Get current subscription
             try:
                 subscription = agency.subscription
-                if subscription.is_active and subscription.current_period_end > timezone.now():
+                if (
+                    subscription.is_active
+                    and subscription.current_period_end
+                    and subscription.current_period_end > timezone.now()
+                ):
                     context["subscription"] = subscription
                 else:
                     context["subscription"] = None
@@ -117,8 +121,6 @@ class SubscriptionHomeView(LoginRequiredMixin, TemplateView):
             logger.debug(f"Available Plans: {[plan['name'] for plan in available_plans]}")
 
             context["available_plans"] = available_plans
-
-            # Pass all features for display in templates via context processor
 
         return context
 
@@ -251,8 +253,10 @@ class StripeWebhookView(View):
         endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
 
         try:
-            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-            logger.info(f"Stripe webhook received: {event.type}")
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, endpoint_secret
+            )
+            logger.info(f"Stripe webhook received: {event['type']}")
         except ValueError as e:
             # Invalid payload
             logger.exception(f"Invalid payload: {e}")
@@ -263,20 +267,20 @@ class StripeWebhookView(View):
             return HttpResponse(status=400)
 
         # Handle the event
-        if event.type == "checkout.session.completed":
-            session = event.data.object
+        if event["type"] == "checkout.session.completed":
+            session = event["data"]["object"]
             self.handle_checkout_session_completed(session)
-        elif event.type == "invoice.paid":
-            invoice = event.data.object
+        elif event["type"] == "invoice.paid":
+            invoice = event["data"]["object"]
             self.handle_invoice_paid(invoice)
-        elif event.type == "customer.subscription.deleted":
-            subscription = event.data.object
+        elif event["type"] == "customer.subscription.deleted":
+            subscription = event["data"]["object"]
             self.handle_subscription_deleted(subscription)
-        elif event.type == "customer.subscription.updated":
-            subscription = event.data.object
+        elif event["type"] == "customer.subscription.updated":
+            subscription = event["data"]["object"]
             self.handle_subscription_updated(subscription)
         else:
-            logger.info(f"Unhandled event type: {event.type}")
+            logger.info(f"Unhandled event type: {event['type']}")
 
         return HttpResponse(status=200)
 
@@ -286,6 +290,8 @@ class StripeWebhookView(View):
         """
         customer_id = session.get("customer")
         subscription_id = session.get("subscription")
+
+        logger.debug(f"Handling checkout.session.completed for customer {customer_id}")
 
         try:
             # Retrieve the Stripe Subscription object
@@ -301,45 +307,54 @@ class StripeWebhookView(View):
             agency = Agency.objects.get(stripe_customer_id=customer_id)
             plan = Plan.objects.get(stripe_price_id=plan_id)
 
-            # Update existing subscription or create if it doesn't exist
-            subscription, created = Subscription.objects.get_or_create(
-                agency=agency,
-                defaults={
-                    'plan': plan,
-                    'stripe_subscription_id': subscription_id,
-                    'is_active': True,
-                    'current_period_start': current_period_start,
-                    'current_period_end': current_period_end,
-                },
-            )
-
-            if not created:
+            try:
+                # Try to get the existing subscription
+                subscription = agency.subscription
                 # Update existing subscription
                 subscription.plan = plan
                 subscription.stripe_subscription_id = subscription_id
                 subscription.is_active = True
+                subscription.status = stripe_subscription["status"]
                 subscription.current_period_start = current_period_start
                 subscription.current_period_end = current_period_end
                 subscription.is_expired = False
-                subscription.save()
-                logger.info(f"Subscription updated for agency {agency.name}")
-            else:
-                logger.info(f"Subscription created for agency {agency.name}")
+            except Subscription.DoesNotExist:
+                # Create a new subscription if none exists
+                subscription = Subscription(
+                    agency=agency,
+                    plan=plan,
+                    stripe_subscription_id=subscription_id,
+                    is_active=True,
+                    status=stripe_subscription["status"],
+                    current_period_start=current_period_start,
+                    current_period_end=current_period_end,
+                    is_expired=False,
+                )
+
+            # Perform validation before saving
+            subscription.full_clean()
+            subscription.save()
+            logger.info(f"Subscription updated for agency {agency.name}")
 
         except Agency.DoesNotExist:
             logger.exception(f"Agency with customer ID {customer_id} does not exist.")
+            return HttpResponse(status=400)
         except Plan.DoesNotExist:
             logger.exception(f"Plan with price ID {plan_id} does not exist.")
+            return HttpResponse(status=400)
+        except ValidationError as ve:
+            logger.exception(f"Validation error while updating subscription: {ve}")
+            return HttpResponse(status=400)
         except Exception as e:
             logger.exception(f"Unexpected error while handling checkout session: {e}")
+            return HttpResponse(status=400)
 
     def handle_invoice_paid(self, invoice):
         """
         Handles the invoice.paid event.
         """
-        # Implement logic to handle successful invoice payment
         logger.info(f"Invoice paid: {invoice.id}")
-        # Example: Update subscription status or notify the user
+        # Implement any necessary logic for invoice paid
         pass
 
     def handle_subscription_deleted(self, subscription):
@@ -352,6 +367,7 @@ class StripeWebhookView(View):
                 stripe_subscription_id=stripe_subscription_id
             )
             local_subscription.is_active = False
+            local_subscription.status = 'canceled'
             local_subscription.save()
             logger.info(f"Subscription {stripe_subscription_id} deactivated.")
         except Subscription.DoesNotExist:
@@ -370,9 +386,12 @@ class StripeWebhookView(View):
             )
             # Update subscription details
             local_subscription.is_active = subscription.get("status") == "active"
-            local_subscription.current_period_end = timezone.datetime.fromtimestamp(
-                subscription.get("current_period_end"), tz=timezone.utc
-            )
+            local_subscription.status = subscription.get("status", local_subscription.status)
+            current_period_end = subscription.get("current_period_end")
+            if current_period_end:
+                local_subscription.current_period_end = timezone.datetime.fromtimestamp(
+                    current_period_end, tz=timezone.utc
+                )
             # Update plan if changed
             new_plan_id = subscription["items"]["data"][0]["price"]["id"]
             new_plan = Plan.objects.get(stripe_price_id=new_plan_id)
@@ -387,6 +406,8 @@ class StripeWebhookView(View):
             logger.exception(
                 f"Plan with price ID {subscription['items']['data'][0]['price']['id']} does not exist."
             )
+        except ValidationError as ve:
+            logger.exception(f"Validation error while updating subscription: {ve}")
         except Exception as e:
             logger.exception(f"Unexpected error while handling subscription update: {e}")
 
@@ -413,7 +434,11 @@ class SubscriptionChangeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, Templ
             profile = user.profile
             agency = profile.agency
             subscription = agency.subscription
-            if subscription.is_active and subscription.current_period_end > timezone.now():
+            if (
+                subscription.is_active
+                and subscription.current_period_end
+                and subscription.current_period_end > timezone.now()
+            ):
                 context["current_plan"] = subscription.plan
             else:
                 messages.error(
@@ -588,6 +613,7 @@ class CancelSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, View)
                 ).first()
                 if local_subscription:
                     local_subscription.is_active = False
+                    local_subscription.status = 'canceled'
                     local_subscription.save()
                     logger.info(f"Subscription {subscription.id} deactivated for agency: {agency.name}")
 
@@ -644,7 +670,11 @@ class ManageSubscriptionView(LoginRequiredMixin, AgencyOwnerRequiredMixin, Templ
             # Fetch subscription from local database
             try:
                 subscription = agency.subscription
-                if subscription.is_active and subscription.current_period_end > timezone.now():
+                if (
+                    subscription.is_active
+                    and subscription.current_period_end
+                    and subscription.current_period_end > timezone.now()
+                ):
                     context["subscription"] = subscription
                 else:
                     context["subscription"] = None
