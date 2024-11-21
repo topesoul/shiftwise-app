@@ -24,7 +24,6 @@ User = get_user_model()
 # Initialize the logger
 logger = logging.getLogger(__name__)
 
-
 class AgencyForm(AddressFormMixin, forms.ModelForm):
     """
     Form for creating and updating Agency instances.
@@ -39,49 +38,70 @@ class AgencyForm(AddressFormMixin, forms.ModelForm):
             "email",
             "phone_number",
             "website",
+            # Address fields
             "address_line1",
             "address_line2",
             "city",
             "county",
-            "state",
             "country",
             "postcode",
             "latitude",
             "longitude",
         ]
         widgets = {
-            "name": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter agency name",
-                    "id": "id_name",
-                }
-            ),
-            "agency_type": forms.Select(
-                choices=AGENCY_TYPE_CHOICES,
-                attrs={"class": "form-control", "id": "id_agency_type"},
-            ),
-            "email": forms.EmailInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Agency email",
-                    "id": "id_email",
-                }
-            ),
-            "phone_number": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Phone Number",
-                    "id": "id_phone_number",
-                }
-            ),
-            "website": forms.URLInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Website URL",
-                    "id": "id_website",
-                }
-            ),        
+            "name": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter agency name",
+            }),
+            "agency_type": forms.Select(attrs={
+                "class": "form-control",
+            }),
+            "email": forms.EmailInput(attrs={
+                "class": "form-control",
+                "placeholder": "Agency email",
+            }),
+            "phone_number": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Phone Number",
+            }),
+            "website": forms.URLInput(attrs={
+                "class": "form-control",
+                "placeholder": "Website URL",
+            }),
+            # Address fields
+            "address_line1": forms.TextInput(attrs={
+                "class": "form-control address-autocomplete",
+                "placeholder": "Enter address line 1",
+                "autocomplete": "address-line1",
+            }),
+            "address_line2": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter address line 2",
+                "autocomplete": "address-line2",
+            }),
+            "city": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter city",
+                "autocomplete": "address-level2",
+            }),
+            "county": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter county",
+                "autocomplete": "administrative-area",
+            }),
+            "country": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter country",
+                "readonly": "readonly",
+                "autocomplete": "country-name",
+            }),
+            "postcode": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter postcode",
+                "autocomplete": "postal-code",
+            }),
+            "latitude": forms.HiddenInput(),
+            "longitude": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
@@ -89,9 +109,7 @@ class AgencyForm(AddressFormMixin, forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.layout = Layout(
-            Row(
-                Column("name", css_class="form-group col-md-6 mb-0"),
-            ),
+            "name",
             "agency_type",
             "address_line1",
             "address_line2",
@@ -123,6 +141,245 @@ class AgencyForm(AddressFormMixin, forms.ModelForm):
         if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
             raise ValidationError("A user with this email already exists.")
         return email
+
+class AgencySignUpForm(AddressFormMixin, UserCreationForm):
+    """
+    Form for agency owners to create a new agency account.
+    Collects both User and Agency information.
+    """
+
+    # Agency-specific fields
+    agency_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter agency name",
+        }),
+    )
+    agency_type = forms.ChoiceField(
+        choices=AGENCY_TYPE_CHOICES,
+        widget=forms.Select(attrs={
+            "class": "form-control",
+        }),
+    )
+    agency_email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter agency email",
+        }),
+    )
+    agency_phone_number = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter agency phone number",
+        }),
+    )
+    agency_website = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter agency website URL",
+        }),
+    )
+
+    # Address fields
+    address_line1 = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control address-autocomplete",
+            "placeholder": "Enter address line 1",
+            "autocomplete": "address-line1",
+        })
+    )
+    address_line2 = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter address line 2",
+            "autocomplete": "address-line2",
+        })
+    )
+    city = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter city",
+            "autocomplete": "address-level2",
+        })
+    )
+    county = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter county",
+            "autocomplete": "administrative-area",
+        })
+    )
+    country = forms.CharField(
+        max_length=100,
+        required=False,
+        initial="UK",
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter country",
+            "readonly": "readonly",
+            "autocomplete": "country-name",
+        })
+    )
+    postcode = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter postcode",
+            "autocomplete": "postal-code",
+        })
+    )
+    latitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    longitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            "username",
+            "email",
+            "password1",
+            "password2",
+            "first_name",
+            "last_name",
+        )
+        widgets = {
+            "username": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter username",
+            }),
+            "email": forms.EmailInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter your email",
+            }),
+            "password1": forms.PasswordInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter password",
+            }),
+            "password2": forms.PasswordInput(attrs={
+                "class": "form-control",
+                "placeholder": "Confirm password",
+            }),
+            "first_name": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter your first name",
+            }),
+            "last_name": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter your last name",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(AgencySignUpForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            "username",
+            "email",
+            Row(
+                Column("password1", css_class="form-group col-md-6 mb-0"),
+                Column("password2", css_class="form-group col-md-6 mb-0"),
+            ),
+            Row(
+                Column("first_name", css_class="form-group col-md-6 mb-0"),
+                Column("last_name", css_class="form-group col-md-6 mb-0"),
+            ),
+            "agency_name",
+            "agency_type",
+            "address_line1",
+            "address_line2",
+            Row(
+                Column("city", css_class="form-group col-md-4 mb-0"),
+                Column("county", css_class="form-group col-md-4 mb-0"),
+                Column("postcode", css_class="form-group col-md-4 mb-0"),
+            ),
+            "country",
+            "agency_email",
+            "agency_phone_number",
+            "agency_website",
+            # Hidden fields
+            Field("latitude"),
+            Field("longitude"),
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+
+        if password1 and password2 and password1 != password2:
+            self.add_error("password2", "Passwords do not match.")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        """
+        Saves the User and Agency instances.
+        """
+        # Save User
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"].strip().lower()
+        user.role = "agency_owner"
+
+        if commit:
+            user.save()
+            # Assign user to 'Agency Owners' group
+            assign_user_to_group(user, "Agency Owners")
+
+            # Create Agency
+            agency = Agency.objects.create(
+                name=self.cleaned_data["agency_name"],
+                agency_type=self.cleaned_data["agency_type"],
+                postcode=self.cleaned_data.get("postcode"),
+                address_line1=self.cleaned_data.get("address_line1"),
+                address_line2=self.cleaned_data.get("address_line2"),
+                city=self.cleaned_data.get("city"),
+                county=self.cleaned_data.get("county"),
+                country=self.cleaned_data.get("country") or "UK",
+                email=self.cleaned_data["agency_email"],
+                phone_number=self.cleaned_data.get("agency_phone_number"),
+                website=self.cleaned_data.get("agency_website"),
+                latitude=self.cleaned_data.get("latitude"),
+                longitude=self.cleaned_data.get("longitude"),
+                owner=user,
+            )
+
+            # Update Profile
+            profile = Profile.objects.get(user=user)
+            profile.agency = agency
+            profile.address_line1 = self.cleaned_data.get("address_line1")
+            profile.address_line2 = self.cleaned_data.get("address_line2")
+            profile.city = self.cleaned_data.get("city")
+            profile.county = self.cleaned_data.get("county")
+            profile.country = self.cleaned_data.get("country") or "UK"
+            profile.postcode = self.cleaned_data.get("postcode")
+            profile.latitude = self.cleaned_data.get("latitude")
+            profile.longitude = self.cleaned_data.get("longitude")
+            profile.save()
+
+            # Log the creation
+            logger.info(f"New agency owner created: {user.username}, Agency: {agency.name}")
+
+        return user
 
 
 class SignUpForm(AddressFormMixin, UserCreationForm):
@@ -166,6 +423,72 @@ class SignUpForm(AddressFormMixin, UserCreationForm):
         ),
     )
 
+    # Address fields
+    address_line1 = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control address-autocomplete",
+            "placeholder": "Enter address line 1",
+            "autocomplete": "address-line1",
+        })
+    )
+    address_line2 = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter address line 2",
+            "autocomplete": "address-line2",
+        })
+    )
+    city = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter city",
+            "autocomplete": "address-level2",
+        })
+    )
+    county = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter county",
+            "autocomplete": "administrative-area",
+        })
+    )
+    country = forms.CharField(
+        max_length=100,
+        required=False,
+        initial="UK",
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter country",
+            "readonly": "readonly",
+            "autocomplete": "country-name",
+        })
+    )
+    postcode = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter postcode",
+            "autocomplete": "postal-code",
+        })
+    )
+    latitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    longitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+
     class Meta:
         model = User
         fields = (
@@ -183,7 +506,6 @@ class SignUpForm(AddressFormMixin, UserCreationForm):
                     "placeholder": "Enter username",
                 }
             ),
-            # Hidden fields for latitude and longitude are already handled by AddressFormMixin
         }
 
     def __init__(self, *args, **kwargs):
@@ -260,6 +582,12 @@ class SignUpForm(AddressFormMixin, UserCreationForm):
                 profile, created = Profile.objects.get_or_create(user=user)
                 profile.agency = agency
                 profile.travel_radius = self.cleaned_data.get("travel_radius", 0)
+                profile.address_line1 = self.cleaned_data.get("address_line1")
+                profile.address_line2 = self.cleaned_data.get("address_line2")
+                profile.city = self.cleaned_data.get("city")
+                profile.county = self.cleaned_data.get("county")
+                profile.country = self.cleaned_data.get("country") or "UK"
+                profile.postcode = self.cleaned_data.get("postcode")
                 profile.latitude = self.cleaned_data.get("latitude")
                 profile.longitude = self.cleaned_data.get("longitude")
                 profile.save()
@@ -269,197 +597,6 @@ class SignUpForm(AddressFormMixin, UserCreationForm):
 
             # Log the creation of a new user
             logger.info(f"New user created: {user.username}")
-
-        return user
-
-
-class AgencySignUpForm(AddressFormMixin, UserCreationForm):
-    """
-    Form for agency managers to create a new agency account.
-    """
-
-    # Agency fields are now handled by AddressFormMixin
-    agency_name = forms.CharField(
-        max_length=100,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Enter agency name",
-                "required": True,
-                "id": "id_agency_name",
-            }
-        ),
-    )
-    agency_type = forms.ChoiceField(
-        choices=AGENCY_TYPE_CHOICES,
-        widget=forms.Select(attrs={"class": "form-control", "id": "id_agency_type"}),
-    )
-    agency_email = forms.EmailField(
-        required=True,
-        widget=forms.EmailInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Enter agency email",
-                "required": True,
-                "id": "id_agency_email",
-            }
-        ),
-    )
-    agency_phone_number = forms.CharField(
-        max_length=20,
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Enter agency phone number",
-                "id": "id_phone_number",
-            }
-        ),
-    )
-    agency_website = forms.URLField(
-        required=False,
-        widget=forms.URLInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Enter agency website URL",
-                "id": "id_website",
-            }
-        ),
-    )
-
-    class Meta:
-        model = User
-        fields = (
-            "username",
-            "email",
-            "password1",
-            "password2",
-            "first_name",
-            "last_name",
-        )
-        widgets = {
-            "username": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter username",
-                }
-            ),
-            # Hidden fields for latitude and longitude are already handled by AddressFormMixin
-        }
-
-    def __init__(self, *args, **kwargs):
-        super(AgencySignUpForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = "post"
-        self.helper.layout = Layout(
-            "username",
-            "email",
-            Row(
-                Column("password1", css_class="form-group col-md-6 mb-0"),
-                Column("password2", css_class="form-group col-md-6 mb-0"),
-            ),
-            Row(
-                Column("first_name", css_class="form-group col-md-6 mb-0"),
-                Column("last_name", css_class="form-group col-md-6 mb-0"),
-            ),
-            "agency_name",
-            "agency_type",
-            "address_line1",
-            "address_line2",
-            Row(
-                Column("city", css_class="form-group col-md-4 mb-0"),
-                Column("county", css_class="form-group col-md-4 mb-0"),
-                Column("postcode", css_class="form-group col-md-4 mb-0"),
-            ),
-            "country",
-            "agency_email",
-            "agency_phone_number",
-            "agency_website",
-            # Hidden fields
-            Field("latitude"),
-            Field("longitude"),
-        )
-
-    def clean_email(self):
-        """
-        Ensures the email is valid and not already in use.
-        """
-        email = (self.cleaned_data.get("email") or '').strip().lower()
-        if not email:
-            raise ValidationError("Email is required.")
-        # Validate email format
-        try:
-            forms.EmailField().clean(email)
-        except ValidationError:
-            raise ValidationError("Enter a valid email address.")
-        # Check if email already exists
-        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
-            raise ValidationError("A user with this email already exists.")
-        return email
-
-    def clean_agency_email(self):
-        """
-        Ensures the agency email is valid and not already in use.
-        """
-        agency_email = (self.cleaned_data.get("agency_email") or '').strip().lower()
-        if not agency_email:
-            raise ValidationError("Agency email is required.")
-        try:
-            forms.EmailField().clean(agency_email)
-        except ValidationError:
-            raise ValidationError("Enter a valid agency email address.")
-        if User.objects.filter(email=agency_email).exists():
-            raise ValidationError("A user with this agency email already exists.")
-        return agency_email
-
-    def save(self, commit=True):
-        """
-        Saves the user and creates an associated Agency and Profile.
-        Auto-generates the agency_code using a utility function.
-        """
-        user = super().save(commit=False)
-        user.email = self.cleaned_data["email"].strip().lower()
-        user.role = "agency_manager"
-
-        if commit:
-            user.save()
-
-            # Create Agency with auto-generated agency_code using utility function
-            agency = Agency.objects.create(
-                name=self.cleaned_data["agency_name"],
-                agency_type=self.cleaned_data["agency_type"],
-                postcode=self.cleaned_data.get("postcode"),
-                address_line1=self.cleaned_data.get("address_line1"),
-                address_line2=self.cleaned_data.get("address_line2"),
-                city=self.cleaned_data.get("city"),
-                county=self.cleaned_data.get("county"),
-                state=self.cleaned_data.get("state"),
-                country=self.cleaned_data.get("country") or "UK",
-                email=self.cleaned_data["agency_email"],
-                phone_number=self.cleaned_data.get("agency_phone_number"),
-                website=self.cleaned_data.get("agency_website"),
-                latitude=self.cleaned_data.get("latitude"),
-                longitude=self.cleaned_data.get("longitude"),
-                owner=user,
-            )
-
-            # Assign user to 'Agency Managers' group
-            assign_user_to_group(user, "Agency Managers")
-
-            # Assign user to 'Agency Owners' group
-            assign_user_to_group(user, "Agency Owners")
-
-            # Associate user with the agency and update profile
-            profile, created = Profile.objects.get_or_create(user=user)
-            profile.agency = agency
-            profile.latitude = self.cleaned_data.get("latitude")
-            profile.longitude = self.cleaned_data.get("longitude")
-            profile.save()
-
-            # Log the creation of a new agency manager
-            logger.info(
-                f"New agency manager created: {user.username}, Agency: {agency.name}"
-            )
 
         return user
 
@@ -574,7 +711,6 @@ class AcceptInvitationForm(UserCreationForm):
                 Column("password1", css_class="form-group col-md-6 mb-0"),
                 Column("password2", css_class="form-group col-md-6 mb-0"),
             ),
-            # Address fields are handled by AddressFormMixin if needed
         )
 
     def clean_email(self):
@@ -599,7 +735,7 @@ class AcceptInvitationForm(UserCreationForm):
             # Assign to 'Agency Staff' group
             assign_user_to_group(user, "Agency Staff")
 
-            # Link the user to the agency associated with the invitation if applicable
+            # Link the user to the agency associated with the invitation
             if self.invitation and self.invitation.agency:
                 profile, created = Profile.objects.get_or_create(user=user)
                 profile.agency = self.invitation.agency
@@ -655,7 +791,7 @@ class ProfilePictureForm(forms.ModelForm):
             from PIL import Image
             try:
                 img = Image.open(picture)
-                max_width, max_height = 2000, 2000  # Example limits
+                max_width, max_height = 2000, 2000
                 if img.width > max_width or img.height > max_height:
                     raise ValidationError(
                         f"Image dimensions should not exceed {max_width}x{max_height} pixels."
@@ -663,7 +799,7 @@ class ProfilePictureForm(forms.ModelForm):
             except Exception:
                 raise ValidationError("Invalid image file.")
         else:
-            # Make profile picture optional; no error if not provided
+            # No profile picture provided, no validation needed
             pass
         return picture
 
@@ -680,7 +816,6 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
             "address_line2",
             "city",
             "county",
-            "state",
             "country",
             "postcode",
             "travel_radius",
@@ -688,6 +823,39 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
             "longitude",
         ]
         widgets = {
+            "address_line1": forms.TextInput(attrs={
+                "class": "form-control address-autocomplete",
+                "placeholder": "Enter address line 1",
+                "autocomplete": "address-line1",
+            }),
+            "address_line2": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter address line 2",
+                "autocomplete": "address-line2",
+            }),
+            "city": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter city",
+                "autocomplete": "address-level2",
+            }),
+            "county": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter county",
+                "autocomplete": "administrative-area",
+            }),
+            "country": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter country",
+                "readonly": "readonly",
+                "autocomplete": "country-name",
+            }),
+            "postcode": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter postcode",
+                "autocomplete": "postal-code",
+            }),
+            "latitude": forms.HiddenInput(),
+            "longitude": forms.HiddenInput(),
             "travel_radius": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -711,7 +879,6 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
                 Column("postcode", css_class="form-group col-md-4 mb-0"),
             ),
             Row(
-                Column("state", css_class="form-group col-md-6 mb-0"),
                 Column("country", css_class="form-group col-md-6 mb-0"),
             ),
             "travel_radius",
@@ -941,7 +1108,6 @@ class UserUpdateForm(UserChangeForm):
                     "placeholder": "Enter username",
                 }
             ),
-            # Hidden fields for address are handled in UpdateProfileForm
         }
 
     def __init__(self, *args, **kwargs):
@@ -1029,7 +1195,6 @@ class StaffCreationForm(AddressFormMixin, UserCreationForm):
                     "placeholder": "Enter username",
                 }
             ),
-            # Hidden fields for latitude and longitude are already handled by AddressFormMixin
         }
 
     def __init__(self, *args, **kwargs):
