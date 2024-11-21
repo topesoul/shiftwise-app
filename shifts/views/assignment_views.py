@@ -29,7 +29,7 @@ class AssignWorkerView(LoginRequiredMixin, AgencyManagerRequiredMixin, FeatureRe
         user = request.user
         shift = get_object_or_404(Shift, id=shift_id, is_active=True)
 
-        # Extract worker ID from POST data
+        # Extract worker ID and role from POST data
         worker_id = request.POST.get('worker')
         role = request.POST.get('role') or "Staff"  # Default role
 
@@ -49,11 +49,21 @@ class AssignWorkerView(LoginRequiredMixin, AgencyManagerRequiredMixin, FeatureRe
         )
 
         if not form.is_valid():
-            messages.error(request, "Invalid form submission.")
-            logger.warning(f"Invalid form data in assignment by {user.username} for shift {shift.id}.")
+            # Extract form errors
+            errors = form.errors.as_text()
+            messages.error(request, "Invalid form submission. " + str(form.errors))
+            logger.warning(f"Invalid form data in assignment by {user.username} for shift {shift.id}. Errors: {errors}")
             return redirect("shifts:shift_detail", pk=shift.id)
 
-        # Check if the shift is already full
+        # Additional Permission Check: Ensure worker belongs to the same agency (if not superuser)
+        if not user.is_superuser:
+            if hasattr(worker, 'profile') and worker.profile and worker.profile.agency != shift.agency:
+                messages.error(request, "You cannot assign workers from a different agency.")
+                logger.warning(f"User {user.username} attempted to assign worker {worker.username} from a different agency to shift {shift.id}.")
+                return redirect("shifts:shift_detail", pk=shift.id)
+        # No need to check for superusers; they can assign workers from any agency
+
+        # Check if the shift is already full using the existing 'is_full' property
         if shift.is_full:
             messages.error(request, "Cannot assign worker. The shift is already full.")
             logger.warning(f"Attempt to assign worker to full shift {shift.id} by {user.username}.")
@@ -71,11 +81,6 @@ class AssignWorkerView(LoginRequiredMixin, AgencyManagerRequiredMixin, FeatureRe
             return redirect("shifts:shift_detail", pk=shift.id)
 
         # Validate role
-        if not role:
-            messages.error(request, "Role selection is required.")
-            logger.warning(f"Missing role selection in assignment by {user.username} for worker {worker.id}.")
-            return redirect("shifts:shift_detail", pk=shift.id)
-
         if role not in dict(ShiftAssignment.ROLE_CHOICES).keys():
             messages.error(request, "Invalid role selected.")
             logger.warning(f"Invalid role '{role}' selected by {user.username} for worker {worker.id}.")
@@ -123,7 +128,7 @@ class UnassignWorkerView(LoginRequiredMixin, AgencyManagerRequiredMixin, Feature
         if user.is_superuser:
             # Superusers can unassign any worker from active shifts
             pass
-        elif user.groups.filter(name="Agency Managers").exists():
+        elif hasattr(user, 'profile') and user.profile and user.groups.filter(name="Agency Managers").exists():
             # Agency Managers can unassign workers within their agency
             if shift.agency != user.profile.agency:
                 messages.error(
