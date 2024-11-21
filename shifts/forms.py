@@ -35,10 +35,12 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
             "is_overnight",
             "capacity",
             "shift_type",
+            "shift_role",
             "hourly_rate",
             "notes",
             "agency",
             "is_active",
+            # Address fields
             "address_line1",
             "address_line2",
             "city",
@@ -49,6 +51,11 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
             "longitude",
         ]
         widgets = {
+            # Shift Name Field widget
+            "name": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter shift name",
+            }),
             # Date and Time Fields widgets
             "shift_date": forms.DateInput(
                 attrs={
@@ -88,6 +95,9 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
                     "id": "id_shift_type",
                 }
             ),
+            "shift_role": forms.Select(attrs={
+                "class": "form-control",
+            }),
             "agency": forms.Select(
                 attrs={
                     "class": "form-control",
@@ -100,10 +110,44 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
                     "id": "id_is_active",
                 }
             ),
+            # Address fields
+            "address_line1": forms.TextInput(attrs={
+                "class": "form-control address-autocomplete",
+                "placeholder": "Enter address line 1",
+                "autocomplete": "address-line1",
+            }),
+            "address_line2": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter address line 2",
+                "autocomplete": "address-line2",
+            }),
+            "city": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter city",
+                "autocomplete": "address-level2",
+            }),
+            "county": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter county",
+                "autocomplete": "administrative-area",
+            }),
+            "country": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter country",
+                "readonly": "readonly",
+                "autocomplete": "country-name",
+            }),
+            "postcode": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter postcode",
+                "autocomplete": "postal-code",
+            }),
+            "latitude": forms.HiddenInput(),
+            "longitude": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop("user", None)
+        self.user = kwargs.pop("user", None)  # Extract 'user' from kwargs
         super(ShiftForm, self).__init__(*args, **kwargs)
 
         # Initialize FormHelper for crispy_forms
@@ -130,8 +174,11 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
                 Column("hourly_rate", css_class="form-group col-md-6 mb-0"),
                 Column("shift_type", css_class="form-group col-md-6 mb-0"),
             ),
+            Row(
+                Column("shift_role", css_class="form-group col-md-6 mb-0"),
+                Column("agency", css_class="form-group col-md-6 mb-0"),
+            ),
             "notes",
-            Field("agency"),
             "is_active",
             "address_line1",
             "address_line2",
@@ -147,7 +194,7 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         )
 
         # Conditional display and requirement of 'agency' and 'is_active' fields
-        if user and user.is_superuser:
+        if self.user and self.user.is_superuser:
             self.fields["agency"].required = False
             self.fields["is_active"].required = False
         else:
@@ -156,9 +203,9 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
             self.fields["is_active"].widget = forms.HiddenInput()
             self.fields["is_active"].required = False
 
-        # Add 'form-control' class to all fields not already specified
+        # 'form-control' class to fields not already specified
         for field_name, field in self.fields.items():
-            if field.widget.attrs.get("class") is None:
+            if 'class' not in field.widget.attrs:
                 field.widget.attrs["class"] = "form-control"
 
     def clean(self):
@@ -208,7 +255,7 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         """
         postcode = self.cleaned_data.get("postcode", "").strip()
         if not postcode:
-            # Postcode is optional; no error raised
+            # If no postcode is provided, return it as is
             return postcode
         # UK postcode regex
         uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
@@ -222,7 +269,7 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         """
         latitude = self.cleaned_data.get("latitude")
         if latitude is None:
-            return latitude  # Make it optional
+            return latitude 
         try:
             latitude = float(latitude)
         except ValueError:
@@ -237,7 +284,7 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         """
         longitude = self.cleaned_data.get("longitude")
         if longitude is None:
-            return longitude  # Make it optional
+            return longitude
         try:
             longitude = float(longitude)
         except ValueError:
@@ -248,12 +295,24 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
 
     def save(self, commit=True):
         """
-        Overrides the save method to rely solely on client-side address and coordinate data.
+        Overrides the save method to correctly handle the shift_code and agency attributes.
         """
         shift = super().save(commit=False)
-        if not self.shift_code:
-            shift.shift_code = self.generate_shift_code()
+        
+        # Set agency based on user if not superuser and agency is not set in the form
+        if not shift.agency and self.user and not self.user.is_superuser:
+            if hasattr(self.user, 'profile') and hasattr(self.user.profile, 'agency'):
+                shift.agency = self.user.profile.agency
+            else:
+                raise ValidationError("User does not have an associated agency.")
+        
+        # Generate shift_code after ensuring agency is set
+        if not shift.shift_code:
+            shift.shift_code = shift.generate_shift_code()
+        
+        # Perform model validations
         shift.clean(skip_date_validation=False)
+        
         if commit:
             shift.save()
             self.save_m2m()
@@ -425,25 +484,41 @@ class AssignWorkerForm(forms.Form):
         user = kwargs.pop("user", None)
         worker = kwargs.pop("worker", None)
         super().__init__(*args, **kwargs)
-        if shift and user and worker:
-            # Set the queryset to only include the specific worker
-            self.fields["worker"].queryset = User.objects.filter(pk=worker.pk)
-            self.fields["worker"].initial = worker.pk
 
-            # Additional filtering based on user permissions
+        if shift and user:
             if user.is_superuser:
+                # Superuser can assign any active Agency Staff not already assigned to the shift
                 self.fields["worker"].queryset = User.objects.filter(
                     groups__name="Agency Staff",
                     is_active=True,
                 ).exclude(shift_assignments__shift=shift)
             elif user.groups.filter(name="Agency Managers").exists():
+                # Agency Managers can assign Agency Staff within their own agency
                 self.fields["worker"].queryset = User.objects.filter(
                     profile__agency=shift.agency,
                     groups__name="Agency Staff",
                     is_active=True,
                 ).exclude(shift_assignments__shift=shift)
             else:
+                # Other users cannot assign workers
                 self.fields["worker"].queryset = User.objects.none()
+
+        # Pre-set the worker instance if provided
+        if worker:
+            self.fields["worker"].initial = worker.id
+
+    def clean_worker(self):
+        worker = self.cleaned_data.get("worker")
+        if not worker:
+            raise forms.ValidationError("Worker is required to assign.")
+        return worker
+
+    def clean_role(self):
+        role = self.cleaned_data.get("role")
+        valid_roles = dict(ShiftAssignment.ROLE_CHOICES).keys()
+        if role not in valid_roles:
+            raise forms.ValidationError("Invalid role selected.")
+        return role
 
 
 class UnassignWorkerForm(forms.Form):
