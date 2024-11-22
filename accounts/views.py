@@ -246,70 +246,70 @@ class ActivateTOTPView(LoginRequiredMixin, View):
         if request.user.profile.totp_secret:
             messages.info(request, "MFA is already enabled on your account.")
             return redirect("accounts:profile")
-    
+
         # Generate a new TOTP secret key
         totp_secret = pyotp.random_base32()
         request.session["totp_secret"] = totp_secret  # Save in session
-    
+
         totp = pyotp.TOTP(totp_secret, interval=settings.MFA_TOTP_PERIOD)
-    
+
         # Generate provisioning URI for authenticator apps
         provisioning_uri = totp.provisioning_uri(
             name=request.user.email, issuer_name=settings.MFA_TOTP_ISSUER
         )
-    
+
         # Generate QR code image
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(provisioning_uri)
         qr.make(fit=True)
-    
+
         img = qr.make_image(fill="black", back_color="white")
         buffer = BytesIO()
         img.save(buffer, format="PNG")
         qr_code_image = base64.b64encode(buffer.getvalue()).decode()
-    
+
         context = {
             "qr_code_image": qr_code_image,
             "totp_secret": totp_secret,
         }
-    
+
         return render(request, "accounts/activate_totp.html", context)
-    
+
     def post(self, request, *args, **kwargs):
         # Retrieve the TOTP code entered by the user
         code = request.POST.get("totp_code")
         totp_secret = request.session.get("totp_secret")  # Retrieve from session
-    
+
         if not totp_secret:
             messages.error(request, "Session expired. Please try activating MFA again.")
             logger.warning(
                 f"User {request.user.username} tried to activate MFA without a valid TOTP secret in session."
             )
             return redirect("accounts:activate_totp")
-    
+
         totp = pyotp.TOTP(totp_secret, interval=settings.MFA_TOTP_PERIOD)
-    
+
         if totp.verify(code):
             # Save the TOTP secret to the user's profile
             request.user.profile.totp_secret = totp_secret
             request.user.profile.save()
-    
+
             # Generate Recovery Codes
             recovery_codes = request.user.profile.generate_recovery_codes()
-    
+
             messages.success(
                 request,
                 "MFA has been successfully activated. Please save your recovery codes securely.",
             )
             logger.info(f"MFA activated for user {request.user.username}.")
-    
+
             del request.session["totp_secret"]  # Remove from session
-    
+
             # Return recovery codes to the template for display
             context = {
                 "recovery_codes": recovery_codes,
             }
-    
+
             return render(request, "accounts/recovery_codes.html", context)
         else:
             messages.error(request, "Invalid code. Please try again.")
@@ -319,16 +319,16 @@ class ActivateTOTPView(LoginRequiredMixin, View):
             provisioning_uri = totp.provisioning_uri(
                 name=request.user.email, issuer_name=settings.MFA_TOTP_ISSUER
             )
-    
+
             qr = qrcode.QRCode(version=1, box_size=10, border=5)
             qr.add_data(provisioning_uri)
             qr.make(fit=True)
-    
+
             img = qr.make_image(fill="black", back_color="white")
             buffer = BytesIO()
             img.save(buffer, format="PNG")
             qr_code_image = base64.b64encode(buffer.getvalue()).decode()
-    
+
             context = {
                 "qr_code_image": qr_code_image,
                 "totp_secret": totp_secret,
@@ -356,32 +356,32 @@ class ResendTOTPCodeView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         user_totp_secret = request.user.profile.totp_secret or pyotp.random_base32()
         totp = pyotp.TOTP(user_totp_secret, interval=settings.MFA_TOTP_PERIOD)
-    
+
         # Generate provisioning URI again
         provisioning_uri = totp.provisioning_uri(
             name=request.user.email, issuer_name=settings.MFA_TOTP_ISSUER
         )
-    
+
         # Generate QR code image
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(provisioning_uri)
         qr.make(fit=True)
-    
+
         img = qr.make_image(fill="black", back_color="white")
         buffer = BytesIO()
         img.save(buffer, format="PNG")
         qr_code_image = base64.b64encode(buffer.getvalue()).decode()
-    
+
         # Save new TOTP secret if not already set
         if not request.user.profile.totp_secret:
             request.user.profile.totp_secret = user_totp_secret
             request.user.profile.save()
-    
+
         context = {
             "qr_code_image": qr_code_image,
             "totp_secret": user_totp_secret,
         }
-    
+
         return render(request, "accounts/reauthenticate.html", context)
 
 
@@ -466,23 +466,30 @@ class AgencyDashboardView(
         # Allow superusers to access all agencies
         if user.is_superuser:
             agencies = Agency.objects.all()
+            shifts = ShiftAssignment.objects.filter(
+                shift__agency__in=agencies
+            ).select_related("shift", "worker")
+            return render(
+                request,
+                "accounts/agency_dashboard.html",
+                {
+                    "agencies": agencies,
+                    "shifts": shifts,
+                },
+            )
         else:
             agency = user.profile.agency
-            agencies = Agency.objects.filter(id=agency.id)
-    
-        # Fetch data specific to agency or all agencies for superusers
-        shifts = ShiftAssignment.objects.filter(
-            shift__agency__in=agencies
-        ).select_related("shift", "worker")
-    
-        return render(
-            request,
-            "accounts/agency_dashboard.html",
-            {
-                "agencies": agencies,
-                "shifts": shifts,
-            },
-        )
+            shifts = ShiftAssignment.objects.filter(
+                shift__agency=agency
+            ).select_related("shift", "worker")
+            return render(
+                request,
+                "accounts/agency_dashboard.html",
+                {
+                    "agency": agency,
+                    "shifts": shifts,
+                },
+            )
 
 
 class StaffDashboardView(
@@ -543,6 +550,11 @@ class InviteStaffView(
     template_name = "accounts/invite_staff.html"
     form_class = InvitationForm
     success_url = reverse_lazy("shifts:staff_list")
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({'user': self.request.user})
+        return kwargs
     
     def form_valid(self, form):
         invitation = form.save(commit=False)
@@ -621,11 +633,21 @@ class AcceptInvitationView(View):
     
     def get(self, request, token, *args, **kwargs):
         invitation = get_object_or_404(Invitation, token=token, is_active=True)
+        # Check if invitation is expired
+        if invitation.is_expired():
+            messages.error(request, "This invitation has expired.")
+            logger.warning(f"Expired invitation accessed: {invitation.email}")
+            return redirect("accounts:login_view")
         form = AcceptInvitationForm(initial={"email": invitation.email})
         return render(request, "accounts/accept_invitation.html", {"form": form})
     
     def post(self, request, token, *args, **kwargs):
         invitation = get_object_or_404(Invitation, token=token, is_active=True)
+        # Check if invitation is expired
+        if invitation.is_expired():
+            messages.error(request, "This invitation has expired.")
+            logger.warning(f"Expired invitation attempted to accept: {invitation.email}")
+            return redirect("accounts:login_view")
         form = AcceptInvitationForm(
             request.POST,
             initial={"email": invitation.email},
@@ -635,14 +657,14 @@ class AcceptInvitationView(View):
         if form.is_valid():
             # Create the user
             user = form.save()
-    
+
             # Assign the user to the 'Agency Staff' group
             agency_staff_group, created = Group.objects.get_or_create(
                 name="Agency Staff"
             )
             user.groups.add(agency_staff_group)
             logger.info(f"User {user.username} assigned to 'Agency Staff' group.")
-    
+
             # Link the user to the agency associated with the invitation
             if invitation.agency:
                 user.profile.agency = invitation.agency
@@ -652,7 +674,7 @@ class AcceptInvitationView(View):
                 )
             else:
                 logger.debug(f"User {user.username} not linked to any agency.")
-    
+
             # Mark the invitation as used
             invitation.is_active = False
             invitation.accepted_at = timezone.now()
@@ -660,7 +682,7 @@ class AcceptInvitationView(View):
             logger.info(
                 f"Invitation {invitation.email} marked as accepted by {user.username}."
             )
-    
+
             # Log the user in
             login(request, user)
             messages.success(request, "Your account has been created successfully.")
@@ -812,6 +834,10 @@ class UserCreateView(
     form_class = UserForm
     template_name = "accounts/user_form.html"
     success_url = reverse_lazy("accounts:manage_users")
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        return kwargs
     
     def form_valid(self, form):
         user = form.save()
