@@ -14,13 +14,13 @@
                 <div class="modal-body">
                     <p>Please provide a signature and confirm your current location to complete the shift.</p>
                     
-                <!-- Signature Pad -->
-                <div class="form-group">
-                    <label for="signaturePad">Signature:</label>
-                    <canvas id="signaturePad" class="signaturePad mb-2"></canvas>
-                    <button type="button" class="btn btn-secondary btn-sm clearSignature">Clear Signature</button>
-                    <input type="hidden" name="signature" class="signatureInput">
-                </div>
+                    <!-- Signature Pad -->
+                    <div class="form-group">
+                        <label for="signaturePad">Signature:</label>
+                        <canvas id="signaturePad" class="signaturePad mb-2"></canvas>
+                        <button type="button" class="btn btn-secondary btn-sm clearSignature">Clear Signature</button>
+                        <input type="hidden" name="signature" class="signatureInput">
+                    </div>
 
 
                     <!-- Get Location Button -->
@@ -44,11 +44,27 @@
                     <!-- Attendance Status -->
                     <div class="form-group">
                         <label for="id_attendance_status">Attendance Status:</label>
-                        {{ form.attendance_status }}
-                        {% for error in form.attendance_status.errors %}
-                            <small class="text-danger">{{ error }}</small>
-                        {% endfor %}
+                        <ul id="id_attendance_status" class="radio">
+                            <li>
+                                <label><input type="radio" name="attendance_status" value="attended"> Attended</label>
+                            </li>
+                            <li>
+                                <label><input type="radio" name="attendance_status" value="late"> Late</label>
+                            </li>
+                            <li>
+                                <label><input type="radio" name="attendance_status" value="no_show"> No Show</label>
+                            </li>
+                        </ul>
                     </div>
+
+                    <!-- Display Non-Field Errors -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-success">Submit Completion</button>
