@@ -1,27 +1,58 @@
 # /workspace/shiftwise/accounts/urls.py
 
 from django.urls import path
+
+# Authentication and MFA Views
+# ----------------------------
 from .views import (
     CustomLoginView,
     LogoutView,
     MFAVerifyView,
-    SignUpView,
-    SignupSelectionView,
-    AgencySignUpView,
     ActivateTOTPView,
     DisableTOTPView,
     ResendTOTPCodeView,
+)
+
+# Signup Views
+# ------------
+from .views import (
+    SignUpView,
+    SignupSelectionView,
+    AgencySignUpView,
+)
+
+# Profile and Dashboard Views
+# ---------------------------
+from .views import (
     ProfileView,
     AgencyDashboardView,
     StaffDashboardView,
     SuperuserDashboardView,
+)
+
+# Invitation Views
+# ----------------
+from .views import (
     InviteStaffView,
     AcceptInvitationView,
-    get_address,
+)
+
+# Address-related Function
+# ------------------------
+from .views import get_address
+
+# Agency Management Views
+# -----------------------
+from .views import (
     AgencyListView,
     AgencyCreateView,
     AgencyUpdateView,
     AgencyDeleteView,
+)
+
+# User Management Views
+# ---------------------
+from .views import (
     UserListView,
     UserCreateView,
     UserUpdateView,
@@ -31,32 +62,48 @@ from .views import (
 app_name = 'accounts'
 
 urlpatterns = [
+    # Authentication and MFA URLs
+    # ---------------------------
     path('login/', CustomLoginView.as_view(), name='login_view'),
     path('logout/', LogoutView.as_view(), name='logout_view'),
-    path('mfa_verify/', MFAVerifyView.as_view(), name='mfa_verify'),
-    path('signup/', SignUpView.as_view(), name='signup_view'),
-    path('signup_selection/', SignupSelectionView.as_view(), name='signup_selection'),
-    path('agency_signup/', AgencySignUpView.as_view(), name='agency_signup'),
-    path('activate_totp/', ActivateTOTPView.as_view(), name='activate_totp'),
-    path('deactivate_totp/', DisableTOTPView.as_view(), name='deactivate_totp'),
-    path('reauthenticate/', ResendTOTPCodeView.as_view(), name='reauthenticate'),
+    path('mfa-verify/', MFAVerifyView.as_view(), name='mfa_verify'),
+    path('activate-totp/', ActivateTOTPView.as_view(), name='activate_totp'),
+    path('disable-totp/', DisableTOTPView.as_view(), name='disable_totp'),
+    path('resend-totp/', ResendTOTPCodeView.as_view(), name='resend_totp'),
+
+    # Signup URLs
+    # -----------
+    path('signup/', SignUpView.as_view(), name='signup'),
+    path('signup-selection/', SignupSelectionView.as_view(), name='signup_selection'),
+    path('agency-signup/', AgencySignUpView.as_view(), name='agency_signup'),
+
+    # Profile and Dashboard URLs
+    # --------------------------
     path('profile/', ProfileView.as_view(), name='profile'),
-    path('superuser_dashboard/', SuperuserDashboardView.as_view(), name='superuser_dashboard'),
-    path('agency_dashboard/', AgencyDashboardView.as_view(), name='agency_dashboard'),
-    path('staff_dashboard/', StaffDashboardView.as_view(), name='staff_dashboard'),
-    path('invite_staff/', InviteStaffView.as_view(), name='invite_staff'),
-    path('accept_invitation/<str:token>/', AcceptInvitationView.as_view(), name='accept_invitation'),
-    path('address_lookup/', get_address, name='address_lookup'),
+    path('agency-dashboard/', AgencyDashboardView.as_view(), name='agency_dashboard'),
+    path('staff-dashboard/', StaffDashboardView.as_view(), name='staff_dashboard'),
+    path('superuser-dashboard/', SuperuserDashboardView.as_view(), name='superuser_dashboard'),
 
-    # Agency management URLs
-    path('manage_agencies/', AgencyListView.as_view(), name='manage_agencies'),
-    path('create_agency/', AgencyCreateView.as_view(), name='create_agency'),
-    path('update_agency/<int:pk>/', AgencyUpdateView.as_view(), name='update_agency'),
-    path('delete_agency/<int:pk>/', AgencyDeleteView.as_view(), name='delete_agency'),
+    # Invitation URLs
+    # ---------------
+    path('invite-staff/', InviteStaffView.as_view(), name='invite_staff'),
+    path('accept-invitation/<uuid:token>/', AcceptInvitationView.as_view(), name='accept_invitation'),
 
-    # User management URLs
-    path('manage_users/', UserListView.as_view(), name='manage_users'),
-    path('create_user/', UserCreateView.as_view(), name='create_user'),
-    path('update_user/<int:pk>/', UserUpdateView.as_view(), name='update_user'),
-    path('delete_user/<int:pk>/', UserDeleteView.as_view(), name='delete_user'),
+    # Address-related URL
+    # -------------------
+    path('get-address/', get_address, name='get_address'),
+
+    # Agency Management URLs
+    # ----------------------
+    path('manage/agencies/', AgencyListView.as_view(), name='manage_agencies'),
+    path('manage/agencies/create/', AgencyCreateView.as_view(), name='create_agency'),
+    path('manage/agencies/<int:pk>/update/', AgencyUpdateView.as_view(), name='update_agency'),
+    path('manage/agencies/<int:pk>/delete/', AgencyDeleteView.as_view(), name='delete_agency'),
+
+    # User Management URLs
+    # --------------------
+    path('manage/users/', UserListView.as_view(), name='manage_users'),
+    path('manage/users/create/', UserCreateView.as_view(), name='create_user'),
+    path('manage/users/<int:pk>/update/', UserUpdateView.as_view(), name='update_user'),
+    path('manage/users/<int:pk>/delete/', UserDeleteView.as_view(), name='delete_user'),
 ]
