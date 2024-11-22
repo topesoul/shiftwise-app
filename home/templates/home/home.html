@@ -3,33 +3,37 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load custom_filters %}
+{% load custom_tags %}
+
 {% block title %}ShiftWise App - Manage Shifts Effortlessly{% endblock %}
 
 {% block content %}
-<!-- Main Content -->
+    <!-- Main Content -->
 
-<!-- Hero Section -->
-<div class="hero-section-wrapper">
-    {% include 'includes/sections/hero.html' %}
-</div>
+    <!-- Hero Section -->
+    <div class="hero-section-wrapper">
+        {% include 'includes/sections/hero.html' %}
+    </div>
 
-{% include 'includes/sections/why_shiftwise.html' %}
+    <!-- Why ShiftWise Section -->
+    {% include 'includes/sections/why_shiftwise.html' %}
 
-<!-- Background Image Section -->
-<div class="hero-background-image" style="background-image: url('{% static 'images/hero-background.jpg' %}');">
-    <div class="hero-image-overlay"></div>
-</div>
+    <!-- Background Image Section -->
+    <div class="hero-background-image" style="background-image: url('{% static 'images/hero-background.jpg' %}');">
+        <div class="hero-image-overlay"></div>
+    </div>
 
-<!-- Sub-Sections -->
-<!-- Include the partial subscription content -->
-{% include 'subscriptions/_subscription_home_content.html' %}
+    <!-- Subscription Plans Section -->
+    {% include 'subscriptions/_subscription_home_content.html' %}
 
-{% include 'includes/sections/testimonials.html' %}
-{% include 'includes/sections/social_media.html' %}
+    <!-- Testimonials Section -->
+    {% include 'includes/sections/testimonials.html' %}
 
+    <!-- Social Media Section -->
+    {% include 'includes/sections/social_media.html' %}
 {% endblock %}
 
 {% block extra_js %}
-    <!-- Include the billing.js script for toggling billing cycles and plans -->
+    <!-- Billing.js script for toggling billing cycles and plans -->
     <script src="{% static 'js/billing.js' %}"></script>
 {% endblock %}
