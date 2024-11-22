@@ -1,15 +1,28 @@
 /* /workspace/shiftwise/static/css/report_dashboard.css */
 
-#shiftsChart,
-#performanceChart {
-    width: 100% !important;
-    height: auto !important;
-    max-height: 400px;
+/* =========================================
+   Chart Containers
+========================================= */
+
+.canvas-container {
+    position: relative;
+    margin: auto;
+    height: 100%;
+    width: 100%;
 }
+
+.chartjs-render-monitor {
+    display: block !important;
+}
+
+/* =========================================
+   Dashboard Headings
+========================================= */
 
 .container h2 {
     text-align: center;
     margin-bottom: 30px;
+    color: var(--primary-gradient-end);
 }
 
 .row {
@@ -24,14 +37,40 @@
     flex: 1 1 45%;
 }
 
-/* Additional Styles for Enhanced Visual Appeal */
-.canvas-container {
-    position: relative;
-    margin: auto;
-    height: 100%;
-    width: 100%;
+/* =========================================
+   Responsive Adjustments
+========================================= */
+
+@media (max-width: 768px) {
+    .col-md-6 {
+        flex: 1 1 100%;
+    }
 }
 
-.chartjs-render-monitor {
-    display: block !important;
+/* =========================================
+   Additional Enhancements
+========================================= */
+
+/* Ensure charts adapt to dark mode */
+.dark-mode .chartjs-render-monitor {
+    background-color: var(--background-color);
+}
+
+/* Dashboard Specific Cards */
+.dashboard-card {
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    background-color: var(--light-color);
+    color: var(--text-color);
+    box-shadow: var(--box-shadow-light);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--box-shadow-hover);
+}
+.dark-mode .dashboard-card {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #444;
 }
