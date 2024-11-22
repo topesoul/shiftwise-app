@@ -81,8 +81,8 @@ def user_roles_and_subscriptions(request):
             {
                 "name": plan_name,
                 "description": description,
-                "monthly_plan": plans.get("monthly_plan"),
-                "yearly_plan": plans.get("yearly_plan"),
+                "monthly_plan": plans.get("monthly_plan", None),
+                "yearly_plan": plans.get("yearly_plan", None),
             }
         )
 
