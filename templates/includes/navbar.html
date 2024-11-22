@@ -91,10 +91,10 @@
               </a>
               <div class="dropdown-menu" aria-labelledby="subscriptionDropdown">
                 {% if subscription and subscription.is_active %}
-                  <a class="dropdown-item" href="{% url 'accounts:manage_subscription' %}">
+                  <a class="dropdown-item" href="{% url 'subscriptions:manage_subscription' %}">
                     <i class="fas fa-cogs"></i> Manage Subscription
                   </a>
-                  <a class="dropdown-item" href="{% url 'accounts:cancel_subscription' %}">
+                  <a class="dropdown-item" href="{% url 'subscriptions:cancel_subscription' %}">
                     <i class="fas fa-ban"></i> Cancel Subscription
                   </a>
                 {% else %}
