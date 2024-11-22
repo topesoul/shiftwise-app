@@ -1,0 +1,82 @@
+/* /workspace/shiftwise/static/css/hero.css */
+
+/* =========================================
+   Hero Section
+========================================= */
+
+.hero-section-wrapper {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.hero-background-image {
+    position: relative;
+    width: 100%;
+    height: 470px;
+    background-size: cover;
+    background-position: center;
+    padding-top: 20px;
+}
+
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-gradient-start), var(--primary-gradient-end));
+    color: var(--text-color); /* Ensures text color adapts to dark mode */
+    padding: 4rem 1rem;
+    text-align: center;
+    position: relative;
+    margin-bottom: 2rem;
+    transition: padding var(--transition-speed);
+}
+
+.hero-overlay {
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 3rem;
+    border-radius: var(--border-radius);
+    transition: padding var(--transition-speed);
+}
+
+.hero-section h1, .hero-section p {
+    color: var(--text-color); /* Ensures text color adapts to dark mode */
+    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hero-section h1 {
+    font-size: 2.5rem; /* Base font size */
+}
+
+.hero-section p.lead {
+    font-size: 1.25rem; /* Base font size */
+}
+
+.hero-section .btn {
+    margin-top: 1rem;
+    margin-right: 0.5rem;
+    margin-left: 0.5rem;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+/* Responsive Hero Section */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem 1rem;
+    }
+    .hero-overlay {
+        padding: 2rem;
+    }
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    .hero-section p.lead {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-section h1 {
+        font-size: 1.75rem;
+    }
+    .hero-section p.lead {
+        font-size: 0.9rem;
+    }
+}
