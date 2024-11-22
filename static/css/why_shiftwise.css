@@ -1,0 +1,84 @@
+/* /workspace/shiftwise/static/css/why_shiftwise.css */
+
+/* =========================================
+   "Why Choose ShiftWise App?" Section
+========================================= */
+
+.container.my-5.text-center h2 {
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+    color: var(--primary-gradient-end);
+    position: relative;
+    display: inline-block;
+}
+
+.container.my-5.text-center h2::after {
+    content: '';
+    position: absolute;
+    width: 60px;
+    height: 4px;
+    background-color: var(--accent-color);
+    left: 50%;
+    bottom: -10px;
+    transform: translateX(-50%);
+    border-radius: 2px;
+}
+
+.container.my-5.text-center .card {
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+.container.my-5.text-center .card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--box-shadow-hover);
+}
+
+.container.my-5.text-center .card-body i {
+    color: var(--primary-gradient-end);
+    transition: color var(--transition-speed);
+}
+.container.my-5.text-center .card-body i:hover {
+    color: var(--accent-color);
+}
+
+.container.my-5.text-center .card-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.container.my-5.text-center .card-text {
+    font-size: 1rem;
+    color: var(--secondary-color);
+}
+
+/* Dark Mode Adjustments for Testimonials */
+.dark-mode .container.my-5.text-center h2 {
+    color: #bb86fc;
+}
+.dark-mode .container.my-5.text-center .card-body i {
+    color: #bb86fc;
+}
+.dark-mode .container.my-5.text-center .card-body i:hover {
+    color: var(--accent-color);
+}
+.dark-mode .container.my-5.text-center .card-text {
+    color: #adb5bd;
+}
+
+/* =========================================
+   Responsive Adjustments for Testimonials
+========================================= */
+
+@media (max-width: 768px) {
+    .container.my-5.text-center h2 {
+        font-size: 2rem;
+    }
+    .container.my-5.text-center .card {
+        margin-bottom: 1.5rem;
+    }
+    .container.my-5.text-center .card-title {
+        font-size: 1.25rem;
+    }
+    .container.my-5.text-center .card-text {
+        font-size: 0.95rem;
+    }
+}
