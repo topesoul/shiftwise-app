@@ -47,7 +47,7 @@ urlpatterns = [
     path("shift/<int:pk>/", ShiftDetailView.as_view(), name="shift_detail"),
     path("shift/create/", ShiftCreateView.as_view(), name="shift_create"),
     path("shift/<int:pk>/update/", ShiftUpdateView.as_view(), name="shift_update"),
-    path("shift/<int:pk>/delete/", ShiftDeleteView.as_view(), name="shift_delete"),
+    path('shift/<int:pk>/delete/', ShiftDeleteView.as_view(), name='shift_delete'),
     # ---------------------------
     # Shift Completion URLs
     # ---------------------------
