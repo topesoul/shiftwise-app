@@ -147,7 +147,7 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)  # Extract 'user' from kwargs
+        self.user = kwargs.pop("user", None)
         super(ShiftForm, self).__init__(*args, **kwargs)
 
         # Initialize FormHelper for crispy_forms
@@ -195,7 +195,7 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
 
         # Conditional display and requirement of 'agency' and 'is_active' fields
         if self.user and self.user.is_superuser:
-            self.fields["agency"].required = False
+            self.fields["agency"].required = True
             self.fields["is_active"].required = False
         else:
             self.fields["agency"].widget = forms.HiddenInput()
@@ -253,10 +253,16 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         """
         Validates the postcode based on UK-specific formats.
         """
-        postcode = self.cleaned_data.get("postcode", "").strip()
+        postcode = self.cleaned_data.get("postcode")
+        if postcode:
+            postcode = postcode.strip()
+        else:
+            postcode = ""
+
         if not postcode:
             # If no postcode is provided, return it as is
             return postcode
+
         # UK postcode regex
         uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
         if not re.match(uk_postcode_regex, postcode.upper()):
@@ -387,7 +393,7 @@ class ShiftCompletionForm(forms.Form):
     attendance_status = forms.ChoiceField(
         choices=ShiftAssignment.ATTENDANCE_STATUS_CHOICES,
         widget=forms.RadioSelect,
-        required=False,
+        required=True,
         help_text="Select attendance status after completing the shift.",
     )
 
@@ -403,12 +409,6 @@ class ShiftCompletionForm(forms.Form):
             Row(
                 Column("attendance_status", css_class="form-group col-md-12 mb-0"),
             ),
-            Row(
-                Column(
-                    forms.CheckboxInput(attrs={"class": "form-check-input"}),
-                    css_class="form-group col-md-12 mb-0",
-                ),
-            )
         )
 
     def clean(self):
@@ -430,8 +430,8 @@ class ShiftCompletionForm(forms.Form):
         if (latitude is not None and longitude is None) or (latitude is None and longitude is not None):
             raise ValidationError("Both latitude and longitude must be provided together.")
 
-        # Validate attendance_status if provided
-        if attendance_status and attendance_status not in dict(ShiftAssignment.ATTENDANCE_STATUS_CHOICES).keys():
+        # Validate attendance_status
+        if attendance_status not in dict(ShiftAssignment.ATTENDANCE_STATUS_CHOICES).keys():
             raise ValidationError("Invalid attendance status selected.")
 
         return cleaned_data
