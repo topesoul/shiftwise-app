@@ -10,14 +10,14 @@
     <!-- Display Current Subscription Status -->
     <div class="row">
         <div class="col-md-12">
-            {% if subscription %}
+            {% if has_active_subscription %}
                 <div class="card mb-4 subscription-status-card">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0">Current Subscription</h5>
                     </div>
                     <div class="card-body">
-                        <p><strong>Plan:</strong> {{ subscription.plan.name }}</p>
-                        <p><strong>Status:</strong> Active</p>
+                        <p><strong>Plan:</strong> {{ current_plan.name }}</p>
+                        <p><strong>Status:</strong> {{ subscription.status|title }}</p>
                         <p><strong>Current Period Start:</strong> {{ subscription.current_period_start|date:"F j, Y" }}</p>
                         <p><strong>Current Period Ends:</strong> {{ subscription.current_period_end|date:"F j, Y" }}</p>
                         <p><strong>Stripe Subscription ID:</strong> {{ subscription.stripe_subscription_id }}</p>
@@ -117,24 +117,33 @@
                             <!-- Subscribe Button -->
                             <div class="mt-auto">
                                 {% if selected_plan %}
-                                    {% if subscription %}
-                                        {% if subscription.plan.price < selected_plan.price %}
-                                            <a href="{% url 'subscriptions:upgrade_subscription' selected_plan.id %}" class="btn btn-success btn-block subscribe-button">
-                                                <i class="fas fa-arrow-up"></i> Upgrade to {{ selected_plan.name }}
-                                            </a>
-                                        {% elif subscription.plan.price > selected_plan.price %}
-                                            <a href="{% url 'subscriptions:downgrade_subscription' selected_plan.id %}" class="btn btn-warning btn-block subscribe-button">
-                                                <i class="fas fa-arrow-down"></i> Downgrade to {{ selected_plan.name }}
-                                            </a>
+                                    {% if has_active_subscription %}
+                                        {% if current_plan.price < selected_plan.price %}
+                                            <form method="post" action="{% url 'subscriptions:upgrade_subscription' selected_plan.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success btn-block subscribe-button">
+                                                    <i class="fas fa-arrow-up"></i> Upgrade to {{ selected_plan.name }}
+                                                </button>
+                                            </form>
+                                        {% elif current_plan.price > selected_plan.price %}
+                                            <form method="post" action="{% url 'subscriptions:downgrade_subscription' selected_plan.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-warning btn-block subscribe-button">
+                                                    <i class="fas fa-arrow-down"></i> Downgrade to {{ selected_plan.name }}
+                                                </button>
+                                            </form>
                                         {% else %}
                                             <button class="btn btn-secondary btn-block subscribe-button" disabled>
                                                 <i class="fas fa-check-circle"></i> Current Plan
                                             </button>
                                         {% endif %}
                                     {% else %}
-                                        <a href="{% url 'subscriptions:subscribe' selected_plan.id %}" class="btn btn-primary btn-block subscribe-button">
-                                            <i class="fas fa-shopping-cart"></i> Subscribe to {{ selected_plan.name }}
-                                        </a>
+                                        <form method="post" action="{% url 'subscriptions:subscribe' selected_plan.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary btn-block subscribe-button">
+                                                <i class="fas fa-shopping-cart"></i> Subscribe to {{ selected_plan.name }}
+                                            </button>
+                                        </form>
                                     {% endif %}
                                 {% else %}
                                     <a href="#" class="btn btn-primary btn-block subscribe-button disabled">
@@ -152,13 +161,4 @@
             </div>
         {% endfor %}
     </div>
-
-    <!-- Manage Subscription Link -->
-    {% if subscription %}
-        <div class="text-center mt-4">
-            <a href="{% url 'subscriptions:manage_subscription' %}" class="btn btn-secondary manage-subscription-button">
-                <i class="fas fa-cogs"></i> Manage Your Subscription
-            </a>
-        </div>
-    {% endif %}
 </div>
