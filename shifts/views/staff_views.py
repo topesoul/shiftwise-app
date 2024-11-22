@@ -144,6 +144,11 @@ class StaffCreateView(
     template_name = "shifts/add_staff.html"
     success_url = reverse_lazy("shifts:staff_list")
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({'request': self.request})  # Pass request to form
+        return kwargs
+
     def form_valid(self, form):
         user = form.save(commit=False)
         if not self.request.user.is_superuser:
@@ -156,6 +161,7 @@ class StaffCreateView(
                 return redirect("accounts:profile")
             user.save()
             user.profile.agency = agency
+            user.profile.travel_radius = form.cleaned_data.get("travel_radius") or 0.0
             user.profile.save()
         else:
             user.save()
