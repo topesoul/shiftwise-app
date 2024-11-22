@@ -19,6 +19,8 @@ from core.utils import assign_user_to_group, generate_unique_code
 
 from .models import Agency, Invitation, Profile
 
+from PIL import Image, ImageOps
+
 User = get_user_model()
 
 # Initialize the logger
@@ -381,7 +383,6 @@ class AgencySignUpForm(AddressFormMixin, UserCreationForm):
 
         return user
 
-
 class SignUpForm(AddressFormMixin, UserCreationForm):
     """
     Form for users to sign up (primarily via invitation).
@@ -558,6 +559,17 @@ class SignUpForm(AddressFormMixin, UserCreationForm):
             raise ValidationError("A user with this email already exists.")
         return email
 
+    def clean_travel_radius(self):
+        """
+        Ensures that travel_radius defaults to 0.0 if not provided.
+        """
+        travel_radius = self.cleaned_data.get("travel_radius")
+        if travel_radius is None:
+            return 0.0
+        if travel_radius < 0 or travel_radius > 50:
+            raise ValidationError("Travel radius must be between 0 and 50 miles.")
+        return travel_radius
+
     def save(self, commit=True):
         """
         Saves the user and associates them with the 'Agency Staff' group and their agency.
@@ -581,7 +593,7 @@ class SignUpForm(AddressFormMixin, UserCreationForm):
                 agency = self.request.user.profile.agency
                 profile, created = Profile.objects.get_or_create(user=user)
                 profile.agency = agency
-                profile.travel_radius = self.cleaned_data.get("travel_radius", 0)
+                profile.travel_radius = self.cleaned_data.get("travel_radius") or 0.0
                 profile.address_line1 = self.cleaned_data.get("address_line1")
                 profile.address_line2 = self.cleaned_data.get("address_line2")
                 profile.city = self.cleaned_data.get("city")
@@ -593,13 +605,13 @@ class SignUpForm(AddressFormMixin, UserCreationForm):
                 profile.save()
             else:
                 profile, created = Profile.objects.get_or_create(user=user)
+                profile.travel_radius = self.cleaned_data.get("travel_radius") or 0.0
                 profile.save()
 
             # Log the creation of a new user
             logger.info(f"New user created: {user.username}")
 
         return user
-
 
 class InvitationForm(forms.ModelForm):
     """
@@ -649,7 +661,6 @@ class InvitationForm(forms.ModelForm):
             raise ValidationError("An active invitation for this email already exists.")
         return email
 
-
 class AcceptInvitationForm(UserCreationForm):
     """
     Form for invited staff members to accept their invitation and set up their account.
@@ -667,7 +678,6 @@ class AcceptInvitationForm(UserCreationForm):
             attrs={
                 "class": "form-control",
                 "placeholder": "Choose a username",
-                "required": True,
             }
         ),
     )
@@ -677,7 +687,6 @@ class AcceptInvitationForm(UserCreationForm):
             attrs={
                 "class": "form-control",
                 "placeholder": "Enter password",
-                "required": True,
             }
         ),
     )
@@ -687,7 +696,6 @@ class AcceptInvitationForm(UserCreationForm):
             attrs={
                 "class": "form-control",
                 "placeholder": "Confirm password",
-                "required": True,
             }
         ),
     )
@@ -722,6 +730,17 @@ class AcceptInvitationForm(UserCreationForm):
             raise ValidationError("Email is required.")
         return email
 
+    def clean_travel_radius(self):
+        """
+        Ensures that travel_radius defaults to 0.0 if not provided.
+        """
+        travel_radius = self.cleaned_data.get("travel_radius")
+        if travel_radius is None:
+            return 0.0
+        if travel_radius < 0 or travel_radius > 50:
+            raise ValidationError("Travel radius must be between 0 and 50 miles.")
+        return travel_radius
+
     def save(self, commit=True):
         """
         Saves the user, assigns to 'Agency Staff' group, and creates an associated Profile.
@@ -739,6 +758,7 @@ class AcceptInvitationForm(UserCreationForm):
             if self.invitation and self.invitation.agency:
                 profile, created = Profile.objects.get_or_create(user=user)
                 profile.agency = self.invitation.agency
+                profile.travel_radius = self.cleaned_data.get("travel_radius") or 0.0
                 profile.save()
 
             # Mark the invitation as used
@@ -755,7 +775,6 @@ class AcceptInvitationForm(UserCreationForm):
                 login(self.request, user)
 
         return user
-
 
 class ProfilePictureForm(forms.ModelForm):
     """
@@ -775,34 +794,39 @@ class ProfilePictureForm(forms.ModelForm):
         }
 
     def clean_profile_picture(self):
-        """
-        Validates the uploaded profile picture.
-        """
         picture = self.cleaned_data.get("profile_picture", False)
         if picture:
+            # Validate file size
             if picture.size > 2 * 1024 * 1024:
+                logger.warning(f"Profile picture size too large: {picture.size} bytes.")
                 raise ValidationError("Image file too large ( > 2MB ).")
-            content_type = picture.content_type
-            if content_type not in ["image/jpeg", "image/png", "image/gif"]:
-                raise ValidationError(
-                    "Unsupported file type. Only JPEG, PNG, and GIF are allowed."
-                )
-            # Validate image dimensions
-            from PIL import Image
+
+            # Validate content type using Pillow
             try:
                 img = Image.open(picture)
+                img_format = img.format.lower()
+                if img_format not in ['jpeg', 'png', 'gif']:
+                    logger.warning(f"Unsupported image format: {img_format}.")
+                    raise ValidationError("Unsupported file type. Only JPEG, PNG, and GIF are allowed.")
+
+                # Validate image dimensions
                 max_width, max_height = 2000, 2000
                 if img.width > max_width or img.height > max_height:
+                    logger.warning(
+                        f"Image dimensions too large: {img.width}x{img.height}px."
+                    )
                     raise ValidationError(
                         f"Image dimensions should not exceed {max_width}x{max_height} pixels."
                     )
-            except Exception:
+            except ValidationError as ve:
+                # Re-raise validation errors
+                raise ve
+            except Exception as e:
+                logger.error(f"Error processing profile picture: {e}")
                 raise ValidationError("Invalid image file.")
         else:
-            # No profile picture provided, no validation needed
-            pass
+            logger.debug("No profile picture uploaded.")
         return picture
-
 
 class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
     """
@@ -893,7 +917,6 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
         """
         postcode = self.cleaned_data.get("postcode", "").strip()
         if not postcode:
-            
             return postcode
         # UK postcode regex
         uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
@@ -931,6 +954,17 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
             raise ValidationError("Longitude must be between -180 and 180.")
         return longitude
 
+    def clean_travel_radius(self):
+        """
+        Ensures that travel_radius defaults to 0.0 if not provided.
+        """
+        travel_radius = self.cleaned_data.get("travel_radius")
+        if travel_radius is None:
+            return 0.0
+        if travel_radius < 0 or travel_radius > 50:
+            raise ValidationError("Travel radius must be between 0 and 50 miles.")
+        return travel_radius
+
     def save(self, commit=True):
         """
         Override save method to update Profile.
@@ -939,7 +973,6 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
         if commit:
             profile.save()
         return profile
-
 
 class UserForm(UserCreationForm):
     """
@@ -1045,7 +1078,6 @@ class UserForm(UserCreationForm):
             raise forms.ValidationError("A user with this email already exists.")
         return email
 
-
 class UserUpdateForm(UserChangeForm):
     """
     Form for updating users via Class-Based Views without changing the password.
@@ -1136,7 +1168,6 @@ class UserUpdateForm(UserChangeForm):
             raise forms.ValidationError("This email is already in use.")
         return email
 
-
 class StaffCreationForm(AddressFormMixin, UserCreationForm):
     """
     Form for agency managers to add new staff members.
@@ -1176,6 +1207,72 @@ class StaffCreationForm(AddressFormMixin, UserCreationForm):
                 "placeholder": "Enter travel radius (in miles)",
             }
         ),
+    )
+
+    # Address fields
+    address_line1 = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control address-autocomplete",
+            "placeholder": "Enter address line 1",
+            "autocomplete": "address-line1",
+        })
+    )
+    address_line2 = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter address line 2",
+            "autocomplete": "address-line2",
+        })
+    )
+    city = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter city",
+            "autocomplete": "address-level2",
+        })
+    )
+    county = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter county",
+            "autocomplete": "administrative-area",
+        })
+    )
+    country = forms.CharField(
+        max_length=100,
+        required=False,
+        initial="UK",
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter country",
+            "readonly": "readonly",
+            "autocomplete": "country-name",
+        })
+    )
+    postcode = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter postcode",
+            "autocomplete": "postal-code",
+        })
+    )
+    latitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    longitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput(),
     )
 
     class Meta:
@@ -1242,6 +1339,17 @@ class StaffCreationForm(AddressFormMixin, UserCreationForm):
             raise ValidationError("An active invitation for this email already exists.")
         return email
 
+    def clean_travel_radius(self):
+        """
+        Ensures that travel_radius defaults to 0.0 if not provided.
+        """
+        travel_radius = self.cleaned_data.get("travel_radius")
+        if travel_radius is None:
+            return 0.0
+        if travel_radius < 0 or travel_radius > 50:
+            raise ValidationError("Travel radius must be between 0 and 50 miles.")
+        return travel_radius
+
     def save(self, commit=True):
         """
         Saves the user, assigns to 'Agency Staff' group, and creates an associated Profile.
@@ -1252,8 +1360,10 @@ class StaffCreationForm(AddressFormMixin, UserCreationForm):
 
         if commit:
             user.save()
+            # Assign user to 'Agency Staff' group
             assign_user_to_group(user, "Agency Staff")
 
+            # Associate user with the agency if available
             if (
                 self.request
                 and hasattr(self.request.user, "profile")
@@ -1262,18 +1372,25 @@ class StaffCreationForm(AddressFormMixin, UserCreationForm):
                 agency = self.request.user.profile.agency
                 profile, created = Profile.objects.get_or_create(user=user)
                 profile.agency = agency
-                profile.travel_radius = self.cleaned_data.get("travel_radius", 0)
+                profile.travel_radius = self.cleaned_data.get("travel_radius") or 0.0
+                profile.address_line1 = self.cleaned_data.get("address_line1")
+                profile.address_line2 = self.cleaned_data.get("address_line2")
+                profile.city = self.cleaned_data.get("city")
+                profile.county = self.cleaned_data.get("county")
+                profile.country = self.cleaned_data.get("country") or "UK"
+                profile.postcode = self.cleaned_data.get("postcode")
+                profile.latitude = self.cleaned_data.get("latitude")
+                profile.longitude = self.cleaned_data.get("longitude")
                 profile.save()
             else:
                 profile, created = Profile.objects.get_or_create(user=user)
-                profile.travel_radius = self.cleaned_data.get("travel_radius", 0)
+                profile.travel_radius = self.cleaned_data.get("travel_radius") or 0.0
                 profile.save()
 
-            # Log the creation of a new staff member
+            # Log the creation of a new user
             logger.info(f"New staff member created: {user.username}")
 
         return user
-
 
 class StaffUpdateForm(AddressFormMixin, forms.ModelForm):
     """
@@ -1374,12 +1491,13 @@ class StaffUpdateForm(AddressFormMixin, forms.ModelForm):
 
     def clean_travel_radius(self):
         """
-        Validates the travel radius value.
+        Ensures that travel_radius defaults to 0.0 if not provided.
         """
         travel_radius = self.cleaned_data.get("travel_radius")
-        if travel_radius is not None:
-            if travel_radius < 0 or travel_radius > 50:
-                raise ValidationError("Travel radius must be between 0 and 50 miles.")
+        if travel_radius is None:
+            return 0.0
+        if travel_radius < 0 or travel_radius > 50:
+            raise ValidationError("Travel radius must be between 0 and 50 miles.")
         return travel_radius
 
     def save(self, commit=True):
@@ -1393,16 +1511,13 @@ class StaffUpdateForm(AddressFormMixin, forms.ModelForm):
             user.save()
             # Update profile
             profile, created = Profile.objects.get_or_create(user=user)
-            profile.travel_radius = self.cleaned_data.get(
-                "travel_radius", profile.travel_radius
-            )
+            profile.travel_radius = self.cleaned_data.get("travel_radius") or 0.0
             profile.save()
 
             # Log the update
             logger.info(f"Staff member updated: {user.username}")
 
         return user
-
 
 class ActivateTOTPForm(forms.Form):
     totp_code = forms.CharField(
@@ -1413,10 +1528,8 @@ class ActivateTOTPForm(forms.Form):
         label="Enter TOTP Code",
     )
 
-
 class RecoveryCodeForm(forms.Form):
     recovery_code = forms.CharField(max_length=8, required=True, label="Recovery Code")
-
 
 class MFAForm(forms.Form):
     totp_code = forms.CharField(
