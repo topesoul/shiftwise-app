@@ -1,84 +1,9 @@
 /* /workspace/shiftwise/static/css/responsive.css */
 
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-  .hero-section {
-    padding: 2rem 1rem;
-  }
+/* =========================================
+   General Responsive Adjustments
+========================================= */
 
-  .hero-section h1 {
-    font-size: 2rem;
-  }
-
-  .hero-section p.lead {
-    font-size: 1rem;
-  }
-
-  .hero-background-image {
-    height: 200px;
-  }
-}
-
-.card-body {
-  padding: 1rem;
-}
-
-.btn {
-  font-size: 0.9rem;
-  padding: 0.6rem 1rem;
-}
-
-.social-button {
-  font-size: 1rem;
-  padding: 0.5rem 1rem;
-}
-
-.form-inline .form-control, .form-inline .btn {
-    width: 100%;
-    margin-bottom: 0.5rem;
-}
-.table-action-button {
-    width: 100%;
-    margin-bottom: 0.5rem;
-}
-
-/* Navbar adjustments */
-.navbar-nav {
-    text-align: center;
-}
-.navbar-nav .nav-item {
-    margin: 0.5rem 0;
-}
-
-/* Hover and Transition Effects */
-.card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.15);
-}
-
-/* Default styling for table actions */
-.table-action {
-    display: inline-block;
-    margin-right: 0.5rem;
-}
-
-/* Mobile styling for table actions */
-@media (max-width: 768px) {
-    .table-action {
-        display: block;
-        margin-bottom: 0.5rem;
-    }
-
-    .table-action-button {
-        width: 100%;
-        text-align: center;
-    }
-}
-
-/* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
     .form-inline .form-control, .form-inline .btn {
         width: 100%;
@@ -90,44 +15,77 @@
     }
 }
 
-/* Responsive adjustments for action buttons and search bar on smaller screens */
-@media (max-width: 768px) {
-    .d-flex.flex-wrap.justify-content-between.align-items-center {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .d-flex.flex-wrap.justify-content-between.align-items-center > * {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    .form-inline {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-    }
-    .form-inline .form-control {
-        margin-bottom: 10px;
-    }
-    .form-inline .btn {
-        align-self: flex-start;
-    }
-}
-
-.navbar {
-  width: 100%;
-}
-
-.logo {
-  height: 40px;
-  width: auto;
-}
-
-/* Responsive Navbar Fix */
+/* Navbar Adjustments */
 @media (max-width: 992px) {
-  .navbar-nav {
-      text-align: center;
-  }
-  .navbar-nav .nav-item {
-      margin: 0.5rem 0;
-  }
+    .navbar-nav {
+        text-align: center;
+    }
+    .navbar-nav .nav-item {
+        margin: 0.5rem 0;
+    }
+}
+
+/* Subscription Toggle Button Spacing */
+@media (max-width: 576px) {
+    .subscription-toggle .btn {
+        margin-right: 5px;
+    }
+}
+
+/* =========================================
+   Testimonials Section Responsiveness
+========================================= */
+
+@media (max-width: 768px) {
+    .container.my-5.text-center h2 {
+        font-size: 2rem;
+    }
+    .container.my-5.text-center .card {
+        margin-bottom: 1.5rem;
+    }
+    .container.my-5.text-center .card-title {
+        font-size: 1.25rem;
+    }
+    .container.my-5.text-center .card-text {
+        font-size: 0.95rem;
+    }
+}
+
+/* =========================================
+   Hero Section Responsiveness
+========================================= */
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem 1rem;
+    }
+    .hero-overlay {
+        padding: 2rem;
+    }
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    .hero-section p.lead {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-section h1 {
+        font-size: 1.75rem;
+    }
+    .hero-section p.lead {
+        font-size: 0.9rem;
+    }
+}
+
+/* =========================================
+   Table Responsiveness
+========================================= */
+
+@media (max-width: 768px) {
+    .table th, .table td {
+        padding: 0.75rem;
+        font-size: var(--font-size-sm);
+    }
 }
