@@ -1,8 +1,12 @@
 /* /workspace/shiftwise/static/css/base.css */
 
-/* Root Variables */
+/* =========================================
+   Root Variables
+========================================= */
+
+/* Light Mode Variables */
 :root {
-    /* Color palette */
+    /* Color Palette */
     --primary-gradient-start: #00b4d8;
     --primary-gradient-end: #8e44ad;
     --secondary-color: #6c757d;
@@ -24,15 +28,43 @@
     /* Spacing and Radius */
     --border-radius: 0.5rem;
     --transition-speed: 0.3s;
+
+    /* Additional Variables */
+    --box-shadow-light: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --box-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.2);
+    
+    /* Text Color */
+    --text-color: #2d3436; /* Dark text for light mode */
 }
+
+/* Dark Mode Variables */
+.dark-mode {
+    /* Override Color Palette for Dark Mode */
+    --background-color: #121212;
+    --text-color: #ffffff; /* Light text for dark mode */
+    --primary-gradient-start: #1e3c72;
+    --primary-gradient-end: #2a5298;
+    --secondary-color: #adb5bd;
+    --accent-color: #ff6f61;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --dark-color: #ffffff;
+    --light-color: #121212;
+}
+
+/* =========================================
+   Base Styles
+========================================= */
 
 body {
     font-family: var(--font-family);
     font-size: var(--font-size-base);
     background-color: var(--background-color);
-    color: var(--dark-color);
+    color: var(--text-color);
     line-height: 1.6;
-    transition: background-color var(--transition-speed);
+    transition: background-color var(--transition-speed), color var(--transition-speed);
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
 }
@@ -40,6 +72,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     margin-bottom: 1rem;
+    color: var(--text-color);
 }
 
 a {
@@ -51,69 +84,19 @@ a:hover {
     color: var(--accent-color);
 }
 
-/* Default Card and Button Shadows */
+/* =========================================
+   Utility Classes
+========================================= */
+
+/* Shadows */
 .shadow {
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--box-shadow-light);
 }
 
-/* Logo Styling */
+/* Logos */
 .logo {
-    height: 30px;
+    height: 40px;
     width: auto;
-}
-
-/* Active nav item glow effect */
-.navbar-nav .nav-item.active .nav-link,
-.navbar-nav .nav-item.active .btn {
-    background-color: rgba(255, 255, 255, 0.2) !important;
-    border-radius: var(--border-radius);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* Custom "View Shifts" Button in Navbar */
-.navbar-nav .btn {
-    background-color: var(--success-color);
-    color: #fff !important;
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius);
-    transition: all var(--transition-speed);
-    display: flex;
-    align-items: center;
-}
-
-.navbar-nav .btn:hover,
-.navbar-nav .nav-item.active .btn {
-    background-color: #218838 !important;
-    color: #fff !important;
-    text-decoration: none;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-.navbar-nav .nav-link:focus,
-.navbar-nav .btn:focus {
-    outline: none;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
-}
-
-/* Form Button Styling */
-.btn {
-    border-radius: var(--border-radius);
-    padding: 0.75rem 1.25rem;
-    font-weight: 500;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-    transition: all var(--transition-speed);
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* Active nav item glow effect in dark mode */
-.dark-mode .navbar-nav .nav-item.active .nav-link,
-.dark-mode .navbar-nav .nav-item.active .btn {
-    background-color: rgba(0, 0, 0, 0.2) !important;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 /* Badge Styles for Notifications */
@@ -123,29 +106,139 @@ a:hover {
     right: 10px;
 }
 
-/* Adjustments for Notifications Dropdown */
-.navbar-nav .dropdown-menu a.dropdown-item {
-    display: flex;
-    align-items: center;
-}
-
-.navbar-nav .dropdown-menu a.dropdown-item i {
-    margin-right: 8px;
-}
-
-.container {
-    max-width: 1140px; /* Default Bootstrap container max-width */
-    margin: 0 auto;
-    padding: 0 15px;
-}
-
-nav.navbar {
-    width: 100%;
-}
-
 /* Scrollable Dropdown */
 .dropdown-menu {
     max-height: 300px;
     overflow-y: auto;
 }
 
+/* =========================================
+   Dark Mode Specific Styles
+========================================= */
+
+/* Navbar and Footer */
+.dark-mode .navbar, .dark-mode .footer {
+    background-color: #1f1f1f;
+}
+
+/* Table Head */
+.dark-mode .table thead {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+/* Table Body */
+.dark-mode .table tbody {
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+
+.dark-mode .table tbody tr {
+    border-bottom: 1px solid #444;
+}
+
+.dark-mode .table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Buttons */
+.dark-mode .btn {
+    background-color: #444;
+    color: #fff;
+    border-color: #555;
+}
+.dark-mode .btn:hover {
+    background-color: #555;
+    border-color: #666;
+}
+
+/* Footer Links */
+.dark-mode footer a {
+    color: #bb86fc;
+}
+.dark-mode footer a:hover {
+    color: var(--accent-color);
+}
+
+/* Alerts */
+.dark-mode .alert {
+    background-color: #333333;
+    color: #ffffff;
+}
+.dark-mode .alert .close {
+    color: #ffffff;
+}
+
+/* Navbar Links */
+.dark-mode .navbar-light .navbar-nav .nav-link {
+    color: #ffffff;
+}
+.dark-mode .navbar-light .navbar-nav .nav-link:hover {
+    color: #bb86fc;
+}
+
+/* Cards */
+.dark-mode .card {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #444;
+}
+.dark-mode .card-header {
+    background-color: #2c2c2c;
+    color: #ffffff;
+}
+.dark-mode .card-body {
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+
+/* Modals */
+.dark-mode .modal-content {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #444;
+}
+.dark-mode .modal-header {
+    background-color: #2c2c2c;
+    color: #ffffff;
+}
+.dark-mode .modal-body {
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+.dark-mode .modal-footer {
+    background-color: #2c2c2c;
+    color: #ffffff;
+}
+
+/* Form Controls */
+.dark-mode .form-control {
+    background-color: #2c2c2c;
+    color: #ffffff;
+    border-color: #555;
+}
+.dark-mode .form-control:focus {
+    background-color: #2c2c2c;
+    color: #ffffff;
+    border-color: #777;
+}
+
+/* Form Check Inputs */
+.dark-mode .form-check-input {
+    background-color: #1e1e1e;
+    border-color: #555;
+}
+.dark-mode .form-check-label {
+    color: #ffffff;
+}
+
+/* Secondary Buttons */
+.dark-mode .btn-secondary {
+    background-color: #555;
+    color: #fff;
+    border-color: #666;
+}
+.dark-mode .btn-secondary:hover {
+    background-color: #666;
+    border-color: #777;
+}
