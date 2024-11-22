@@ -12,21 +12,44 @@
 <div class="container mt-5">
     <h1 class="mb-4">Agency Dashboard</h1>
 
-    <!-- Agency Information Card -->
-    <div class="card mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h3>Agency Information</h3>
+    <!-- Agency Information Cards -->
+    {% if agency %}
+        <!-- Single Agency Information Card for Non-Superusers -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h3>Agency Information</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ agency.name }}</p>
+                <p><strong>Agency Code:</strong> {{ agency.agency_code }}</p>
+                <p><strong>Type:</strong> {{ agency.get_agency_type_display }}</p>
+                <p><strong>Address:</strong> {{ agency.address_line1 }}, {% if agency.address_line2 %}{{ agency.address_line2 }}, {% endif %}{{ agency.city }}, {{ agency.county }}, {{ agency.country }}, {{ agency.postcode }}</p>
+                <p><strong>Email:</strong> <a href="mailto:{{ agency.email }}">{{ agency.email }}</a></p>
+                <p><strong>Phone Number:</strong> <a href="tel:{{ agency.phone_number }}">{{ agency.phone_number }}</a></p>
+                <p><strong>Website:</strong> {% if agency.website %}<a href="{{ agency.website }}" target="_blank">{{ agency.website }}</a>{% else %}N/A{% endif %}</p>
+            </div>
         </div>
-        <div class="card-body">
-            <p><strong>Name:</strong> {{ agency.name }}</p>
-            <p><strong>Agency Code:</strong> {{ agency.agency_code }}</p>
-            <p><strong>Type:</strong> {{ agency.get_agency_type_display }}</p>
-            <p><strong>Address:</strong> {{ agency.address_line1 }}, {% if agency.address_line2 %}{{ agency.address_line2 }}, {% endif %}{{ agency.city }}, {{ agency.county }}, {{ agency.country }}, {{ agency.postcode }}</p>
-            <p><strong>Email:</strong> <a href="mailto:{{ agency.email }}">{{ agency.email }}</a></p>
-            <p><strong>Phone Number:</strong> <a href="tel:{{ agency.phone_number }}">{{ agency.phone_number }}</a></p>
-            <p><strong>Website:</strong> {% if agency.website %}<a href="{{ agency.website }}" target="_blank">{{ agency.website }}</a>{% else %}N/A{% endif %}</p>
-        </div>
-    </div>
+    {% elif agencies %}
+        <!-- Multiple Agencies Information Cards for Superusers -->
+        {% for agency in agencies %}
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h3>Agency Information: {{ agency.name }}</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ agency.name }}</p>
+                    <p><strong>Agency Code:</strong> {{ agency.agency_code }}</p>
+                    <p><strong>Type:</strong> {{ agency.get_agency_type_display }}</p>
+                    <p><strong>Address:</strong> {{ agency.address_line1 }}, {% if agency.address_line2 %}{{ agency.address_line2 }}, {% endif %}{{ agency.city }}, {{ agency.county }}, {{ agency.country }}, {{ agency.postcode }}</p>
+                    <p><strong>Email:</strong> <a href="mailto:{{ agency.email }}">{{ agency.email }}</a></p>
+                    <p><strong>Phone Number:</strong> <a href="tel:{{ agency.phone_number }}">{{ agency.phone_number }}</a></p>
+                    <p><strong>Website:</strong> {% if agency.website %}<a href="{{ agency.website }}" target="_blank">{{ agency.website }}</a>{% else %}N/A{% endif %}</p>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">No agency information available.</p>
+    {% endif %}
 
     <!-- Assigned Shifts Table -->
     <h2>Assigned Shifts</h2>
