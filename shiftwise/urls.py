@@ -1,3 +1,5 @@
+# /workspace/shiftwise/shiftwise/urls.py
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -13,9 +15,7 @@ from shifts.views.custom_views import (
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("shifts/", include("shifts.urls", namespace="shifts")),
-    path(
-        "accounts/", include(("accounts.urls", "accounts"), namespace="accounts")
-    ),  # Custom accounts
+    path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
     path("auth/", include("allauth.urls")),  # Allauth under 'auth/'
     path("contact/", include("contact.urls", namespace="contact")),
     path("subscriptions/", include("subscriptions.urls", namespace="subscriptions")),
@@ -32,7 +32,7 @@ handler500 = "shifts.views.custom_views.custom_server_error_view"
 if settings.DEBUG:
     import debug_toolbar
 
-    urlpatterns = [
-        path("__debug__/", include(debug_toolbar.urls)),
-    ] + urlpatterns
+    urlpatterns += [
+        path("__debug__/", include('debug_toolbar.urls', namespace='debug_toolbar')),
+    ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
