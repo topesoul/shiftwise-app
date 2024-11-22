@@ -1,3 +1,5 @@
+# /workspace/shiftwise/shiftwise/settings.py
+
 import os
 import sys
 from pathlib import Path
@@ -13,8 +15,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
 SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise ImproperlyConfigured("SECRET_KEY must be set in environment variables.")
+if not SECRET_KEY or len(SECRET_KEY) < 50 or SECRET_KEY.startswith('django-insecure-'):
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be set in environment variables with at least 50 characters and not start with 'django-insecure-'."
+    )
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
@@ -64,6 +68,7 @@ INSTALLED_APPS = [
     "django_filters",
     # Additional apps
     "django.contrib.humanize",
+    'debug_toolbar',
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap4"
@@ -72,6 +77,8 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # For static files
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # Debug Toolbar middleware
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     # Allauth middlewares
     "allauth.account.middleware.AccountMiddleware",
     "allauth.usersessions.middleware.UserSessionsMiddleware",
@@ -85,6 +92,43 @@ MIDDLEWARE = [
 ROOT_URLCONF = "shiftwise.urls"
 
 SITE_URL = os.getenv("SITE_URL")
+
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
+
+GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                # Default context processors
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",  # Required by allauth
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                # Custom context processors
+                "accounts.context_processors.user_roles_and_subscriptions",
+                "shiftwise.context_processors.google_places_api_key",
+            ],
+            "builtins": [
+                "django.templatetags.static",
+            ],
+        },
+    },
+]
+
+ROOT_URLCONF = "shiftwise.urls"
+
+SITE_URL = os.getenv("SITE_URL")
+
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
@@ -212,7 +256,7 @@ ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 if DEBUG:
     # Development: Use Console Email Backend
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@localhost")
 else:
     # Production: Use SMTP Email Backend (SendGrid)
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -299,3 +343,7 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    
+    # Additional Security Settings
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
