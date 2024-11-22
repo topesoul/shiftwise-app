@@ -354,8 +354,6 @@ class ShiftCompleteForUserView(
                 shift=shift, worker=user_to_complete
             )
 
-            # At this point, the worker has an agency and matches the shift's agency
-
             # Update assignment with completion data
             if data:
                 assignment.signature = data
@@ -437,11 +435,7 @@ class ShiftCompleteAjaxView(
         longitude = request.POST.get("longitude")
         attendance_status = request.POST.get(
             "attendance_status"
-        )  # Capture attendance status from AJAX
-
-        # 'signature' can be optional
-        # 'latitude' and 'longitude' can be optional
-        # So, adjust validation accordingly
+        )
 
         # Handle signature if provided
         if signature:
