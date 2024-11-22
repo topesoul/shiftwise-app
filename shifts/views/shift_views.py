@@ -4,6 +4,7 @@ import logging
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import (
@@ -14,6 +15,7 @@ from django.db.models import (
     F,
     OuterRef,
     Q,
+    Sum,
     When,
 )
 from django.shortcuts import get_object_or_404, redirect
@@ -32,7 +34,12 @@ from core.mixins import (
     FeatureRequiredMixin,
     SubscriptionRequiredMixin,
 )
-from shifts.forms import ShiftForm, ShiftFilterForm, AssignWorkerForm
+from shifts.forms import (
+    ShiftForm,
+    ShiftFilterForm,
+    AssignWorkerForm,
+    ShiftCompletionForm,
+)
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import generate_shift_code, haversine_distance
 
@@ -59,6 +66,7 @@ class ShiftListView(
     template_name = "shifts/shift_list.html"
     context_object_name = "shifts"
     paginate_by = 10
+    ordering = ["shift_date", "start_time"] 
 
     def get_queryset(self):
         user = self.request.user
@@ -155,6 +163,10 @@ class ShiftListView(
         context = super().get_context_data(**kwargs)
         context["filter_form"] = self.filter_form
         return context
+
+
+
+
 
 
 class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, DetailView):
@@ -273,7 +285,13 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
             context["assign_forms"] = []
             context["role_choices"] = ShiftAssignment.ROLE_CHOICES
 
+        # Add ShiftCompletionForm to context if the modal is included
+        if self.request.user.is_superuser or user.groups.filter(name="Agency Managers").exists() or user.groups.filter(name="Agency Staff").exists():
+            if not shift.is_completed and shift.is_active:
+                context['form'] = ShiftCompletionForm()
+
         return context
+
 
 
 class ShiftCreateView(
@@ -312,7 +330,7 @@ class ShiftCreateView(
         Pass the user instance to the form to handle conditional fields.
         """
         kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
+        kwargs["user"] = self.request.user  # Pass the user to the form
         return kwargs
 
     def form_valid(self, form):
@@ -320,9 +338,8 @@ class ShiftCreateView(
         if self.request.user.is_superuser:
             # Superuser must assign an agency if provided
             agency = form.cleaned_data.get("agency")
-            # Agency is optional; no action needed if not provided
-            if agency:
-                shift.agency = agency
+            # Agency is required; form validation ensures it's provided
+            shift.agency = agency
         else:
             # Agency managers assign shifts to their own agency
             agency = self.request.user.profile.agency
@@ -369,6 +386,7 @@ class ShiftCreateView(
         context["GOOGLE_PLACES_API_KEY"] = settings.GOOGLE_PLACES_API_KEY
         context["form_title"] = "Create Shift"
         return context
+
 
 
 class ShiftUpdateView(
@@ -437,25 +455,31 @@ class ShiftUpdateView(
         return context
 
 
+
 class ShiftDeleteView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
+    SuccessMessageMixin,
     DeleteView,
 ):
     """
-    Allows agency managers and superusers to delete shifts.
-    Superusers can delete any shift regardless of agency association.
+    Allows agency managers and superusers to deactivate a shift.
+    Superusers can deactivate any shift regardless of agency association.
     """
 
     required_features = ["shift_management"]
     model = Shift
     template_name = "shifts/shift_confirm_delete.html"
     success_url = reverse_lazy("shifts:shift_list")
+    success_message = "Shift deleted successfully."
 
     def delete(self, request, *args, **kwargs):
         shift = self.get_object()
-        logger.info(f"Shift '{shift.name}' deleted by {request.user.username}.")
-        messages.success(request, "Shift deleted successfully.")
+        shift.is_active = False
+        shift.save()
+        logger.info(
+            f"Shift '{shift.name}' deactivated by user {request.user.username}."
+        )
         return super().delete(request, *args, **kwargs)
