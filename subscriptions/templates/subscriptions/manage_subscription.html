@@ -1,125 +1,98 @@
 <!-- /workspace/shiftwise/subscriptions/templates/subscriptions/manage_subscription.html -->
 
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% load static %}
-{% load crispy_forms_tags %}
+{% load custom_filters %}
 {% load custom_tags %}
 
 {% block title %}Manage Subscription - ShiftWise{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h3>Manage Your Subscription</h3>
-        <hr>
-    </div>
-</div>
+<div class="container my-5">
+    <h2 class="text-center mb-4">Manage Your Subscription</h2>
 
-<div class="row">
-    <!-- Current Subscription Details -->
-    <div class="col-md-6">
+    {% if has_active_subscription %}
         <div class="card mb-4">
-            <div class="card-header">
-                <h5>Current Subscription</h5>
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Subscription Details</h5>
             </div>
             <div class="card-body">
-                {% if subscription %}
-                    <p><strong>Plan:</strong> {{ subscription.plan.name }}</p>
-                    <p><strong>Status:</strong> {{ subscription.is_active|yesno:"Active,Inactive" }}</p>
-                    <p><strong>Current Period Start:</strong> {{ subscription.current_period_start|date:"F j, Y" }}</p>
-                    <p><strong>Current Period Ends:</strong> {{ subscription.current_period_end|date:"F j, Y" }}</p>
-                    <p><strong>Stripe Subscription ID:</strong> {{ subscription.stripe_subscription_id }}</p>
-                {% else %}
-                    <p>You currently have no active subscription.</p>
-                {% endif %}
+                <p><strong>Plan:</strong> {{ current_plan.name }}</p>
+                <p><strong>Status:</strong> {{ subscription.status|title }}</p>
+                <p><strong>Current Period Start:</strong> {{ subscription.current_period_start|date:"F j, Y" }}</p>
+                <p><strong>Current Period Ends:</strong> {{ subscription.current_period_end|date:"F j, Y" }}</p>
+                <p><strong>Stripe Subscription ID:</strong> {{ subscription.stripe_subscription_id }}</p>
             </div>
         </div>
-    </div>
 
-    <!-- Subscription Actions -->
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>Actions</h5>
+        <!-- Subscription Actions -->
+        <div class="row">
+            <!-- Upgrade Subscription -->
+            {% if upgrade_plans %}
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Upgrade Subscription</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for plan in upgrade_plans %}
+                                <form method="post" action="{% url 'subscriptions:upgrade_subscription' plan.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-block mb-2">
+                                        <i class="fas fa-arrow-up"></i> Upgrade to {{ plan.name }} (£{{ plan.price|floatformat:2 }})
+                                    </button>
+                                </form>
+                            {% empty %}
+                                <p>No higher-tier plans available.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Downgrade Subscription -->
+            {% if downgrade_plans %}
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">Downgrade Subscription</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for plan in downgrade_plans %}
+                                <form method="post" action="{% url 'subscriptions:downgrade_subscription' plan.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-warning btn-block mb-2">
+                                        <i class="fas fa-arrow-down"></i> Downgrade to {{ plan.name }} (£{{ plan.price|floatformat:2 }})
+                                    </button>
+                                </form>
+                            {% empty %}
+                                <p>No lower-tier plans available.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Cancel Subscription -->
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">Cancel Subscription</h5>
             </div>
             <div class="card-body">
-                {% if subscription %}
-                    <!-- Upgrade Subscription Button -->
-                    <a href="{% url 'subscriptions:upgrade_subscription' %}" class="btn btn-success btn-block mb-2">
-                        <i class="fas fa-arrow-up"></i> Upgrade Subscription
-                    </a>
-                    <!-- Downgrade Subscription Button -->
-                    <a href="{% url 'subscriptions:downgrade_subscription' %}" class="btn btn-warning btn-block mb-2">
-                        <i class="fas fa-arrow-down"></i> Downgrade Subscription
-                    </a>
-                    <!-- Cancel Subscription Button -->
-                    <form action="{% url 'subscriptions:cancel_subscription' %}" method="post">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger btn-block" onclick="return confirm('Are you sure you want to cancel your subscription? This action cannot be undone.');">
-                            <i class="fas fa-ban"></i> Cancel Subscription
-                        </button>
-                    </form>
-                    <!-- Update Payment Method Button -->
-                    <a href="{% url 'subscriptions:update_payment_method' %}" class="btn btn-info btn-block mt-3">
-                        <i class="fas fa-credit-card"></i> Update Payment Method
-                    </a>
-                {% else %}
-                    <!-- View Subscription Plans Button -->
-                    <a href="{% url 'subscriptions:subscription_home' %}" class="btn btn-primary btn-block">
-                        <i class="fas fa-shopping-cart"></i> View Subscription Plans
-                    </a>
-                {% endif %}
+                <form action="{% url 'subscriptions:cancel_subscription' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-block" onclick="return confirm('Are you sure you want to cancel your subscription? This action cannot be undone.');">
+                        <i class="fas fa-trash-alt"></i> Cancel Subscription
+                    </button>
+                </form>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Display All Subscriptions -->
-<div class="row">
-    <div class="col-md-12">
-        <h4>All Subscriptions</h4>
-        <hr>
-        {% if subscriptions.data %}
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>Subscription ID</th>
-                            <th>Plan</th>
-                            <th>Status</th>
-                            <th>Current Period End</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for sub in subscriptions.data %}
-                            <tr>
-                                <td>{{ sub.id }}</td>
-                                <td>
-                                    {% with price_id=sub.items.data.0.price.id %}
-                                        {{ price_id|get_plan_name }}
-                                    {% endwith %}
-                                </td>
-                                <td>{{ sub.status|capfirst }}</td>
-                                <td>{{ sub.current_period_end|date:"F j, Y" }}</td>
-                                <td>
-                                    {% if sub.status == "active" %}
-                                        <a href="{{ billing_portal_url }}" class="btn btn-sm btn-primary" target="_blank">
-                                            <i class="fas fa-cogs"></i> Manage
-                                        </a>
-                                    {% else %}
-                                        <span class="badge badge-secondary">N/A</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p>You have no subscriptions.</p>
-        {% endif %}
-    </div>
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            You do not have an active subscription. <a href="{% url 'subscriptions:subscription_home' %}">Subscribe now</a>.
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
