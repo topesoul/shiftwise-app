@@ -797,9 +797,10 @@ class ProfilePictureForm(forms.ModelForm):
         picture = self.cleaned_data.get("profile_picture", False)
         if picture:
             # Validate file size
-            if picture.size > 2 * 1024 * 1024:
+            max_file_size = 5 * 1024 * 1024  # Set maximum file size to 5MB
+            if picture.size > max_file_size:
                 logger.warning(f"Profile picture size too large: {picture.size} bytes.")
-                raise ValidationError("Image file too large ( > 2MB ).")
+                raise ValidationError("Image file too large ( > 5MB ).")
 
             # Validate content type using Pillow
             try:
@@ -809,15 +810,6 @@ class ProfilePictureForm(forms.ModelForm):
                     logger.warning(f"Unsupported image format: {img_format}.")
                     raise ValidationError("Unsupported file type. Only JPEG, PNG, and GIF are allowed.")
 
-                # Validate image dimensions
-                max_width, max_height = 2000, 2000
-                if img.width > max_width or img.height > max_height:
-                    logger.warning(
-                        f"Image dimensions too large: {img.width}x{img.height}px."
-                    )
-                    raise ValidationError(
-                        f"Image dimensions should not exceed {max_width}x{max_height} pixels."
-                    )
             except ValidationError as ve:
                 # Re-raise validation errors
                 raise ve
