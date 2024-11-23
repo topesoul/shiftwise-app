@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     "django_filters",
     # Additional apps
     "django.contrib.humanize",
-    'debug_toolbar',
+    #'debug_toolbar',
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap4"
@@ -78,7 +78,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",  # For static files
     "django.contrib.sessions.middleware.SessionMiddleware",
     # Debug Toolbar middleware
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    #'debug_toolbar.middleware.DebugToolbarMiddleware',
     # Allauth middlewares
     "allauth.account.middleware.AccountMiddleware",
     "allauth.usersessions.middleware.UserSessionsMiddleware",
@@ -93,9 +93,11 @@ ROOT_URLCONF = "shiftwise.urls"
 
 SITE_URL = os.getenv("SITE_URL")
 
+"""
 INTERNAL_IPS = [
     '127.0.0.1',
 ]
+"""
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
@@ -127,7 +129,7 @@ ROOT_URLCONF = "shiftwise.urls"
 SITE_URL = os.getenv("SITE_URL")
 
 INTERNAL_IPS = [
-    '127.0.0.1',
+    #'127.0.0.1',
 ]
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
@@ -253,22 +255,11 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 # Email configuration
-if DEBUG:
-    # Development: Use Console Email Backend
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@localhost")
-else:
-    # Production: Use SMTP Email Backend (SendGrid)
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = "smtp.sendgrid.net"
-    EMAIL_HOST_USER = "apikey"  # This is the string 'apikey' for SendGrid
-    EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 
 ADMINS = [
-    ("Admin Name", "support@shiftwiseapp.com"),
+    (os.getenv("ADMIN_NAME", "Admin Name"), os.getenv("ADMIN_EMAIL", "admin@example.com")),
 ]
 
 # Stripe configuration
