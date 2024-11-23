@@ -9,7 +9,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 # Load environment variables from env.py if it exists
 if os.path.exists("env.py"):
-    import env
+    import env  # noqa
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -66,9 +66,10 @@ INSTALLED_APPS = [
     "crispy_bootstrap4",
     "django_extensions",
     "django_filters",
+    "storages",
     # Additional apps
     "django.contrib.humanize",
-    #'debug_toolbar',
+    # 'debug_toolbar',
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap4"
@@ -78,7 +79,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",  # For static files
     "django.contrib.sessions.middleware.SessionMiddleware",
     # Debug Toolbar middleware
-    #'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     # Allauth middlewares
     "allauth.account.middleware.AccountMiddleware",
     "allauth.usersessions.middleware.UserSessionsMiddleware",
@@ -92,45 +93,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = "shiftwise.urls"
 
 SITE_URL = os.getenv("SITE_URL")
-
-"""
-INTERNAL_IPS = [
-    '127.0.0.1',
-]
-"""
-
-GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
-
-TEMPLATES = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                # Default context processors
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",  # Required by allauth
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-                # Custom context processors
-                "accounts.context_processors.user_roles_and_subscriptions",
-                "shiftwise.context_processors.google_places_api_key",
-            ],
-            "builtins": [
-                "django.templatetags.static",
-            ],
-        },
-    },
-]
-
-ROOT_URLCONF = "shiftwise.urls"
-
-SITE_URL = os.getenv("SITE_URL")
-
-INTERNAL_IPS = [
-    #'127.0.0.1',
-]
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
@@ -160,28 +122,20 @@ TEMPLATES = [
 WSGI_APPLICATION = "shiftwise.wsgi.application"
 
 # Database configuration
-if "collectstatic" in sys.argv:
-    # Use a dummy database configuration when running collectstatic
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.dummy",
-        }
-    }
-else:
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    if not DATABASE_URL:
-        raise ImproperlyConfigured("DATABASE_URL must be set in environment variables.")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ImproperlyConfigured("DATABASE_URL must be set in environment variables.")
 
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            ssl_require=True,
-        )
-    }
+DATABASES = {
+    "default": dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=True,
+    )
+}
 
-    # Configure SSL for PostgreSQL database
-    DATABASES["default"]["OPTIONS"] = {"sslmode": "require"}
+# Configure SSL for PostgreSQL database
+DATABASES["default"]["OPTIONS"] = {"sslmode": "require"}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -211,7 +165,13 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
 
 # Media files configuration
 MEDIA_URL = "/media/"
@@ -220,11 +180,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Allauth configuration
-SITE_ID = 1
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 )
+SITE_ID = 1
 LOGIN_REDIRECT_URL = "/"
 
 # MFA Configuration
@@ -323,6 +283,42 @@ LOGGING = {
     },
 }
 
+# AWS S3 Configuration for Static and Media Files
+USE_AWS = os.getenv('USE_AWS', 'False') == 'True'
+
+if USE_AWS:
+    # Cache Control
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',  # 1 day
+    }
+
+    # Bucket Config
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'eu-west-1')
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+    # Static files settings
+    STATICFILES_LOCATION = 'static'
+    STATICFILES_STORAGE = 'custom_storages.StaticStorage'
+
+    # Media files settings
+    MEDIAFILES_LOCATION = 'media'
+    DEFAULT_FILE_STORAGE = 'custom_storages.MediaStorage'
+
+    # Override static and media URLs in production
+    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{STATICFILES_LOCATION}/'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{MEDIAFILES_LOCATION}/'
+else:
+    # Local static and media files settings
+    STATIC_URL = "/static/"
+    STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 # Security settings for production
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
@@ -334,7 +330,7 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    
+
     # Additional Security Settings
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
