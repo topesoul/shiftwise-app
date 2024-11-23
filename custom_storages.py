@@ -5,10 +5,10 @@ from django.conf import settings
 
 class StaticStorage(S3Boto3Storage):
     location = settings.STATICFILES_LOCATION
-    default_acl = 'public-read'
-    file_overwrite = True
+    default_acl = None  # Disable ACLs
+    file_overwrite = True  # Allow overwriting of static files
 
 class MediaStorage(S3Boto3Storage):
     location = settings.MEDIAFILES_LOCATION
-    default_acl = 'public-read'
-    file_overwrite = False
+    default_acl = None  # Disable ACLs
+    file_overwrite = False  # Prevent overwriting of media files
