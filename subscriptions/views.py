@@ -2,7 +2,7 @@
 
 import logging
 from collections import defaultdict
-from datetime import timezone as datetime_timezone
+from datetime import datetime, timezone as datetime_timezone
 
 import stripe
 from django.conf import settings
@@ -17,8 +17,6 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import TemplateView
-from collections import defaultdict
-from django.utils import timezone
 from django.db.models import Q
 
 from accounts.models import Agency, Profile
@@ -232,6 +230,10 @@ class StripeWebhookView(View):
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
         endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
 
+        if not sig_header:
+            logger.error("Missing Stripe signature header.")
+            return HttpResponse(status=400)
+
         try:
             event = stripe.Webhook.construct_event(
                 payload, sig_header, endpoint_secret
@@ -244,25 +246,101 @@ class StripeWebhookView(View):
             logger.exception(f"Invalid signature: {e}")
             return HttpResponse(status=400)
 
-        if event["type"] == "checkout.session.completed":
-            session = event["data"]["object"]
-            self.handle_checkout_session_completed(session)
-        elif event["type"] == "invoice.paid":
-            invoice = event["data"]["object"]
-            self.handle_invoice_paid(invoice)
-        elif event["type"] == "customer.subscription.deleted":
-            subscription = event["data"]["object"]
-            self.handle_subscription_deleted(subscription)
-        elif event["type"] == "customer.subscription.updated":
-            subscription = event["data"]["object"]
-            self.handle_subscription_updated(subscription)
-        elif event["type"] == "customer.subscription.created":
-            subscription = event["data"]["object"]
-            self.handle_subscription_created(subscription)
+        # Handle the event
+        event_type = event.get("type")
+        event_data = event.get("data", {}).get("object", {})
+
+        if event_type == "checkout.session.completed":
+            self.handle_checkout_session_completed(event_data)
+        elif event_type == "invoice.payment_succeeded":
+            self.handle_invoice_paid(event_data)
+        elif event_type == "customer.subscription.deleted":
+            self.handle_subscription_deleted(event_data)
+        elif event_type == "customer.subscription.updated":
+            self.handle_subscription_updated(event_data)
+        elif event_type == "customer.subscription.created":
+            self.handle_subscription_created(event_data)
         else:
-            logger.info(f"Unhandled event type: {event['type']}")
+            logger.info(f"Unhandled event type: {event_type}")
 
         return HttpResponse(status=200)
+
+    def handle_invoice_paid(self, invoice):
+        """
+        Handle the invoice.payment_succeeded event.
+        This can be used to confirm the payment and update any related records.
+        """
+        stripe_subscription_id = invoice.get("subscription")
+        if not stripe_subscription_id:
+            logger.warning("Invoice does not contain a subscription ID.")
+            return
+
+        try:
+            local_subscription = Subscription.objects.get(
+                stripe_subscription_id=stripe_subscription_id
+            )
+            logger.info(f"Invoice paid for subscription {stripe_subscription_id}.")
+
+            # Ensure 'last_payment_date' exists in the Subscription model
+            if hasattr(local_subscription, 'last_payment_date'):
+                local_subscription.last_payment_date = timezone.now()
+                local_subscription.save()
+                logger.info(f"Updated last_payment_date for subscription {stripe_subscription_id}.")
+            else:
+                logger.warning(f"'last_payment_date' field not found in Subscription model for {stripe_subscription_id}.")
+
+        except Subscription.DoesNotExist:
+            logger.error(f"No local subscription found for Stripe Subscription ID: {stripe_subscription_id}")
+        except Exception as e:
+            logger.exception(f"Error handling invoice.payment_succeeded: {e}")
+
+    def handle_subscription_deleted(self, subscription):
+        stripe_subscription_id = subscription.get("id")
+        logger.debug(f"Handling subscription deletion for Stripe Subscription ID: {stripe_subscription_id}")
+        try:
+            local_subscription = Subscription.objects.get(
+                stripe_subscription_id=stripe_subscription_id
+            )
+            local_subscription.is_active = False
+            local_subscription.status = 'canceled'
+            local_subscription.save()
+            logger.info(f"Subscription {stripe_subscription_id} deactivated.")
+        except Subscription.DoesNotExist:
+            logger.warning(f"Subscription with ID {stripe_subscription_id} does not exist in the local database.")
+        except Exception as e:
+            logger.exception(f"Unexpected error while handling subscription deletion: {e}")
+
+    def handle_subscription_updated(self, subscription):
+        stripe_subscription_id = subscription.get("id")
+        try:
+            local_subscription = Subscription.objects.get(
+                stripe_subscription_id=stripe_subscription_id
+            )
+            local_subscription.is_active = subscription.get("status") == "active"
+            local_subscription.status = subscription.get("status", local_subscription.status)
+            current_period_end = subscription.get("current_period_end")
+            if current_period_end:
+                local_subscription.current_period_end = datetime.fromtimestamp(
+                    current_period_end, tz=datetime_timezone.utc
+                )
+            new_plan_id = subscription["items"]["data"][0]["price"]["id"]
+            new_plan = Plan.objects.get(stripe_price_id=new_plan_id)
+            local_subscription.plan = new_plan
+            local_subscription.save()
+            logger.info(
+                f"Subscription updated to {new_plan.name} for agency: {local_subscription.agency.name}"
+            )
+        except Subscription.DoesNotExist:
+            logger.error(f"Subscription with ID {stripe_subscription_id} does not exist in local database.")
+            # Optional: Notify admin or create the subscription
+        except Plan.DoesNotExist:
+            logger.exception(
+                f"Plan with price ID {subscription['items']['data'][0]['price']['id']} does not exist."
+            )
+        except ValidationError as ve:
+            logger.exception(f"Validation error while updating subscription: {ve}")
+        except Exception as e:
+            logger.exception(f"Unexpected error while handling subscription update: {e}")
 
     def handle_checkout_session_completed(self, session):
         customer_id = session.get("customer")
@@ -277,10 +355,10 @@ class StripeWebhookView(View):
             plan_id = stripe_subscription["items"]["data"][0]["price"]["id"]
             logger.debug(f"Plan ID from Stripe: {plan_id}")
 
-            current_period_start = timezone.datetime.fromtimestamp(
+            current_period_start = datetime.fromtimestamp(
                 stripe_subscription["current_period_start"], tz=datetime_timezone.utc
             )
-            current_period_end = timezone.datetime.fromtimestamp(
+            current_period_end = datetime.fromtimestamp(
                 stripe_subscription["current_period_end"], tz=datetime_timezone.utc
             )
 
@@ -330,63 +408,14 @@ class StripeWebhookView(View):
             logger.exception(f"Unexpected error while handling checkout session: {e}")
             return HttpResponse(status=400)
 
-    def handle_invoice_paid(self, invoice):
-        logger.info(f"Invoice paid: {invoice.id}")
-
-    def handle_subscription_deleted(self, subscription):
-        stripe_subscription_id = subscription.get("id")
-        try:
-            local_subscription = Subscription.objects.get(
-                stripe_subscription_id=stripe_subscription_id
-            )
-            local_subscription.is_active = False
-            local_subscription.status = 'canceled'
-            local_subscription.save()
-            logger.info(f"Subscription {stripe_subscription_id} deactivated.")
-        except Subscription.DoesNotExist:
-            logger.warning(f"Subscription with ID {stripe_subscription_id} does not exist in the local database.")
-        except Exception as e:
-            logger.exception(f"Unexpected error while handling subscription deletion: {e}")
-
-    def handle_subscription_updated(self, subscription):
-        stripe_subscription_id = subscription.get("id")
-        try:
-            local_subscription = Subscription.objects.get(
-                stripe_subscription_id=stripe_subscription_id
-            )
-            local_subscription.is_active = subscription.get("status") == "active"
-            local_subscription.status = subscription.get("status", local_subscription.status)
-            current_period_end = subscription.get("current_period_end")
-            if current_period_end:
-                local_subscription.current_period_end = timezone.datetime.fromtimestamp(
-                    current_period_end, tz=datetime_timezone.utc
-                )
-            new_plan_id = subscription["items"]["data"][0]["price"]["id"]
-            new_plan = Plan.objects.get(stripe_price_id=new_plan_id)
-            local_subscription.plan = new_plan
-            local_subscription.save()
-            logger.info(
-                f"Subscription updated to {new_plan.name} for agency: {local_subscription.agency.name}"
-            )
-        except Subscription.DoesNotExist:
-            logger.exception(f"Subscription with ID {stripe_subscription_id} does not exist.")
-        except Plan.DoesNotExist:
-            logger.exception(
-                f"Plan with price ID {subscription['items']['data'][0]['price']['id']} does not exist."
-            )
-        except ValidationError as ve:
-            logger.exception(f"Validation error while updating subscription: {ve}")
-        except Exception as e:
-            logger.exception(f"Unexpected error while handling subscription update: {e}")
-
     def handle_subscription_created(self, subscription):
         stripe_subscription_id = subscription.get("id")
         customer_id = subscription.get("customer")
         plan_id = subscription["items"]["data"][0]["price"]["id"]
-        current_period_start = timezone.datetime.fromtimestamp(
+        current_period_start = datetime.fromtimestamp(
             subscription["current_period_start"], tz=datetime_timezone.utc
         )
-        current_period_end = timezone.datetime.fromtimestamp(
+        current_period_end = datetime.fromtimestamp(
             subscription["current_period_end"], tz=datetime_timezone.utc
         )
 
@@ -573,7 +602,7 @@ class SubscriptionChangeView(LoginRequiredMixin, AgencyOwnerRequiredMixin, Templ
             agency = profile.agency
             subscription = agency.subscription
 
-            # Double-check if subscription is active
+            # Double-check if subscription is active locally
             if not subscription.is_active:
                 messages.error(request, "Your subscription is not active and cannot be modified.")
                 logger.warning(f"User {user.username} attempted to modify an inactive subscription.")
