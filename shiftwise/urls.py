@@ -28,11 +28,7 @@ handler403 = "shifts.views.custom_views.custom_permission_denied_view"
 handler404 = "shifts.views.custom_views.custom_page_not_found_view"
 handler500 = "shifts.views.custom_views.custom_server_error_view"
 
-# Debug toolbar and media settings
+# Media settings
 if settings.DEBUG:
-    import debug_toolbar
-
-    urlpatterns += [
-        path("__debug__/", include('debug_toolbar.urls', namespace='debug_toolbar')),
-    ]
+    # Serve media files during development
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
