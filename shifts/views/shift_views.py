@@ -4,9 +4,9 @@ import logging
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import (
     BooleanField,
     Case,
@@ -35,10 +35,10 @@ from core.mixins import (
     SubscriptionRequiredMixin,
 )
 from shifts.forms import (
-    ShiftForm,
-    ShiftFilterForm,
     AssignWorkerForm,
     ShiftCompletionForm,
+    ShiftFilterForm,
+    ShiftForm,
 )
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import generate_shift_code, haversine_distance
@@ -66,7 +66,7 @@ class ShiftListView(
     template_name = "shifts/shift_list.html"
     context_object_name = "shifts"
     paginate_by = 10
-    ordering = ["shift_date", "start_time"] 
+    ordering = ["shift_date", "start_time"]
 
     def get_queryset(self):
         user = self.request.user
@@ -128,7 +128,9 @@ class ShiftListView(
                 )
 
         # Annotate with is_assigned
-        assignments = ShiftAssignment.objects.filter(shift=OuterRef("pk"), worker=user)
+        assignments = ShiftAssignment.objects.filter(
+            shift=OuterRef("pk"), worker=user
+        )
         queryset = queryset.annotate(is_assigned=Exists(assignments))
 
         # Annotate with distance if user has location
@@ -165,14 +167,16 @@ class ShiftListView(
         return context
 
 
-
-
-
-
-class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequiredMixin, DetailView):
+class ShiftDetailView(
+    LoginRequiredMixin,
+    SubscriptionRequiredMixin,
+    FeatureRequiredMixin,
+    DetailView,
+):
     """
     Displays details of a specific shift, including assigned and available workers.
     """
+
     required_features = ["shift_management"]
     model = Shift
     template_name = "shifts/shift_detail.html"
@@ -180,26 +184,57 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
 
     def get_queryset(self):
         user = self.request.user
+        logger.debug(
+            f"Current user: {user.username}, is_superuser: {user.is_superuser}"
+        )
+
         queryset = Shift.objects.select_related("agency").prefetch_related(
             "assignments__worker"
         )
 
         if user.is_superuser:
             queryset = queryset.filter(is_active=True)
+            logger.debug("User is superuser. Filtering active shifts.")
+        elif user.groups.filter(name="Agency Owners").exists():
+            agency = user.profile.agency or getattr(user, "owned_agency", None)
+            if agency:
+                queryset = queryset.filter(agency=agency, is_active=True)
+                logger.debug(
+                    f"User is an Agency Owner. Filtering shifts for agency: {agency}"
+                )
+            else:
+                queryset = Shift.objects.none()
+                logger.warning(
+                    f"Agency Owner {user.username} does not have an associated agency."
+                )
         elif user.groups.filter(name="Agency Managers").exists():
-            queryset = queryset.filter(agency=user.profile.agency, is_active=True)
+            queryset = queryset.filter(
+                agency=user.profile.agency, is_active=True
+            )
+            logger.debug(
+                f"User is an Agency Manager. Filtering shifts for agency: {user.profile.agency}"
+            )
         elif user.groups.filter(name="Agency Staff").exists():
-            queryset = queryset.filter(agency=user.profile.agency, is_active=True)
+            queryset = queryset.filter(
+                agency=user.profile.agency, is_active=True
+            )
+            logger.debug(
+                f"User is Agency Staff. Filtering shifts for agency: {user.profile.agency}"
+            )
         else:
             queryset = Shift.objects.none()
+            logger.debug(
+                "User does not belong to a recognized group. No shifts accessible."
+            )
 
+        logger.debug(f"Filtered queryset count: {queryset.count()}")
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         shift = self.object
         user = self.request.user
-        profile = user.profile if hasattr(user, 'profile') else None
+        profile = user.profile if hasattr(user, "profile") else None
 
         # Calculate distance if user has a registered address and shift has coordinates
         distance = None
@@ -219,7 +254,9 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
             )
 
         # Annotate with number of assignments
-        shift.assignments_count = shift.assignments.filter(status=ShiftAssignment.CONFIRMED).count()
+        shift.assignments_count = shift.assignments.filter(
+            status=ShiftAssignment.CONFIRMED
+        ).count()
 
         context["distance_to_shift"] = distance
 
@@ -240,11 +277,17 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
         )
         context["can_edit"] = user.is_superuser or (
             user.groups.filter(name="Agency Managers").exists()
-            and shift.agency == profile.agency if profile else False
+            and shift.agency == profile.agency
+            if profile
+            else False
         )
 
-        # Only include assigned_workers if user is superuser or agency manager
-        if user.is_superuser or user.groups.filter(name="Agency Managers").exists():
+        # Only include assigned_workers if user is superuser or agency manager or agency owner
+        if (
+            user.is_superuser
+            or user.groups.filter(name="Agency Managers").exists()
+            or user.groups.filter(name="Agency Owners").exists()
+        ):
             context["assigned_workers"] = shift.assignments.all()
             context["can_assign_workers"] = True
         else:
@@ -274,10 +317,7 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
                     user=user,
                     worker=worker,
                 )
-                assign_forms.append({
-                    'worker': worker,
-                    'form': form
-                })
+                assign_forms.append({"worker": worker, "form": form})
             context["assign_forms"] = assign_forms
             context["role_choices"] = ShiftAssignment.ROLE_CHOICES
         else:
@@ -286,12 +326,16 @@ class ShiftDetailView(LoginRequiredMixin, SubscriptionRequiredMixin, FeatureRequ
             context["role_choices"] = ShiftAssignment.ROLE_CHOICES
 
         # Add ShiftCompletionForm to context if the modal is included
-        if self.request.user.is_superuser or user.groups.filter(name="Agency Managers").exists() or user.groups.filter(name="Agency Staff").exists():
+        if (
+            self.request.user.is_superuser
+            or user.groups.filter(name="Agency Managers").exists()
+            or user.groups.filter(name="Agency Owners").exists()
+            or user.groups.filter(name="Agency Staff").exists()
+        ):
             if not shift.is_completed and shift.is_active:
-                context['form'] = ShiftCompletionForm()
+                context["form"] = ShiftCompletionForm()
 
         return context
-
 
 
 class ShiftCreateView(
@@ -317,8 +361,13 @@ class ShiftCreateView(
         Ensure that non-superusers have an associated agency before creating a shift.
         """
         if not request.user.is_superuser:
-            if not hasattr(request.user, "profile") or not request.user.profile.agency:
-                messages.error(request, "You are not associated with any agency.")
+            if (
+                not hasattr(request.user, "profile")
+                or not request.user.profile.agency
+            ):
+                messages.error(
+                    request, "You are not associated with any agency."
+                )
                 logger.warning(
                     f"User {request.user.username} attempted to create shift without an associated agency."
                 )
@@ -388,7 +437,6 @@ class ShiftCreateView(
         return context
 
 
-
 class ShiftUpdateView(
     LoginRequiredMixin,
     AgencyManagerRequiredMixin,
@@ -435,7 +483,9 @@ class ShiftUpdateView(
         form.save_m2m()
 
         messages.success(self.request, "Shift updated successfully.")
-        logger.info(f"Shift '{shift.name}' updated by {self.request.user.username}.")
+        logger.info(
+            f"Shift '{shift.name}' updated by {self.request.user.username}."
+        )
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -453,7 +503,6 @@ class ShiftUpdateView(
         context["form_title"] = "Update Shift"
         context["GOOGLE_PLACES_API_KEY"] = settings.GOOGLE_PLACES_API_KEY
         return context
-
 
 
 class ShiftDeleteView(
