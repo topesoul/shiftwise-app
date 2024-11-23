@@ -37,7 +37,7 @@ def handle_profile_picture_resize(sender, instance, **kwargs):
             img = Image.open(instance.profile_picture.path)
             max_size = (500, 500)
             img = ImageOps.exif_transpose(img)
-            img.thumbnail(max_size, Image.ANTIALIAS)
+            img.thumbnail(max_size, Image.LANCZOS)
             img.save(instance.profile_picture.path)
             logger.info(f"Profile picture resized for user {instance.user.username}.")
         except Exception as e:
