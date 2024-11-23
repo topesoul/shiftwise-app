@@ -11,26 +11,22 @@
     <div class="row">
         <div class="col-md-12">
             {% if has_active_subscription %}
-                <div class="card mb-4 subscription-status-card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">Current Subscription</h5>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Plan:</strong> {{ current_plan.name }}</p>
-                        <p><strong>Status:</strong> {{ subscription.status|title }}</p>
-                        <p><strong>Current Period Start:</strong> {{ subscription.current_period_start|date:"F j, Y" }}</p>
-                        <p><strong>Current Period Ends:</strong> {{ subscription.current_period_end|date:"F j, Y" }}</p>
-                        <p><strong>Stripe Subscription ID:</strong> {{ subscription.stripe_subscription_id }}</p>
-                        <a href="{% url 'subscriptions:manage_subscription' %}" class="btn btn-primary manage-subscription-button">
-                            <i class="fas fa-cogs"></i> Manage Subscription
-                        </a>
-                    </div>
+            <div class="card mb-4 subscription-status-card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Current Subscription</h5>
                 </div>
-            {% else %}
-                <div class="alert alert-info" role="alert">
-                    You do not have an active subscription. Please choose a plan to subscribe.
+                <div class="card-body">
+                    <p><strong>Plan:</strong> {{ current_plan.name }}</p>
+                    <a href="{% url 'subscriptions:manage_subscription' %}" class="btn btn-primary manage-subscription-button">
+                        <i class="fas fa-cogs"></i> Manage Subscription
+                    </a>
                 </div>
-            {% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                You do not have an active subscription. Please choose a plan to subscribe.
+            </div>
+        {% endif %}
         </div>
     </div>
 
