@@ -7,7 +7,15 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Avg, Count, ExpressionWrapper, F, FloatField, Q, Sum
+from django.db.models import (
+    Avg,
+    Count,
+    ExpressionWrapper,
+    F,
+    FloatField,
+    Q,
+    Sum,
+)
 from django.http import StreamingHttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -50,10 +58,14 @@ class TimesheetDownloadView(
     def get(self, request, *args, **kwargs):
         try:
             agency = (
-                request.user.profile.agency if not request.user.is_superuser else None
+                request.user.profile.agency
+                if not request.user.is_superuser
+                else None
             )
             if not request.user.is_superuser and not agency:
-                messages.error(request, "You are not associated with any agency.")
+                messages.error(
+                    request, "You are not associated with any agency."
+                )
                 logger.error(
                     f"User {request.user.username} attempted to download timesheet without an associated agency."
                 )
@@ -78,15 +90,21 @@ class TimesheetDownloadView(
                 total_shifts=Count("shift_assignments"),
                 completed_shifts=Count(
                     "shift_assignments",
-                    filter=Q(shift_assignments__shift__status=Shift.STATUS_COMPLETED),
+                    filter=Q(
+                        shift_assignments__shift__status=Shift.STATUS_COMPLETED
+                    ),
                 ),
                 pending_shifts=Count(
                     "shift_assignments",
-                    filter=Q(shift_assignments__shift__status=Shift.STATUS_PENDING),
+                    filter=Q(
+                        shift_assignments__shift__status=Shift.STATUS_PENDING
+                    ),
                 ),
                 total_hours=Sum(
                     "shift_assignments__shift__duration",
-                    filter=Q(shift_assignments__shift__status=Shift.STATUS_COMPLETED),
+                    filter=Q(
+                        shift_assignments__shift__status=Shift.STATUS_COMPLETED
+                    ),
                 ),
                 total_pay=Sum(
                     ExpressionWrapper(
@@ -94,7 +112,9 @@ class TimesheetDownloadView(
                         * F("shift_assignments__shift__hourly_rate"),
                         output_field=FloatField(),
                     ),
-                    filter=Q(shift_assignments__shift__status=Shift.STATUS_COMPLETED),
+                    filter=Q(
+                        shift_assignments__shift__status=Shift.STATUS_COMPLETED
+                    ),
                 ),
             )
 
@@ -116,7 +136,10 @@ class TimesheetDownloadView(
             # Apply date range filter
             if date_from and date_to:
                 staff_members = staff_members.filter(
-                    shift_assignments__shift__shift_date__range=[date_from, date_to]
+                    shift_assignments__shift__shift_date__range=[
+                        date_from,
+                        date_to,
+                    ]
                 ).distinct()
 
             # Define a generator to stream CSV rows
@@ -153,7 +176,9 @@ class TimesheetDownloadView(
                 content_type="text/csv",
             )
             filename = f"timesheet_{timezone.now().strftime('%Y%m%d')}.csv"
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            response["Content-Disposition"] = (
+                f'attachment; filename="{filename}"'
+            )
 
             logger.info(
                 f"Timesheet downloaded by user {request.user.username} for agency {agency.name if agency else 'All Agencies'}."
@@ -195,21 +220,25 @@ class ReportDashboardView(
         user = self.request.user
 
         # Fetch data for the past 7 days
-        dates = [timezone.now().date() - timedelta(days=i) for i in range(6, -1, -1)]
+        dates = [
+            timezone.now().date() - timedelta(days=i) for i in range(6, -1, -1)
+        ]
         labels = [date.strftime("%Y-%m-%d") for date in dates]
 
         # Filter shifts based on agency if not superuser
         if user.is_superuser:
             shifts = Shift.objects.filter(shift_date__in=dates)
             performances = StaffPerformance.objects.filter(
-                shift__shift_date__gte=timezone.now().date() - timedelta(days=30)
+                shift__shift_date__gte=timezone.now().date()
+                - timedelta(days=30)
             )
         else:
             agency = user.profile.agency
             shifts = Shift.objects.filter(shift_date__in=dates, agency=agency)
             performances = StaffPerformance.objects.filter(
-                shift__shift_date__gte=timezone.now().date() - timedelta(days=30),
-                agency=agency,
+                shift__shift_date__gte=timezone.now().date()
+                - timedelta(days=30),
+                shift__agency=agency,  # Corrected line
             )
 
         shift_data = [shifts.filter(shift_date=date).count() for date in dates]
@@ -218,12 +247,18 @@ class ReportDashboardView(
         context["shift_data"] = shift_data
 
         # Performance data
-        avg_wellness = performances.aggregate(Avg("wellness_score"))[
-            "wellness_score__avg"
-        ] or 0
-        avg_rating = performances.aggregate(Avg("performance_rating"))[
-            "performance_rating__avg"
-        ] or 0
+        avg_wellness = (
+            performances.aggregate(Avg("wellness_score"))[
+                "wellness_score__avg"
+            ]
+            or 0
+        )
+        avg_rating = (
+            performances.aggregate(Avg("performance_rating"))[
+                "performance_rating__avg"
+            ]
+            or 0
+        )
 
         context["avg_wellness"] = round(avg_wellness, 2)
         context["avg_rating"] = round(avg_rating, 2)
