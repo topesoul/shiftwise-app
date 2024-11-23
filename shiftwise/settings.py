@@ -1,9 +1,7 @@
 # /workspace/shiftwise/shiftwise/settings.py
 
 import os
-import sys
 from pathlib import Path
-
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
@@ -76,7 +74,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # For static files
     "django.contrib.sessions.middleware.SessionMiddleware",
     # Debug Toolbar middleware
     # 'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -160,22 +157,6 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/London"
 USE_I18N = True
 USE_TZ = True
-
-# Static files configuration
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
-
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-STATICFILES_FINDERS = [
-    "django.contrib.staticfiles.finders.FileSystemFinder",
-    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-]
-
-# Media files configuration
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -294,10 +275,13 @@ if USE_AWS:
 
     # Bucket Config
     AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'eu-west-2')  # e.g., 'eu-west-2' for London
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+
+    # Disable default ACLs
+    AWS_DEFAULT_ACL = None
 
     # Static files settings
     STATICFILES_LOCATION = 'static'
