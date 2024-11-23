@@ -208,6 +208,13 @@ class Subscription(models.Model):
         verbose_name = "Subscription"
         verbose_name_plural = "Subscriptions"
         unique_together = [('stripe_subscription_id', 'agency')]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['agency'],
+                condition=models.Q(is_active=True),
+                name='unique_active_subscription_per_agency'
+            )
+        ]
 
     def __str__(self):
         plan_name = self.plan.name if self.plan else "No Plan"
