@@ -14,9 +14,11 @@
 .footer a {
     color: var(--primary-gradient-end);
     transition: color var(--transition-speed);
+    text-decoration: none;
 }
 .footer a:hover {
     color: var(--accent-color);
+    text-decoration: underline;
 }
 
 /* =========================================
