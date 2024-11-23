@@ -29,7 +29,6 @@ core.Microsoft*
 core.mongo*
 core.python*
 
-# Exclude ERD output files
-erd.png
+# Exclude output files
 *.dot
 *.json
