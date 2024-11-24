@@ -42,12 +42,3 @@
     </form>
 </div>
 {% endblock %}
-
-{% block extra_js %}
-    <!-- Include the Address Autocomplete JavaScript -->
-    <script src="{% static 'js/address_autocomplete.js' %}"></script>
-
-    <!-- Google Maps JavaScript API with Places and Geocoding Libraries -->
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places" async defer></script>
-{% endblock %}
-
