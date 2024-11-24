@@ -37,7 +37,7 @@ def shift_created_or_updated(sender, instance, created, **kwargs):
             user_id=manager.id,
             message=message,
             subject=subject,
-            url=reverse("accounts:agency_dashboard"),  
+            url=reverse("accounts:agency_dashboard"),
         )
     logger.info(
         f"Shift '{instance.name}' {'created' if created else 'updated'} and notifications sent to managers."
@@ -60,7 +60,7 @@ def shift_deleted(sender, instance, **kwargs):
             user_id=manager.id,
             message=message,
             subject=subject,
-            url=reverse("accounts:agency_dashboard"),  
+            url=reverse("accounts:agency_dashboard"),
         )
     logger.info(f"Shift '{instance.name}' deleted and notifications sent to managers.")
 
@@ -76,7 +76,7 @@ def shift_assignment_created(sender, instance, created, **kwargs):
             user_id=instance.worker.id,
             message=message,
             subject=subject,
-            url=reverse("accounts:staff_dashboard"),  
+            url=reverse("accounts:staff_dashboard"),
         )
         logger.info(
             f"ShiftAssignment created: Worker {instance.worker.username} assigned to shift '{instance.shift.name}'."
@@ -93,7 +93,7 @@ def shift_assignment_deleted(sender, instance, **kwargs):
         user_id=instance.worker.id,
         message=message,
         subject=subject,
-        url=reverse("accounts:staff_dashboard"),  
+        url=reverse("accounts:staff_dashboard"),
     )
     logger.info(
         f"ShiftAssignment deleted: Worker {instance.worker.username} unassigned from shift '{instance.shift.name}'."
