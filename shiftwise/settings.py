@@ -2,8 +2,9 @@
 
 import os
 from pathlib import Path
-from django.core.exceptions import ImproperlyConfigured
+
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Load environment variables from env.py if it exists
 if os.path.exists("env.py"):
@@ -17,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -----------------------------------------------------------------------------
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY or len(SECRET_KEY) < 50 or SECRET_KEY.startswith('django-insecure-'):
+if not SECRET_KEY or len(SECRET_KEY) < 50 or SECRET_KEY.startswith("django-insecure-"):
     raise ImproperlyConfigured(
         "SECRET_KEY must be set in environment variables with at least 50 characters and not start with 'django-insecure-'."
     )
@@ -50,7 +51,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "django.contrib.humanize",
-
     # Third-party apps
     "storages",
     "crispy_forms",
@@ -62,7 +62,6 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.mfa",
     "allauth.usersessions",
-
     # Your apps
     "accounts.apps.AccountsConfig",
     "core",
@@ -220,7 +219,10 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 
 ADMINS = [
-    (os.getenv("ADMIN_NAME", "Admin Name"), os.getenv("ADMIN_EMAIL", "admin@example.com")),
+    (
+        os.getenv("ADMIN_NAME", "Admin Name"),
+        os.getenv("ADMIN_EMAIL", "admin@example.com"),
+    ),
 ]
 
 # -----------------------------------------------------------------------------
@@ -313,7 +315,7 @@ LOGGING = {
 # Static and Media Files Configuration
 # -----------------------------------------------------------------------------
 
-USE_AWS = os.getenv('USE_AWS', 'False') == 'True'
+USE_AWS = os.getenv("USE_AWS", "False") == "True"
 
 # Always define STATICFILES_DIRS
 STATICFILES_DIRS = [BASE_DIR / "static"]
@@ -327,26 +329,37 @@ STATICFILES_FINDERS = [
 if USE_AWS:
     # AWS S3 settings
     AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=86400',  # 1 day
+        "CacheControl": "max-age=86400",  # 1 day
     }
 
     # AWS Credentials
-    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME")
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
-    if not all([AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]):
-        raise ImproperlyConfigured("AWS credentials and bucket configuration must be set in environment variables.")
+    if not all(
+        [
+            AWS_STORAGE_BUCKET_NAME,
+            AWS_S3_REGION_NAME,
+            AWS_ACCESS_KEY_ID,
+            AWS_SECRET_ACCESS_KEY,
+        ]
+    ):
+        raise ImproperlyConfigured(
+            "AWS credentials and bucket configuration must be set in environment variables."
+        )
 
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+    AWS_S3_CUSTOM_DOMAIN = (
+        f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+    )
 
     # Disable default ACLs
     AWS_DEFAULT_ACL = None
 
     # Static and Media settings
-    STATICFILES_LOCATION = 'static'
-    MEDIAFILES_LOCATION = 'media'
+    STATICFILES_LOCATION = "static"
+    MEDIAFILES_LOCATION = "media"
 
     # **New STORAGES setting**
     STORAGES = {
@@ -359,17 +372,17 @@ if USE_AWS:
     }
 
     # Static and media URLs
-    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{STATICFILES_LOCATION}/'
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{MEDIAFILES_LOCATION}/'
+    STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{STATICFILES_LOCATION}/"
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{MEDIAFILES_LOCATION}/"
 
     # Define STATIC_ROOT to prevent collectstatic errors
-    STATIC_ROOT = BASE_DIR / 'staticfiles'  # Unused but required by Django
+    STATIC_ROOT = BASE_DIR / "staticfiles"  # Unused but required by Django
 else:
     # Local static and media files settings
-    STATIC_URL = '/static/'
-    STATIC_ROOT = BASE_DIR / 'staticfiles'
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = BASE_DIR / 'media'
+    STATIC_URL = "/static/"
+    STATIC_ROOT = BASE_DIR / "staticfiles"
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
 
 # -----------------------------------------------------------------------------
 # Security Settings for Production
