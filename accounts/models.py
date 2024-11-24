@@ -7,11 +7,10 @@ import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
-
 from encrypted_model_fields.fields import EncryptedCharField
 
 from core.constants import AGENCY_TYPE_CHOICES, ROLE_CHOICES
-from core.utils import generate_unique_code, create_unique_filename
+from core.utils import create_unique_filename, generate_unique_code
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +78,11 @@ class Agency(models.Model):
         """
         Checks if the agency's subscription is active.
         """
-        if hasattr(self, 'subscription') and self.subscription:
-            return self.subscription.is_active and self.subscription.current_period_end > timezone.now()
+        if hasattr(self, "subscription") and self.subscription:
+            return (
+                self.subscription.is_active
+                and self.subscription.current_period_end > timezone.now()
+            )
         else:
             return False
 
