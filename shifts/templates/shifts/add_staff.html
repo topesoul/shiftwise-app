@@ -22,11 +22,3 @@
     </form>
 </div>
 {% endblock %}
-
-{% block extra_js %}
-<!-- Include the Google Maps JavaScript API with Places and Geocoding Libraries if needed -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places"></script>
-
-<!-- Include the Address Autocomplete JavaScript if address fields are present -->
-<script src="{% static 'js/address_autocomplete.js' %}"></script>
-{% endblock %}
