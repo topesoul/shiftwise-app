@@ -67,7 +67,9 @@ def user_roles_and_subscriptions(request):
     for plan_name, plans in plan_dict.items():
         # Ensure at least one plan exists
         if not plans.get("monthly_plan") and not plans.get("yearly_plan"):
-            logger.warning(f"No monthly or yearly plan found for {plan_name}. Skipping.")
+            logger.warning(
+                f"No monthly or yearly plan found for {plan_name}. Skipping."
+            )
             continue
 
         # Use the description from either monthly or yearly plan
@@ -104,29 +106,35 @@ def user_roles_and_subscriptions(request):
             dashboard_url = reverse("accounts:profile")
 
         try:
-            if hasattr(user, 'profile') and user.profile:
+            if hasattr(user, "profile") and user.profile:
                 profile = user.profile
-                agency = profile.agency or getattr(user, 'owned_agency', None)
+                agency = profile.agency or getattr(user, "owned_agency", None)
                 if agency:
                     profile.agency = agency
                     profile.save()
-                    if hasattr(agency, 'subscription'):
+                    if hasattr(agency, "subscription"):
                         subscription = agency.subscription
-                        if subscription.is_active and subscription.current_period_end > timezone.now():
+                        if (
+                            subscription.is_active
+                            and subscription.current_period_end > timezone.now()
+                        ):
                             has_active_subscription = True
                             current_plan = subscription.plan
                             # Collect features
                             subscription_features = profile.subscription_features
                             # Update can_manage_shifts based on features
                             can_manage_shifts = (
-                                profile.has_feature("shift_management") 
-                                or is_superuser 
+                                profile.has_feature("shift_management")
+                                or is_superuser
                                 or is_agency_manager
                             )
 
                             # Implement Usage Limit Check based on number of shifts
                             current_shift_count = agency.shifts.count()
-                            if subscription.plan.shift_management and subscription.plan.shift_limit:
+                            if (
+                                subscription.plan.shift_management
+                                and subscription.plan.shift_limit
+                            ):
                                 if current_shift_count >= subscription.plan.shift_limit:
                                     needs_upgrade = True
                                     logger.debug(
@@ -135,7 +143,9 @@ def user_roles_and_subscriptions(request):
             else:
                 if is_superuser:
                     # Superusers may not have profiles; skip agency-related logic
-                    logger.info(f"Superuser {user.username} does not have a profile or agency.")
+                    logger.info(
+                        f"Superuser {user.username} does not have a profile or agency."
+                    )
                 else:
                     logger.warning(
                         f"User {user.username} does not have an associated agency or profile."
@@ -143,12 +153,16 @@ def user_roles_and_subscriptions(request):
         except ObjectDoesNotExist:
             # User does not have a profile or agency
             if not is_superuser:
-                logger.warning(f"User {user.username} does not have a profile or agency.")
+                logger.warning(
+                    f"User {user.username} does not have a profile or agency."
+                )
         except Exception as e:
             logger.exception(f"Error in context processor: {e}")
 
         # Fetch unread notifications for the user
-        notifications = Notification.objects.filter(user=user, read=False).order_by("-created_at")
+        notifications = Notification.objects.filter(user=user, read=False).order_by(
+            "-created_at"
+        )
         unread_notifications_count = notifications.count()
 
     return {
