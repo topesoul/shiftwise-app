@@ -75,7 +75,7 @@
                 </div>
                 <div class="col-md-6">
                     <p><strong>Distance from Shift Location:</strong>
-                        {% get_distance shift shift.completion_latitude shift.completion_longitude as distance %}
+                        {% calculate_distance shift shift.completion_latitude shift.completion_longitude as distance %}
                         {% if distance %}
                             {{ distance|floatformat:2 }} miles
                         {% else %}
