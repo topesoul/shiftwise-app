@@ -1,8 +1,9 @@
 # /workspace/shiftwise/core/templatetags/custom_tags.py
 
 from django import template
+
+from shiftwise.utils import haversine_distance
 from subscriptions.models import Plan
-from geopy.distance import geodesic
 
 register = template.Library()
 
@@ -14,16 +15,21 @@ def has_group(user, group_name):
 
 
 @register.simple_tag
-def get_distance(shift, lat, lng):
-    """Calculate the distance between the shift location and a given latitude/longitude."""
-    if not (shift.latitude and shift.longitude and lat and lng):
-        return None
-    try:
-        shift_location = (float(shift.latitude), float(shift.longitude))
-        completion_location = (float(lat), float(lng))
-        distance = geodesic(shift_location, completion_location).miles
+def calculate_distance(shift, user_lat, user_lon):
+    """
+    Calculates the distance between the user and the shift location.
+    Usage: {{ shift|calculate_distance:user_lat:user_lon }}
+    """
+    if shift.latitude and shift.longitude and user_lat and user_lon:
+        distance = haversine_distance(
+            user_lat,
+            user_lon,
+            shift.latitude,
+            shift.longitude,
+            unit="miles",
+        )
         return distance
-    except (ValueError, TypeError):
+    else:
         return None
 
 
