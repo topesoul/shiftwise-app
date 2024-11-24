@@ -1,6 +1,7 @@
 # /workspace/shiftwise/shifts/views/custom_views.py
 
 import logging
+
 from django.contrib.auth import get_user_model
 from django.shortcuts import render
 
@@ -8,6 +9,7 @@ from django.shortcuts import render
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
 
 def custom_permission_denied_view(request, exception):
     """
