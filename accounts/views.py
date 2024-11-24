@@ -13,8 +13,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
-from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -48,14 +48,14 @@ from .forms import (
     AgencyForm,
     AgencySignUpForm,
     InvitationForm,
+    MFAForm,
+    ProfilePictureForm,
     SignUpForm,
     UpdateProfileForm,
-    ProfilePictureForm,
     UserForm,
     UserUpdateForm,
-    MFAForm,
 )
-from .models import User, Agency, Profile
+from .models import Agency, Profile, User
 
 User = get_user_model()
 
@@ -66,13 +66,14 @@ logger = logging.getLogger(__name__)
 # Authentication CBVs
 # ---------------------------
 
+
 class CustomLoginView(FormView):
     """Handles user login with two-step MFA verification."""
-    
+
     template_name = "accounts/login.html"
     form_class = AuthenticationForm
     success_url = reverse_lazy("accounts:mfa_verify")
-    
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             # Redirect based on role
@@ -85,7 +86,7 @@ class CustomLoginView(FormView):
             else:
                 return redirect("home:home")
         return super().get(request, *args, **kwargs)
-    
+
     def form_valid(self, form):
         username = form.cleaned_data.get("username")
         password = form.cleaned_data.get("password")
@@ -93,11 +94,15 @@ class CustomLoginView(FormView):
         if user:
             # Retrieve the authentication backend
             backend = user.backend
-            if hasattr(user.profile, 'totp_secret') and user.profile.totp_secret:
+            if hasattr(user.profile, "totp_secret") and user.profile.totp_secret:
                 # User has MFA enabled
-                self.request.session['pre_mfa_user_id'] = user.id
-                self.request.session['auth_backend'] = backend  # Store backend in session
-                logger.info(f"User {user.username} passed primary authentication and requires MFA.")
+                self.request.session["pre_mfa_user_id"] = user.id
+                self.request.session["auth_backend"] = (
+                    backend  # Store backend in session
+                )
+                logger.info(
+                    f"User {user.username} passed primary authentication and requires MFA."
+                )
                 return redirect("accounts:mfa_verify")
             else:
                 # User does not have MFA enabled, log them in
@@ -117,7 +122,7 @@ class CustomLoginView(FormView):
             messages.error(self.request, "Invalid username or password.")
             logger.warning(f"Failed login attempt for username: {username}")
             return self.form_invalid(form)
-    
+
     def form_invalid(self, form):
         messages.error(self.request, "Invalid username or password.")
         logger.warning(
@@ -128,7 +133,7 @@ class CustomLoginView(FormView):
 
 class LogoutView(LoginRequiredMixin, View):
     """Handles user logout."""
-    
+
     def get(self, request, *args, **kwargs):
         logger.info(f"User {request.user.username} logged out.")
         logout(request)
@@ -138,23 +143,26 @@ class LogoutView(LoginRequiredMixin, View):
 
 class MFAVerifyView(FormView):
     """Handles MFA verification step after primary authentication."""
-    
+
     template_name = "accounts/mfa_verify.html"
     form_class = MFAForm
     success_url = reverse_lazy("home:home")
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Ensure that there is a user ID and auth_backend in the session
-        if 'pre_mfa_user_id' not in request.session or 'auth_backend' not in request.session:
+        if (
+            "pre_mfa_user_id" not in request.session
+            or "auth_backend" not in request.session
+        ):
             messages.error(request, "Session expired or invalid. Please log in again.")
             logger.warning("MFA verification attempted without a valid session.")
             return redirect("accounts:login_view")
         return super().dispatch(request, *args, **kwargs)
-    
+
     def form_valid(self, form):
         totp_code = form.cleaned_data.get("totp_code")
-        user_id = self.request.session.get('pre_mfa_user_id')
-        backend = self.request.session.get('auth_backend')
+        user_id = self.request.session.get("pre_mfa_user_id")
+        backend = self.request.session.get("auth_backend")
         user = get_object_or_404(User, id=user_id)
         totp = pyotp.TOTP(user.profile.totp_secret)
         if totp.verify(totp_code):
@@ -163,8 +171,8 @@ class MFAVerifyView(FormView):
             messages.success(self.request, f"Welcome back, {user.get_full_name()}!")
             logger.info(f"User {user.username} logged in successfully with MFA.")
             # Clean up session
-            del self.request.session['pre_mfa_user_id']
-            del self.request.session['auth_backend']
+            del self.request.session["pre_mfa_user_id"]
+            del self.request.session["auth_backend"]
             # Redirect based on role
             if user.is_superuser:
                 return redirect("accounts:superuser_dashboard")
@@ -182,11 +190,11 @@ class MFAVerifyView(FormView):
 
 class SignUpView(FormView):
     """Handles user signup via invitations."""
-    
+
     template_name = "accounts/signup.html"
     form_class = SignUpForm
     success_url = reverse_lazy("accounts:login_view")
-    
+
     def form_valid(self, form):
         user = form.save()
         messages.success(self.request, "Your account has been created successfully.")
@@ -198,7 +206,7 @@ class SignupSelectionView(TemplateView):
     """
     Renders a page for users to choose their signup type.
     """
-    
+
     template_name = "accounts/signup_selection.html"
 
 
@@ -238,9 +246,10 @@ class AgencySignUpView(CreateView):
 # MFA Management CBVs
 # ---------------------------
 
+
 class ActivateTOTPView(LoginRequiredMixin, View):
     """Activates TOTP-based MFA."""
-    
+
     def get(self, request, *args, **kwargs):
         # Check if MFA is already enabled
         if request.user.profile.totp_secret:
@@ -338,10 +347,10 @@ class ActivateTOTPView(LoginRequiredMixin, View):
 
 class DisableTOTPView(LoginRequiredMixin, View):
     """Disables TOTP-based MFA for the user."""
-    
+
     def get(self, request, *args, **kwargs):
         return render(request, "accounts/deactivate_totp.html")
-    
+
     def post(self, request, *args, **kwargs):
         request.user.profile.totp_secret = None
         request.user.profile.save()
@@ -352,7 +361,7 @@ class DisableTOTPView(LoginRequiredMixin, View):
 
 class ResendTOTPCodeView(LoginRequiredMixin, View):
     """Resends or refreshes the TOTP QR code."""
-    
+
     def get(self, request, *args, **kwargs):
         user_totp_secret = request.user.profile.totp_secret or pyotp.random_base32()
         totp = pyotp.TOTP(user_totp_secret, interval=settings.MFA_TOTP_PERIOD)
@@ -389,6 +398,7 @@ class ResendTOTPCodeView(LoginRequiredMixin, View):
 # Profile and Dashboard CBVs
 # ---------------------------
 
+
 class ProfileView(LoginRequiredMixin, View):
     """Renders the user profile with upcoming and past shifts and handles profile updates."""
 
@@ -399,7 +409,9 @@ class ProfileView(LoginRequiredMixin, View):
         profile_form = UpdateProfileForm(instance=profile)
         picture_form = ProfilePictureForm(instance=profile)
 
-        context = self.get_context_data(profile_form=profile_form, picture_form=picture_form)
+        context = self.get_context_data(
+            profile_form=profile_form, picture_form=picture_form
+        )
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
@@ -412,13 +424,15 @@ class ProfileView(LoginRequiredMixin, View):
             picture_form.save()
             messages.success(request, "Your profile has been updated successfully.")
             logger.info(f"Profile updated for user {request.user.username}")
-            return redirect('accounts:profile')
+            return redirect("accounts:profile")
         else:
             messages.error(request, "Please correct the errors below.")
             logger.warning(
                 f"Profile update failed for user {request.user.username}: {profile_form.errors}, {picture_form.errors}"
             )
-            context = self.get_context_data(profile_form=profile_form, picture_form=picture_form, open_modal=True)
+            context = self.get_context_data(
+                profile_form=profile_form, picture_form=picture_form, open_modal=True
+            )
             return render(request, self.template_name, context)
 
     def get_context_data(self, **kwargs):
@@ -459,10 +473,10 @@ class AgencyDashboardView(
     LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, View
 ):
     """Renders the agency manager's dashboard."""
-    
+
     def get(self, request, *args, **kwargs):
         user = request.user
-    
+
         # Allow superusers to access all agencies
         if user.is_superuser:
             agencies = Agency.objects.all()
@@ -496,21 +510,21 @@ class StaffDashboardView(
     LoginRequiredMixin, AgencyStaffRequiredMixin, SubscriptionRequiredMixin, View
 ):
     """Renders the staff member's dashboard."""
-    
+
     def get(self, request, *args, **kwargs):
         user = request.user
         today = timezone.now().date()
-    
+
         # Retrieve all shifts assigned to the user
         assignments = ShiftAssignment.objects.filter(worker=user).select_related(
             "shift"
         )
         assigned_shift_ids = assignments.values_list("shift_id", flat=True)
-    
+
         # Filter upcoming and past shifts for display
         upcoming_shifts = assignments.filter(shift__shift_date__gte=today)
         past_shifts = assignments.filter(shift__shift_date__lt=today)
-    
+
         return render(
             request,
             "accounts/staff_dashboard.html",
@@ -525,12 +539,12 @@ class StaffDashboardView(
 
 class SuperuserDashboardView(LoginRequiredMixin, SuperuserRequiredMixin, View):
     """Renders the superuser's dashboard."""
-    
+
     def get(self, request, *args, **kwargs):
         # Display all agencies and users
         agencies = Agency.objects.all()
         users = User.objects.all()
-    
+
         context = {
             "agencies": agencies,
             "users": users,
@@ -542,26 +556,30 @@ class SuperuserDashboardView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 # Invitation CBVs
 # ---------------------------
 
+
 class InviteStaffView(
     LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, FormView
 ):
     """Allows agency managers or superusers to invite staff members via email."""
-    
+
     template_name = "accounts/invite_staff.html"
     form_class = InvitationForm
     success_url = reverse_lazy("shifts:staff_list")
-    
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({'user': self.request.user})
+        kwargs.update({"user": self.request.user})
         return kwargs
-    
+
     def form_valid(self, form):
         invitation = form.save(commit=False)
         invitation.invited_by = self.request.user
         # Assign agency if the user is not a superuser
         if not self.request.user.is_superuser:
-            if hasattr(self.request.user, "profile") and self.request.user.profile.agency:
+            if (
+                hasattr(self.request.user, "profile")
+                and self.request.user.profile.agency
+            ):
                 invitation.agency = self.request.user.profile.agency
                 logger.debug(f"Agency assigned to invitation: {invitation.agency.name}")
             else:
@@ -581,12 +599,12 @@ class InviteStaffView(
                 logger.debug(
                     "Superuser is inviting staff without associating to an agency."
                 )
-    
+
         invitation.save()
         logger.info(
             f"Invitation created: {invitation.email} by {self.request.user.username}"
         )
-    
+
         # Prepare the email context
         invite_link = self.request.build_absolute_uri(
             reverse("accounts:accept_invitation", kwargs={"token": invitation.token})
@@ -598,7 +616,7 @@ class InviteStaffView(
         }
         subject = "ShiftWise Staff Invitation"
         message = render_to_string("account/emails/invite_staff_email.txt", context)
-    
+
         try:
             send_mail(
                 subject,
@@ -624,13 +642,13 @@ class InviteStaffView(
                 f"Invitation deleted due to email sending failure: {invitation.email}"
             )
             return redirect("shifts:staff_list")
-    
+
         return super().form_valid(form)
 
 
 class AcceptInvitationView(View):
     """Allows a user to accept an invitation to join as a staff member."""
-    
+
     def get(self, request, token, *args, **kwargs):
         invitation = get_object_or_404(Invitation, token=token, is_active=True)
         # Check if invitation is expired
@@ -640,13 +658,15 @@ class AcceptInvitationView(View):
             return redirect("accounts:login_view")
         form = AcceptInvitationForm(initial={"email": invitation.email})
         return render(request, "accounts/accept_invitation.html", {"form": form})
-    
+
     def post(self, request, token, *args, **kwargs):
         invitation = get_object_or_404(Invitation, token=token, is_active=True)
         # Check if invitation is expired
         if invitation.is_expired():
             messages.error(request, "This invitation has expired.")
-            logger.warning(f"Expired invitation attempted to accept: {invitation.email}")
+            logger.warning(
+                f"Expired invitation attempted to accept: {invitation.email}"
+            )
             return redirect("accounts:login_view")
         form = AcceptInvitationForm(
             request.POST,
@@ -698,6 +718,7 @@ class AcceptInvitationView(View):
 # Address Lookup FBV
 # ---------------------------
 
+
 @login_required
 def get_address(request):
     """AJAX view to fetch address details from address_line1."""
@@ -721,15 +742,16 @@ def get_address(request):
 # Manage Agencies CBVs
 # ---------------------------
 
+
 class AgencyListView(
     LoginRequiredMixin, AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, ListView
 ):
     """Allows superusers or agency owners to manage agencies."""
-    
+
     model = Agency
     template_name = "accounts/manage_agencies.html"
     context_object_name = "agencies"
-    
+
     def get_queryset(self):
         if self.request.user.is_superuser:
             return Agency.objects.all()
@@ -741,19 +763,21 @@ class AgencyCreateView(
     LoginRequiredMixin, SuperuserRequiredMixin, SubscriptionRequiredMixin, CreateView
 ):
     """Allows superusers to create a new agency."""
-    
+
     model = Agency
     form_class = AgencyForm
     template_name = "accounts/agency_form.html"
     success_url = reverse_lazy("accounts:manage_agencies")
-    
+
     def form_valid(self, form):
         response = super().form_valid(form)
         user = self.request.user
         profile = user.profile
         profile.agency = form.instance
         profile.save()
-        messages.success(self.request, "Agency created and linked to your profile successfully.")
+        messages.success(
+            self.request, "Agency created and linked to your profile successfully."
+        )
         logger.info(
             f"Agency '{form.instance.name}' created and linked to user {user.username}."
         )
@@ -764,18 +788,18 @@ class AgencyUpdateView(
     LoginRequiredMixin, AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, UpdateView
 ):
     """Allows superusers or agency owners to edit their agency."""
-    
+
     model = Agency
     form_class = AgencyForm
     template_name = "accounts/agency_form.html"
     success_url = reverse_lazy("accounts:manage_agencies")
-    
+
     def get_queryset(self):
         if self.request.user.is_superuser:
             return Agency.objects.all()
         else:
             return Agency.objects.filter(id=self.request.user.profile.agency.id)
-    
+
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, "Agency updated successfully.")
@@ -789,11 +813,11 @@ class AgencyDeleteView(
     LoginRequiredMixin, SuperuserRequiredMixin, SubscriptionRequiredMixin, DeleteView
 ):
     """Allows superusers to delete an agency."""
-    
+
     model = Agency
     template_name = "accounts/agency_confirm_delete.html"
     success_url = reverse_lazy("accounts:manage_agencies")
-    
+
     def delete(self, request, *args, **kwargs):
         agency = self.get_object()
         response = super().delete(request, *args, **kwargs)
@@ -806,15 +830,16 @@ class AgencyDeleteView(
 # Manage Users CBVs
 # ---------------------------
 
+
 class UserListView(
     LoginRequiredMixin, AgencyManagerRequiredMixin, SubscriptionRequiredMixin, ListView
 ):
     """Allows superusers or agency managers to manage users."""
-    
+
     model = User
     template_name = "accounts/manage_users.html"
     context_object_name = "users"
-    
+
     def get_queryset(self):
         if self.request.user.is_superuser:
             return User.objects.all()
@@ -829,16 +854,16 @@ class UserCreateView(
     CreateView,
 ):
     """Allows superusers or agency managers to create a new user."""
-    
+
     model = User
     form_class = UserForm
     template_name = "accounts/user_form.html"
     success_url = reverse_lazy("accounts:manage_users")
-    
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         return kwargs
-    
+
     def form_valid(self, form):
         user = form.save()
         group = form.cleaned_data.get("group")
@@ -857,18 +882,18 @@ class UserUpdateView(
     UpdateView,
 ):
     """Allows superusers or agency managers to edit an existing user."""
-    
+
     model = User
     form_class = UserUpdateForm
     template_name = "accounts/user_form.html"
     success_url = reverse_lazy("accounts:manage_users")
-    
+
     def get_queryset(self):
         if self.request.user.is_superuser:
             return User.objects.all()
         else:
             return User.objects.filter(profile__agency=self.request.user.profile.agency)
-    
+
     def form_valid(self, form):
         user = form.save()
         group = form.cleaned_data.get("group")
@@ -889,17 +914,17 @@ class UserDeleteView(
     DeleteView,
 ):
     """Allows superusers or agency managers to delete a user."""
-    
+
     model = User
     template_name = "accounts/user_confirm_delete.html"
     success_url = reverse_lazy("accounts:manage_users")
-    
+
     def get_queryset(self):
         if self.request.user.is_superuser:
             return User.objects.all()
         else:
             return User.objects.filter(profile__agency=self.request.user.profile.agency)
-    
+
     def delete(self, request, *args, **kwargs):
         user = self.get_object()
         user.is_active = False
