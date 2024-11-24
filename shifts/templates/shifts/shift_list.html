@@ -58,10 +58,15 @@
                     <p><strong>Location:</strong> {{ shift.city }}, {{ shift.county }}</p>
                     <!-- Display Distance -->
                     <p><strong>Distance from You:</strong>
-                        {% if shift.distance %}
-                        {{ shift.distance|floatformat:2 }} miles
+                        {% if user_lat and user_lon %}
+                            {% calculate_distance shift user_lat user_lon as distance %}
+                            {% if distance %}
+                                {{ distance|floatformat:2 }} miles
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
                         {% else %}
-                        <span class="text-muted">N/A</span>
+                            <span class="text-muted">N/A</span>
                         {% endif %}
                     </p>
                     {% if shift.is_full %}
