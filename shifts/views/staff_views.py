@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, ExpressionWrapper, FloatField, F, Q, Sum
+from django.db.models import Count, ExpressionWrapper, F, FloatField, Q, Sum
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import (
@@ -146,7 +146,7 @@ class StaffCreateView(
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({'request': self.request})  # Pass request to form
+        kwargs.update({"request": self.request})  # Pass request to form
         return kwargs
 
     def form_valid(self, form):
