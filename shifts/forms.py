@@ -8,10 +8,12 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from core.forms import AddressFormMixin
+
 from accounts.models import Agency
-from shifts.models import Shift, StaffPerformance, ShiftAssignment
+from core.forms import AddressFormMixin
+from shifts.models import Shift, ShiftAssignment, StaffPerformance
 from shifts.validators import validate_image
+from shiftwise.utils import geocode_address
 
 User = get_user_model()
 
@@ -52,10 +54,13 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         ]
         widgets = {
             # Shift Name Field widget
-            "name": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter shift name",
-            }),
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter shift name",
+                    "id": "id_name",
+                }
+            ),
             # Date and Time Fields widgets
             "shift_date": forms.DateInput(
                 attrs={
@@ -95,9 +100,12 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
                     "id": "id_shift_type",
                 }
             ),
-            "shift_role": forms.Select(attrs={
-                "class": "form-control",
-            }),
+            "shift_role": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "id_shift_role",
+                }
+            ),
             "agency": forms.Select(
                 attrs={
                     "class": "form-control",
@@ -111,39 +119,65 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
                 }
             ),
             # Address fields
-            "address_line1": forms.TextInput(attrs={
-                "class": "form-control address-autocomplete",
-                "placeholder": "Enter address line 1",
-                "autocomplete": "address-line1",
-            }),
-            "address_line2": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter address line 2",
-                "autocomplete": "address-line2",
-            }),
-            "city": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter city",
-                "autocomplete": "address-level2",
-            }),
-            "county": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter county",
-                "autocomplete": "administrative-area",
-            }),
-            "country": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter country",
-                "readonly": "readonly",
-                "autocomplete": "country-name",
-            }),
-            "postcode": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Enter postcode",
-                "autocomplete": "postal-code",
-            }),
-            "latitude": forms.HiddenInput(),
-            "longitude": forms.HiddenInput(),
+            "address_line1": forms.TextInput(
+                attrs={
+                    "class": "form-control address-autocomplete",
+                    "placeholder": "Enter address line 1",
+                    "autocomplete": "address-line1",
+                    "id": "id_address_line1",
+                }
+            ),
+            "address_line2": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter address line 2",
+                    "autocomplete": "address-line2",
+                    "id": "id_address_line2",
+                }
+            ),
+            "city": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter city",
+                    "autocomplete": "address-level2",
+                    "id": "id_city",
+                }
+            ),
+            "county": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter county",
+                    "autocomplete": "administrative-area",
+                    "id": "id_county",
+                }
+            ),
+            "country": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter country",
+                    "readonly": "readonly",
+                    "autocomplete": "country-name",
+                    "id": "id_country",
+                }
+            ),
+            "postcode": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter postcode",
+                    "autocomplete": "postal-code",
+                    "id": "id_postcode",
+                }
+            ),
+            "latitude": forms.HiddenInput(
+                attrs={
+                    "id": "id_latitude",
+                }
+            ),
+            "longitude": forms.HiddenInput(
+                attrs={
+                    "id": "id_longitude",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -205,7 +239,7 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
 
         # 'form-control' class to fields not already specified
         for field_name, field in self.fields.items():
-            if 'class' not in field.widget.attrs:
+            if "class" not in field.widget.attrs:
                 field.widget.attrs["class"] = "form-control"
 
     def clean(self):
@@ -275,7 +309,7 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         """
         latitude = self.cleaned_data.get("latitude")
         if latitude is None:
-            return latitude 
+            return latitude
         try:
             latitude = float(latitude)
         except ValueError:
@@ -304,21 +338,21 @@ class ShiftForm(AddressFormMixin, forms.ModelForm):
         Overrides the save method to correctly handle the shift_code and agency attributes.
         """
         shift = super().save(commit=False)
-        
+
         # Set agency based on user if not superuser and agency is not set in the form
         if not shift.agency and self.user and not self.user.is_superuser:
-            if hasattr(self.user, 'profile') and hasattr(self.user.profile, 'agency'):
+            if hasattr(self.user, "profile") and hasattr(self.user.profile, "agency"):
                 shift.agency = self.user.profile.agency
             else:
                 raise ValidationError("User does not have an associated agency.")
-        
+
         # Generate shift_code after ensuring agency is set
         if not shift.shift_code:
             shift.shift_code = shift.generate_shift_code()
-        
+
         # Perform model validations
         shift.clean(skip_date_validation=False)
-        
+
         if commit:
             shift.save()
             self.save_m2m()
@@ -331,44 +365,95 @@ class ShiftFilterForm(forms.Form):
     """
 
     STATUS_CHOICES = [
-        ('all', 'All'),
-        ('available', 'Available'),
-        ('booked', 'Booked'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
+        ("all", "All"),
+        ("available", "Available"),
+        ("booked", "Booked"),
+        ("completed", "Completed"),
+        ("cancelled", "Cancelled"),
     ]
 
     date_from = forms.DateField(
         required=False,
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        label='Date From'
+        widget=forms.DateInput(
+            attrs={"type": "date", "class": "form-control", "id": "id_date_from"}
+        ),
+        label="Date From",
     )
     date_to = forms.DateField(
         required=False,
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        label='Date To'
+        widget=forms.DateInput(
+            attrs={"type": "date", "class": "form-control", "id": "id_date_to"}
+        ),
+        label="Date To",
     )
     status = forms.ChoiceField(
         choices=STATUS_CHOICES,
         required=False,
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        label='Status'
+        widget=forms.Select(attrs={"class": "form-control", "id": "id_status"}),
+        label="Status",
     )
     search = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'Search by name, agency, or shift type', 'class': 'form-control'}),
-        label='Search'
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Search by name, agency, or shift type",
+                "class": "form-control",
+                "id": "id_search",
+            }
+        ),
+        label="Search",
     )
     shift_code = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'Search by shift code', 'class': 'form-control'}),
-        label='Shift Code'
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Search by shift code",
+                "class": "form-control",
+                "id": "id_shift_code",
+            }
+        ),
+        label="Shift Code",
     )
     address = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'Search by address', 'class': 'form-control'}),
-        label='Address'
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Search by address",
+                "class": "form-control address-autocomplete",
+                "id": "id_address",
+            }
+        ),
+        label="Address",
     )
+
+    latitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"id": "id_latitude"}),
+    )
+    longitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"id": "id_longitude"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(ShiftFilterForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = "get"
+        self.helper.layout = Layout(
+            Row(
+                Column("date_from", css_class="form-group col-md-3 mb-0"),
+                Column("date_to", css_class="form-group col-md-3 mb-0"),
+                Column("status", css_class="form-group col-md-3 mb-0"),
+                Column("search", css_class="form-group col-md-3 mb-0"),
+            ),
+            Row(
+                Column("shift_code", css_class="form-group col-md-3 mb-0"),
+                Column("address", css_class="form-group col-md-9 mb-0"),
+            ),
+            # Hidden fields
+            Field("latitude"),
+            Field("longitude"),
+        )
 
 
 class ShiftCompletionForm(forms.Form):
@@ -396,6 +481,9 @@ class ShiftCompletionForm(forms.Form):
         required=True,
         help_text="Select attendance status after completing the shift.",
     )
+
+    class Meta:
+        pass  # No model associated
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -427,11 +515,18 @@ class ShiftCompletionForm(forms.Form):
                 raise ValidationError("Invalid signature data.")
 
         # If latitude and longitude are provided, validate their ranges
-        if (latitude is not None and longitude is None) or (latitude is None and longitude is not None):
-            raise ValidationError("Both latitude and longitude must be provided together.")
+        if (latitude is not None and longitude is None) or (
+            latitude is None and longitude is not None
+        ):
+            raise ValidationError(
+                "Both latitude and longitude must be provided together."
+            )
 
         # Validate attendance_status
-        if attendance_status not in dict(ShiftAssignment.ATTENDANCE_STATUS_CHOICES).keys():
+        if (
+            attendance_status
+            not in dict(ShiftAssignment.ATTENDANCE_STATUS_CHOICES).keys()
+        ):
             raise ValidationError("Invalid attendance status selected.")
 
         return cleaned_data
@@ -442,10 +537,16 @@ class StaffPerformanceForm(forms.ModelForm):
         model = StaffPerformance
         fields = ["wellness_score", "performance_rating", "status", "comments"]
         widgets = {
-            "wellness_score": forms.NumberInput(attrs={"class": "form-control"}),
-            "performance_rating": forms.NumberInput(attrs={"class": "form-control"}),
-            "status": forms.Select(attrs={"class": "form-control"}),
-            "comments": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "wellness_score": forms.NumberInput(
+                attrs={"class": "form-control", "id": "id_wellness_score"}
+            ),
+            "performance_rating": forms.NumberInput(
+                attrs={"class": "form-control", "id": "id_performance_rating"}
+            ),
+            "status": forms.Select(attrs={"class": "form-control", "id": "id_status"}),
+            "comments": forms.Textarea(
+                attrs={"class": "form-control", "rows": 4, "id": "id_comments"}
+            ),
         }
 
     def clean_wellness_score(self):
@@ -475,7 +576,7 @@ class AssignWorkerForm(forms.Form):
     role = forms.ChoiceField(
         choices=ShiftAssignment.ROLE_CHOICES,
         required=True,
-        widget=forms.Select(attrs={"class": "form-control"}),
+        widget=forms.Select(attrs={"class": "form-control", "id": "id_role"}),
         label="Role",
     )
 
@@ -527,4 +628,6 @@ class UnassignWorkerForm(forms.Form):
     Includes a hidden 'worker_id' field.
     """
 
-    worker_id = forms.IntegerField(widget=forms.HiddenInput())
+    worker_id = forms.IntegerField(
+        widget=forms.HiddenInput(attrs={"id": "id_worker_id"})
+    )
