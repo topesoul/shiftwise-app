@@ -68,7 +68,9 @@ class AgencyStaffRequiredMixin(UserPassesTestMixin):
         user = self.request.user
         return (
             user.is_superuser
-            or user.groups.filter(name__in=["Agency Owners", "Agency Managers", "Agency Staff"]).exists()
+            or user.groups.filter(
+                name__in=["Agency Owners", "Agency Managers", "Agency Staff"]
+            ).exists()
         )
 
     def handle_no_permission(self):
