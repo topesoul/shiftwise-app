@@ -1,13 +1,13 @@
 # /workspace/shiftwise/core/utils.py
 
+import hashlib
 import logging
 import os
 import uuid
-import hashlib
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from django.conf import settings
 from django.urls import reverse
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,9 @@ def send_notification(user_id, message, subject="Notification", url=None):
     try:
         user = User.objects.get(id=user_id)
         recipient = user.email
-        full_message = f"{message}\n\nVisit: {settings.SITE_URL}{url}" if url else message
+        full_message = (
+            f"{message}\n\nVisit: {settings.SITE_URL}{url}" if url else message
+        )
         send_mail(
             subject,
             full_message,
@@ -43,7 +45,9 @@ def assign_user_to_group(user, group_name):
         user.groups.add(group)
         logger.info(f"User {user.username} assigned to group '{group_name}'.")
     except Exception as e:
-        logger.error(f"Error assigning user {user.username} to group '{group_name}': {e}")
+        logger.error(
+            f"Error assigning user {user.username} to group '{group_name}': {e}"
+        )
 
 
 def generate_unique_code(prefix="", length=6):
@@ -57,7 +61,7 @@ def create_unique_filename(instance, filename):
     """
     Generates a unique filename using UUID to prevent name collisions.
     """
-    ext = filename.split('.')[-1]
+    ext = filename.split(".")[-1]
     unique_filename = f"{uuid.uuid4().hex}.{ext}"
     return os.path.join("uploads/", unique_filename)
 
