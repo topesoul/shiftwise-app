@@ -9,6 +9,7 @@ class StaticStorage(S3Boto3Storage):
     default_acl = None
     file_overwrite = True
 
+
 class MediaStorage(S3Boto3Storage):
     location = settings.MEDIAFILES_LOCATION
     default_acl = None
