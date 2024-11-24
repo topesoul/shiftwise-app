@@ -1,15 +1,15 @@
 # /workspace/shiftwise/shifts/models.py
 
 import uuid
+
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
 from shifts.validators import validate_image
-
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -90,9 +90,7 @@ class Shift(TimestampedModel):
     shift_date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
-    end_date = models.DateField(
-        help_text="Specify the date when the shift ends."
-    )
+    end_date = models.DateField(help_text="Specify the date when the shift ends.")
     is_overnight = models.BooleanField(
         default=False, help_text="Check this box if the shift spans into the next day."
     )
@@ -234,7 +232,9 @@ class Shift(TimestampedModel):
         """
         Returns the number of available slots for the shift.
         """
-        assigned_count = self.assignments.filter(status=ShiftAssignment.CONFIRMED).count()
+        assigned_count = self.assignments.filter(
+            status=ShiftAssignment.CONFIRMED
+        ).count()
         return self.capacity - assigned_count
 
     @property
@@ -291,9 +291,7 @@ class ShiftAssignment(TimestampedModel):
     )
     assigned_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(max_length=100, default="Staff", choices=ROLE_CHOICES)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default=CONFIRMED
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=CONFIRMED)
     attendance_status = models.CharField(
         max_length=20,
         choices=ATTENDANCE_STATUS_CHOICES,
@@ -331,7 +329,7 @@ class ShiftAssignment(TimestampedModel):
         super().clean()
 
         # Ensure worker's profile has an agency
-        if not hasattr(self.worker, 'profile') or not self.worker.profile.agency:
+        if not hasattr(self.worker, "profile") or not self.worker.profile.agency:
             raise ValidationError(
                 "Worker must be associated with an agency to be assigned to a shift."
             )
@@ -344,7 +342,9 @@ class ShiftAssignment(TimestampedModel):
 
         # Prevent assignment if shift is full and status is CONFIRMED
         if self.shift.is_full and self.status == self.CONFIRMED:
-            raise ValidationError("Cannot confirm assignment. The shift is already full.")
+            raise ValidationError(
+                "Cannot confirm assignment. The shift is already full."
+            )
 
     def save(self, *args, **kwargs):
         """
