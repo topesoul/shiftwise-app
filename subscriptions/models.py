@@ -146,11 +146,11 @@ class Subscription(models.Model):
     """
 
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('inactive', 'Inactive'),
-        ('canceled', 'Canceled'),
-        ('past_due', 'Past Due'),
-        ('unpaid', 'Unpaid'),
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+        ("canceled", "Canceled"),
+        ("past_due", "Past Due"),
+        ("unpaid", "Unpaid"),
     ]
 
     agency = models.OneToOneField(
@@ -178,7 +178,7 @@ class Subscription(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='inactive',
+        default="inactive",
         help_text="Current status of the subscription.",
     )
     current_period_start = models.DateTimeField(
@@ -207,12 +207,12 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = "Subscription"
         verbose_name_plural = "Subscriptions"
-        unique_together = [('stripe_subscription_id', 'agency')]
+        unique_together = [("stripe_subscription_id", "agency")]
         constraints = [
             models.UniqueConstraint(
-                fields=['agency'],
+                fields=["agency"],
                 condition=models.Q(is_active=True),
-                name='unique_active_subscription_per_agency'
+                name="unique_active_subscription_per_agency",
             )
         ]
 
@@ -224,9 +224,9 @@ class Subscription(models.Model):
         """
         Renew the subscription by extending the current_period_end.
         """
-        if self.plan.billing_cycle == 'monthly':
+        if self.plan.billing_cycle == "monthly":
             self.current_period_end += timezone.timedelta(days=30)
-        elif self.plan.billing_cycle == 'yearly':
+        elif self.plan.billing_cycle == "yearly":
             self.current_period_end += timezone.timedelta(days=365)
         self.is_active = True
         self.save()
@@ -260,9 +260,13 @@ class Subscription(models.Model):
             raise ValidationError("Subscription must be associated with an Agency.")
         # Enforce that stripe_subscription_id is unique when provided
         if self.stripe_subscription_id:
-            if Subscription.objects.filter(
-                stripe_subscription_id=self.stripe_subscription_id
-            ).exclude(pk=self.pk).exists():
+            if (
+                Subscription.objects.filter(
+                    stripe_subscription_id=self.stripe_subscription_id
+                )
+                .exclude(pk=self.pk)
+                .exists()
+            ):
                 raise ValidationError("Stripe Subscription ID must be unique.")
         super().clean()
 
