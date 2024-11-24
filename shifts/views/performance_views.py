@@ -112,9 +112,7 @@ class StaffPerformanceCreateView(
         performance.save()
         form.save_m2m()
 
-        messages.success(
-            self.request, "Staff performance record created successfully."
-        )
+        messages.success(self.request, "Staff performance record created successfully.")
         logger.info(
             f"Staff performance record '{performance}' created by {user.username}."
         )
@@ -150,9 +148,7 @@ class StaffPerformanceUpdateView(
 
     def form_valid(self, form):
         performance = form.save()
-        messages.success(
-            self.request, "Staff performance record updated successfully."
-        )
+        messages.success(self.request, "Staff performance record updated successfully.")
         logger.info(
             f"Staff performance record '{performance}' updated by {self.request.user.username}."
         )
@@ -187,9 +183,7 @@ class StaffPerformanceDeleteView(
 
     def delete(self, request, *args, **kwargs):
         performance = self.get_object()
-        messages.success(
-            request, "Staff performance record deleted successfully."
-        )
+        messages.success(request, "Staff performance record deleted successfully.")
         logger.info(
             f"Staff performance record '{performance}' deleted by {request.user.username}."
         )
