@@ -1,4 +1,4 @@
-# /workspace/shifts/utils.py
+# /workspace/shiftwise/shiftwise/utils.py
 
 import logging
 import uuid
@@ -29,7 +29,7 @@ def haversine_distance(lat1, lon1, lat2, lon2, unit="miles"):
     dlon = lon2 - lon1
     a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    r = 3956 if unit == "miles" else 6371  # Radius of Earth in miles or kilometers
+    r = 3956 if unit == "miles" else 6371  # Earth radius in miles or kilometers
     return c * r
 
 
@@ -38,6 +38,19 @@ def generate_shift_code():
     Generates a unique shift code using UUID4.
     """
     return f"SHIFT-{uuid.uuid4().hex[:8].upper()}"
+
+
+def geocode_address(address):
+
+    geolocator = GoogleV3(api_key=settings.GOOGLE_PLACES_API_KEY)
+    location = geolocator.geocode(address, timeout=10)
+    if location:
+        return {
+            "latitude": location.latitude,
+            "longitude": location.longitude,
+        }
+    else:
+        raise Exception("Could not geocode address.")
 
 
 def get_shift_assignment_queryset(user):
@@ -149,8 +162,3 @@ def get_address_from_address_line1(address_line1):
                 "longitude": longitude,
             }
         )
-
-    # Cache the result for 24 hours
-    cache.set(cache_key, addresses, timeout=60 * 60 * 24)
-    logger.debug(f"Cached geocoding data for address_line1: {address_line1}")
-    return addresses
