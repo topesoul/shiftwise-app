@@ -174,10 +174,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Google Maps JavaScript API with Places and Geocoding Libraries -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
 
 <!-- Include the Address Autocomplete JavaScript -->
 <script src="{% static 'js/address_autocomplete.js' %}"></script>
-
 {% endblock %}
