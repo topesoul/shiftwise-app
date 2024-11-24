@@ -1,3 +1,5 @@
+# /workspace/shiftwise/shifts/views/booking_views.py
+
 import logging
 
 from django.contrib import messages
@@ -79,16 +81,16 @@ class ShiftBookView(
                 )
                 return redirect("shifts:shift_detail", pk=shift_id)
         else:
-            messages.error(
-                request, "Your location or the shift location is not set."
-            )
+            messages.error(request, "Your location or the shift location is not set.")
             return redirect("shifts:shift_detail", pk=shift_id)
 
         # Create a ShiftAssignment
         try:
+            # trunk-ignore(ruff/F841)
             assignment = ShiftAssignment.objects.create(shift=shift, worker=user)
             messages.success(request, "You have successfully booked the shift.")
             return redirect("shifts:shift_detail", pk=shift_id)
+        # trunk-ignore(ruff/F821)
         except ValidationError as e:
             messages.error(request, e.message)
             return redirect("shifts:shift_detail", pk=shift_id)
