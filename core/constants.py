@@ -29,11 +29,11 @@ SHIFT_TYPE_CHOICES = [
 
 # Shift Status Choices
 STATUS_CHOICES = [
-    ('all', 'All'),
-    ('available', 'Available'),
-    ('booked', 'Booked'),
-    ('completed', 'Completed'),
-    ('cancelled', 'Cancelled'),
+    ("all", "All"),
+    ("available", "Available"),
+    ("booked", "Booked"),
+    ("completed", "Completed"),
+    ("cancelled", "Cancelled"),
 ]
 
 # Attendance Status Choices
