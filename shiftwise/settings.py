@@ -387,13 +387,3 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
-
-# -----------------------------------------------------------------------------
-# Debugging and Verification
-# -----------------------------------------------------------------------------
-
-print(f"USE_AWS: {USE_AWS}")
-print(f"STATICFILES_STORAGE: {locals().get('STATICFILES_STORAGE')}")
-print(f"DEFAULT_FILE_STORAGE: {locals().get('DEFAULT_FILE_STORAGE')}")
-print(f"STATIC_ROOT: {STATIC_ROOT}")
-print(f"STATICFILES_DIRS: {STATICFILES_DIRS}")
