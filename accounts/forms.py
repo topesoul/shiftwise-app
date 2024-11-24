@@ -2,7 +2,6 @@
 
 import logging
 import re
-import uuid
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Field, Layout, Row
@@ -11,11 +10,11 @@ from django.contrib.auth import get_user_model, login
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 
 from core.constants import ROLE_CHOICES, AGENCY_TYPE_CHOICES
 from core.forms import AddressFormMixin
 from core.utils import assign_user_to_group, generate_unique_code
+from shiftwise.utils import geocode_address
 
 from .models import Agency, Invitation, Profile
 
@@ -569,6 +568,36 @@ class SignUpForm(AddressFormMixin, UserCreationForm):
         if travel_radius < 0 or travel_radius > 50:
             raise ValidationError("Travel radius must be between 0 and 50 miles.")
         return travel_radius
+    
+    def clean(self):
+        """
+        Clean method to perform geocoding of the address.
+        """
+        cleaned_data = super().clean()
+        address_line1 = cleaned_data.get("address_line1")
+        address_line2 = cleaned_data.get("address_line2")
+        city = cleaned_data.get("city")
+        county = cleaned_data.get("county")
+        postcode = cleaned_data.get("postcode")
+        country = cleaned_data.get("country")
+
+        # Construct the full address
+        address_components = [address_line1, address_line2, city, county, postcode, country]
+        full_address = ', '.join(filter(None, address_components))
+
+        if full_address.strip():
+            try:
+                geocode_result = geocode_address(full_address)
+                cleaned_data['latitude'] = geocode_result['latitude']
+                cleaned_data['longitude'] = geocode_result['longitude']
+                logger.info(f"Geocoded address for profile: {full_address}")
+            except Exception as e:
+                logger.error(f"Failed to geocode address for profile: {e}")
+
+                self.add_error(None, "Invalid address. Please enter a valid address.")
+        else:
+            self.add_error("address_line1", "Address fields cannot be empty.")
+        return cleaned_data
 
     def save(self, commit=True):
         """
@@ -916,36 +945,6 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
             raise ValidationError("Enter a valid UK postcode.")
         return postcode.upper()
 
-    def clean_latitude(self):
-        """
-        Validates the latitude value.
-        """
-        latitude = self.cleaned_data.get("latitude")
-        if latitude is None:
-            return latitude
-        try:
-            latitude = float(latitude)
-        except ValueError:
-            raise ValidationError("Invalid latitude value.")
-        if not (-90 <= latitude <= 90):
-            raise ValidationError("Latitude must be between -90 and 90.")
-        return latitude
-
-    def clean_longitude(self):
-        """
-        Validates the longitude value.
-        """
-        longitude = self.cleaned_data.get("longitude")
-        if longitude is None:
-            return longitude
-        try:
-            longitude = float(longitude)
-        except ValueError:
-            raise ValidationError("Invalid longitude value.")
-        if not (-180 <= longitude <= 180):
-            raise ValidationError("Longitude must be between -180 and 180.")
-        return longitude
-
     def clean_travel_radius(self):
         """
         Ensures that travel_radius defaults to 0.0 if not provided.
@@ -956,6 +955,36 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
         if travel_radius < 0 or travel_radius > 50:
             raise ValidationError("Travel radius must be between 0 and 50 miles.")
         return travel_radius
+
+    def clean(self):
+        """
+        Clean method to perform geocoding of the address.
+        """
+        cleaned_data = super().clean()
+        address_line1 = cleaned_data.get("address_line1")
+        address_line2 = cleaned_data.get("address_line2")
+        city = cleaned_data.get("city")
+        county = cleaned_data.get("county")
+        postcode = cleaned_data.get("postcode")
+        country = cleaned_data.get("country")
+
+        # Construct the full address
+        address_components = [address_line1, address_line2, city, county, postcode, country]
+        full_address = ', '.join(filter(None, address_components))
+
+        if full_address.strip():
+            try:
+                geocode_result = geocode_address(full_address)
+                cleaned_data['latitude'] = geocode_result['latitude']
+                cleaned_data['longitude'] = geocode_result['longitude']
+                logger.info(f"Geocoded address for profile: {full_address}")
+            except Exception as e:
+                logger.error(f"Failed to geocode address for profile: {e}")
+
+                self.add_error(None, "Invalid address. Please enter a valid address.")
+        else:
+            self.add_error("address_line1", "Address fields cannot be empty.")
+        return cleaned_data
 
     def save(self, commit=True):
         """
