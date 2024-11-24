@@ -1,20 +1,18 @@
 <!-- /workspace/shiftwise/shifts/templates/includes/navbar.html -->
 
-{% load static %}
-{% load custom_filters %}
-{% load custom_tags %}
-{% load crispy_forms_tags %}
+{% load custom_filters %} {% load custom_tags %}
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-custom-navbar shadow-sm">
   <div class="container">
     <!-- Brand -->
     <a class="navbar-brand d-flex align-items-center" href="{% url 'home:home' %}">
-      <img src="{% static 'images/logo.png' %}" alt="ShiftWise Logo" class="logo mr-2" style="height: 40px;" />
-      <span class="font-weight-bold">ShiftWise</span>
+      <img src="{% static 'images/logo.png' %}" alt="ShiftWise Logo" class="logo mr-2" />
+      <span>ShiftWise</span>
     </a>
 
     <!-- Toggler for Mobile View -->
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarShiftWise" aria-controls="navbarShiftWise" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarShiftWise"
+      aria-controls="navbarShiftWise" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
@@ -32,113 +30,117 @@
         </li>
 
         {% if user.is_authenticated %}
-          <!-- Dashboard Link -->
-          <li class="nav-item {% if request.path == dashboard_url %}active{% endif %}">
-            <a class="nav-link" href="{{ dashboard_url }}">Dashboard</a>
-          </li>
+        <!-- Dashboard Link -->
+        <li class="nav-item {% if request.path == dashboard_url %}active{% endif %}">
+          <a class="nav-link" href="{{ dashboard_url }}">Dashboard</a>
+        </li>
 
-          <!-- View Shifts -->
-          <li class="nav-item {% if request.resolver_match.url_name == 'shift_list' %}active{% endif %}">
-            <a class="nav-link" href="{% url 'shifts:shift_list' %}">View Shifts</a>
-          </li>
+        <!-- View Shifts -->
+        <li class="nav-item {% if request.resolver_match.url_name == 'shift_list' %}active{% endif %}">
+          <a class="nav-link" href="{% url 'shifts:shift_list' %}">View Shifts</a>
+        </li>
 
-          <!-- Tools Dropdown -->
-          {% if user.is_superuser or user|has_feature:"custom_integrations" %}
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Tools
-              </a>
-              <div class="dropdown-menu" aria-labelledby="toolsDropdown">
-                {% if user.is_superuser or user|has_feature:"custom_integrations" %}
-                  <a class="dropdown-item" href="{% url 'shifts:report_dashboard' %}">Reports</a>
-                  <a class="dropdown-item" href="{% url 'shifts:api_access' %}">API Access</a>
-                  <a class="dropdown-item" href="{% url 'shifts:staff_list' %}">Manage Staff</a>
-                {% endif %}
-              </div>
-            </li>
-          {% endif %}
+        <!-- Tools Dropdown -->
+        {% if user.is_superuser or user|has_feature:"custom_integrations" %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" role="button" data-toggle="dropdown"
+            aria-haspopup="true" aria-expanded="false">
+            Tools
+          </a>
+          <div class="dropdown-menu" aria-labelledby="toolsDropdown">
+            {% if user.is_superuser or user|has_feature:"custom_integrations" %}
+            <a class="dropdown-item" href="{% url 'shifts:report_dashboard' %}">Reports</a>
+            <a class="dropdown-item" href="{% url 'shifts:api_access' %}">API Access</a>
+            <a class="dropdown-item" href="{% url 'shifts:staff_list' %}">Manage Staff</a>
+            {% endif %}
+          </div>
+        </li>
+        {% endif %}
 
-          <!-- Management Dropdown for Superusers -->
-          {% if user.is_superuser %}
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="managementDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Management
-              </a>
-              <div class="dropdown-menu" aria-labelledby="managementDropdown">
-                <!-- Manage Agencies -->
-                <a class="dropdown-item" href="{% url 'accounts:manage_agencies' %}">
-                  <i class="fas fa-building"></i> Manage Agencies
-                </a>
-                <a class="dropdown-item" href="{% url 'accounts:create_agency' %}">
-                  <i class="fas fa-plus-circle"></i> Create Agency
-                </a>
-                <!-- Manage Users -->
-                <a class="dropdown-item" href="{% url 'accounts:manage_users' %}">
-                  <i class="fas fa-users-cog"></i> Manage Users
-                </a>
-                <a class="dropdown-item" href="{% url 'accounts:create_user' %}">
-                  <i class="fas fa-user-plus"></i> Create User
-                </a>
-              </div>
-            </li>
-          {% endif %}
+        <!-- Management Dropdown for Superusers -->
+        {% if user.is_superuser %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="managementDropdown" role="button" data-toggle="dropdown"
+            aria-haspopup="true" aria-expanded="false">
+            Management
+          </a>
+          <div class="dropdown-menu" aria-labelledby="managementDropdown">
+            <!-- Manage Agencies -->
+            <a class="dropdown-item" href="{% url 'accounts:manage_agencies' %}">
+              <i class="fas fa-building"></i> Manage Agencies
+            </a>
+            <a class="dropdown-item" href="{% url 'accounts:create_agency' %}">
+              <i class="fas fa-plus-circle"></i> Create Agency
+            </a>
+            <!-- Manage Users -->
+            <a class="dropdown-item" href="{% url 'accounts:manage_users' %}">
+              <i class="fas fa-users-cog"></i> Manage Users
+            </a>
+            <a class="dropdown-item" href="{% url 'accounts:create_user' %}">
+              <i class="fas fa-user-plus"></i> Create User
+            </a>
+          </div>
+        </li>
+        {% endif %}
 
-          <!-- Subscriptions Dropdown -->
-          {% if user.is_superuser or user|has_group:"Agency Owners" %}
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="subscriptionDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-subscript"></i> Subscriptions
-              </a>
-              <div class="dropdown-menu" aria-labelledby="subscriptionDropdown">
-                {% if subscription and subscription.is_active %}
-                  <a class="dropdown-item" href="{% url 'subscriptions:manage_subscription' %}">
-                    <i class="fas fa-cogs"></i> Manage Subscription
-                  </a>
-                  <a class="dropdown-item" href="{% url 'subscriptions:cancel_subscription' %}">
-                    <i class="fas fa-ban"></i> Cancel Subscription
-                  </a>
-                {% else %}
-                  <a class="dropdown-item" href="{% url 'subscriptions:subscription_home' %}">
-                    <i class="fas fa-shopping-cart"></i> Subscribe
-                  </a>
-                {% endif %}
-              </div>
-            </li>
-          {% endif %}
-        {% else %}
-          <!-- Unauthenticated Users -->
-          <li class="nav-item {% if request.resolver_match.url_name == 'login_view' %}active{% endif %}">
-            <a class="nav-link" href="{% url 'accounts:login_view' %}">Login</a>
-          </li>
-          <li class="nav-item {% if request.resolver_match.url_name == 'signup_selection' %}active{% endif %}">
-            <a class="nav-link" href="{% url 'accounts:signup_selection' %}">Sign Up</a>
-          </li>
+        <!-- Subscriptions Dropdown -->
+        {% if user.is_superuser or user|has_group:"Agency Owners" %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="subscriptionDropdown" role="button" data-toggle="dropdown"
+            aria-haspopup="true" aria-expanded="false">
+            <i class="fas fa-subscript"></i> Subscriptions
+          </a>
+          <div class="dropdown-menu" aria-labelledby="subscriptionDropdown">
+            {% if subscription and subscription.is_active %}
+            <a class="dropdown-item" href="{% url 'subscriptions:manage_subscription' %}">
+              <i class="fas fa-cogs"></i> Manage Subscription
+            </a>
+            <a class="dropdown-item" href="{% url 'subscriptions:cancel_subscription' %}">
+              <i class="fas fa-ban"></i> Cancel Subscription
+            </a>
+            {% else %}
+            <a class="dropdown-item" href="{% url 'subscriptions:subscription_home' %}">
+              <i class="fas fa-shopping-cart"></i> Subscribe
+            </a>
+            {% endif %}
+          </div>
+        </li>
+        {% endif %} {% else %}
+        <!-- Unauthenticated Users -->
+        <li class="nav-item {% if request.resolver_match.url_name == 'login_view' %}active{% endif %}">
+          <a class="nav-link" href="{% url 'accounts:login_view' %}">Login</a>
+        </li>
+        <li class="nav-item {% if request.resolver_match.url_name == 'signup_selection' %}active{% endif %}">
+          <a class="nav-link" href="{% url 'accounts:signup_selection' %}">Sign Up</a>
+        </li>
         {% endif %}
       </ul>
 
       <!-- Right Side Navbar Items -->
       <ul class="navbar-nav">
         {% if user.is_authenticated %}
-          <!-- User Profile Dropdown -->
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              {% if user.profile.profile_picture %}
-                <img src="{{ user.profile.profile_picture.url }}" alt="{{ user.username }}'s Profile Picture" class="rounded-circle mr-2" style="height:30px; width:30px;">
-              {% else %}
-                <span class="navbar-text">{{ user.username }}</span>
-              {% endif %}
+        <!-- User Profile Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
+            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {% if user.profile.profile_picture %}
+            <img src="{{ user.profile.profile_picture.url }}" alt="{{ user.username }}'s Profile Picture"
+              class="rounded-circle mr-2" style="height: 30px; width: 30px" />
+            {% else %}
+            <span class="navbar-text">{{ user.username }}</span>
+            {% endif %}
+          </a>
+          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown">
+            <a class="dropdown-item" href="{% url 'accounts:profile' %}">
+              <i class="fas fa-user"></i> Profile
             </a>
-            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown">
-              <a class="dropdown-item" href="{% url 'accounts:profile' %}">
-                <i class="fas fa-user"></i> Profile
-              </a>
-              <!-- Logout -->
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="{% url 'accounts:logout_view' %}">
-                <i class="fas fa-sign-out-alt"></i> Logout
-              </a>
-            </div>
-          </li>
+            <!-- Logout -->
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="{% url 'accounts:logout_view' %}">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+          </div>
+        </li>
         {% endif %}
         <!-- Dark Mode Toggle -->
         <li class="nav-item">
