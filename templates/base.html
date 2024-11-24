@@ -1,12 +1,13 @@
 <!-- /workspace/shiftwise/templates/base.html -->
 
+{% load crispy_forms_tags %}
 {% load static %}
 {% load custom_filters %}
 {% load custom_tags %}
-{% load crispy_forms_tags %}
 
 <!DOCTYPE html>
 <html lang="en" data-theme="light" data-user-id="{% if user.is_authenticated %}{{ user.id }}{% else %}0{% endif %}">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -22,11 +23,13 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon-16x16.png' %}">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
 
-    <!-- Bootstrap 4 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" crossorigin="anonymous" />
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
+        crossorigin="anonymous">
 
     <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- Custom CSS Files -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
@@ -41,22 +44,22 @@
     <!-- Extra CSS Block -->
     {% block extra_css %}{% endblock %}
 </head>
-<body class="d-flex flex-column min-vh-100">
 
+<body class="d-flex flex-column min-vh-100">
     <!-- Navbar -->
     {% include 'includes/navbar.html' %}
 
     <!-- Main Content Area with User Feedback Messages -->
     <main class="container my-4">
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" aria-live="polite">
+            {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close" aria-pressed="false">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        {% endfor %}
         {% endif %}
         {% block content %}{% endblock %}
     </main>
@@ -64,7 +67,8 @@
     <!-- Footer -->
     <footer class="footer text-center py-3 mt-auto">
         <p>&copy; {% now "Y" %} ShiftWise App</p>
-        <p>Developed by <a href="https://linkedin.com/in/topeakingbala" target="_blank" rel="noopener noreferrer">Temitope Akingbala</a></p>
+        <p>Developed by <a href="https://linkedin.com/in/topeakingbala" target="_blank"
+                rel="noopener noreferrer">Temitope Akingbala</a></p>
     </footer>
 
     <!-- Include jQuery -->
@@ -74,11 +78,20 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <!-- Font Awesome JS -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
 
     <!-- Custom JS -->
     <script src="{% static 'js/dark_mode_toggle.js' %}"></script>
 
-    {% block extra_js %}{% endblock %}
+    {% block extra_js %}
+    <!-- Include Google Places API Key -->
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_PLACES_API_KEY }}&libraries=places" async defer>
+    </script>
+
+    <!-- Include the Address Autocomplete JavaScript -->
+    <script src="{% static 'js/address_autocomplete.js' %}"></script>
+    {% endblock %}
 </body>
+
 </html>
