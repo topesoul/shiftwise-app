@@ -23,8 +23,8 @@ from shifts.views import (  # Staff Management Views; Shift Management Views; Sh
     StaffPerformanceCreateView,
     StaffPerformanceDeleteView,
     StaffPerformanceDetailView,
-    StaffPerformanceUpdateView,
     StaffPerformanceListView,
+    StaffPerformanceUpdateView,
     StaffUpdateView,
     TimesheetDownloadView,
     UnassignWorkerView,
@@ -47,7 +47,7 @@ urlpatterns = [
     path("shift/<int:pk>/", ShiftDetailView.as_view(), name="shift_detail"),
     path("shift/create/", ShiftCreateView.as_view(), name="shift_create"),
     path("shift/<int:pk>/update/", ShiftUpdateView.as_view(), name="shift_update"),
-    path('shift/<int:pk>/delete/', ShiftDeleteView.as_view(), name='shift_delete'),
+    path("shift/<int:pk>/delete/", ShiftDeleteView.as_view(), name="shift_delete"),
     # ---------------------------
     # Shift Completion URLs
     # ---------------------------
@@ -85,7 +85,11 @@ urlpatterns = [
     # ---------------------------
     # Staff Performance URLs
     # ---------------------------
-    path("performance/", StaffPerformanceListView.as_view(), name="staff_performance_list"),
+    path(
+        "performance/",
+        StaffPerformanceListView.as_view(),
+        name="staff_performance_list",
+    ),
     path(
         "performance/<int:pk>/",
         StaffPerformanceDetailView.as_view(),
