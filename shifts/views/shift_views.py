@@ -15,10 +15,9 @@ from django.db.models import (
     F,
     OuterRef,
     Q,
-    Sum,
     When,
 )
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import (
@@ -31,6 +30,7 @@ from django.views.generic import (
 
 from core.mixins import (
     AgencyManagerRequiredMixin,
+    AgencyStaffRequiredMixin,
     FeatureRequiredMixin,
     SubscriptionRequiredMixin,
 )
@@ -51,14 +51,14 @@ User = get_user_model()
 
 class ShiftListView(
     LoginRequiredMixin,
-    AgencyManagerRequiredMixin,
+    AgencyStaffRequiredMixin,
     SubscriptionRequiredMixin,
     FeatureRequiredMixin,
     ListView,
 ):
     """
     Displays a list of shifts with filtering options.
-    Only accessible to agency managers and superusers.
+    Accessible to agency staff, agency managers, and superusers.
     """
 
     required_features = ["shift_management"]
@@ -128,42 +128,28 @@ class ShiftListView(
                 )
 
         # Annotate with is_assigned
-        assignments = ShiftAssignment.objects.filter(
-            shift=OuterRef("pk"), worker=user
-        )
+        assignments = ShiftAssignment.objects.filter(shift=OuterRef("pk"), worker=user)
         queryset = queryset.annotate(is_assigned=Exists(assignments))
-
-        # Annotate with distance if user has location
-        if (
-            user.is_authenticated
-            and hasattr(user, "profile")
-            and user.profile.latitude
-            and user.profile.longitude
-        ):
-            user_lat = user.profile.latitude
-            user_lon = user.profile.longitude
-            # Calculate distance for each shift
-            shifts = []
-            for shift in queryset:
-                if shift.latitude and shift.longitude:
-                    distance = haversine_distance(
-                        user_lat,
-                        user_lon,
-                        shift.latitude,
-                        shift.longitude,
-                        unit="miles",
-                    )
-                    shift.distance = distance
-                else:
-                    shift.distance = None
-                shifts.append(shift)
-            queryset = shifts
 
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["filter_form"] = self.filter_form
+
+        user = self.request.user
+        if (
+            user.is_authenticated
+            and hasattr(user, "profile")
+            and user.profile.latitude
+            and user.profile.longitude
+        ):
+            context["user_lat"] = user.profile.latitude
+            context["user_lon"] = user.profile.longitude
+        else:
+            context["user_lat"] = None
+            context["user_lon"] = None
+
         return context
 
 
@@ -175,6 +161,7 @@ class ShiftDetailView(
 ):
     """
     Displays details of a specific shift, including assigned and available workers.
+    Accessible to agency staff, agency owners/managers, and superusers.
     """
 
     required_features = ["shift_management"]
@@ -208,16 +195,12 @@ class ShiftDetailView(
                     f"Agency Owner {user.username} does not have an associated agency."
                 )
         elif user.groups.filter(name="Agency Managers").exists():
-            queryset = queryset.filter(
-                agency=user.profile.agency, is_active=True
-            )
+            queryset = queryset.filter(agency=user.profile.agency, is_active=True)
             logger.debug(
                 f"User is an Agency Manager. Filtering shifts for agency: {user.profile.agency}"
             )
         elif user.groups.filter(name="Agency Staff").exists():
-            queryset = queryset.filter(
-                agency=user.profile.agency, is_active=True
-            )
+            queryset = queryset.filter(agency=user.profile.agency, is_active=True)
             logger.debug(
                 f"User is Agency Staff. Filtering shifts for agency: {user.profile.agency}"
             )
@@ -272,8 +255,7 @@ class ShiftDetailView(
             and shift.is_active
         )
         context["can_unbook"] = (
-            user.groups.filter(name="Agency Staff").exists()
-            and context["is_assigned"]
+            user.groups.filter(name="Agency Staff").exists() and context["is_assigned"]
         )
         context["can_edit"] = user.is_superuser or (
             user.groups.filter(name="Agency Managers").exists()
@@ -361,13 +343,8 @@ class ShiftCreateView(
         Ensure that non-superusers have an associated agency before creating a shift.
         """
         if not request.user.is_superuser:
-            if (
-                not hasattr(request.user, "profile")
-                or not request.user.profile.agency
-            ):
-                messages.error(
-                    request, "You are not associated with any agency."
-                )
+            if not hasattr(request.user, "profile") or not request.user.profile.agency:
+                messages.error(request, "You are not associated with any agency.")
                 logger.warning(
                     f"User {request.user.username} attempted to create shift without an associated agency."
                 )
@@ -483,9 +460,7 @@ class ShiftUpdateView(
         form.save_m2m()
 
         messages.success(self.request, "Shift updated successfully.")
-        logger.info(
-            f"Shift '{shift.name}' updated by {self.request.user.username}."
-        )
+        logger.info(f"Shift '{shift.name}' updated by {self.request.user.username}.")
         return super().form_valid(form)
 
     def form_invalid(self, form):
