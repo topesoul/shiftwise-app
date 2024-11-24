@@ -2,11 +2,13 @@
 
 import logging
 from io import BytesIO
+
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from PIL import Image, ImageOps
-from django.core.files.base import ContentFile
+
 from .models import Profile
 
 logger = logging.getLogger(__name__)
@@ -43,12 +45,20 @@ def handle_profile_picture_resize(sender, instance, **kwargs):
 
             # Save the processed image back to storage
             img_io = BytesIO()
-            img_format = img.format if img.format else 'JPEG'  # Default to JPEG if format is undefined
+            img_format = (
+                img.format if img.format else "JPEG"
+            )  # Default to JPEG if format is undefined
             img.save(img_io, format=img_format)
-            instance.profile_picture.save(instance.profile_picture.name, ContentFile(img_io.getvalue()), save=False)
+            instance.profile_picture.save(
+                instance.profile_picture.name,
+                ContentFile(img_io.getvalue()),
+                save=False,
+            )
             logger.info(f"Profile picture resized for user {instance.user.username}.")
         except Exception as e:
-            logger.error(f"Error resizing profile picture for {instance.user.username}: {e}")
+            logger.error(
+                f"Error resizing profile picture for {instance.user.username}: {e}"
+            )
 
 
 @receiver(pre_save, sender=Profile)
