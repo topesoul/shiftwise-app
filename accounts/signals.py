@@ -1,13 +1,13 @@
 # /workspace/shiftwise/accounts/signals.py
 
 import logging
-import os
+from io import BytesIO
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.urls import reverse
 from PIL import Image, ImageOps
-from .models import Agency, Profile
+from django.core.files.base import ContentFile
+from .models import Profile
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,18 @@ def handle_profile_picture_resize(sender, instance, **kwargs):
     """
     if instance.profile_picture:
         try:
-            img = Image.open(instance.profile_picture.path)
+            # Open the image from the storage backend
+            img_temp = BytesIO(instance.profile_picture.read())
+            img = Image.open(img_temp)
             max_size = (500, 500)
             img = ImageOps.exif_transpose(img)
             img.thumbnail(max_size, Image.LANCZOS)
-            img.save(instance.profile_picture.path)
+
+            # Save the processed image back to storage
+            img_io = BytesIO()
+            img_format = img.format if img.format else 'JPEG'  # Default to JPEG if format is undefined
+            img.save(img_io, format=img_format)
+            instance.profile_picture.save(instance.profile_picture.name, ContentFile(img_io.getvalue()), save=False)
             logger.info(f"Profile picture resized for user {instance.user.username}.")
         except Exception as e:
             logger.error(f"Error resizing profile picture for {instance.user.username}: {e}")
@@ -60,11 +67,6 @@ def delete_old_profile_picture(sender, instance, **kwargs):
     old_picture = old_profile.profile_picture
     new_picture = instance.profile_picture
     if old_picture and old_picture != new_picture:
-        if os.path.isfile(old_picture.path):
-            try:
-                os.remove(old_picture.path)
-                logger.info(
-                    f"Deleted old profile picture for user {instance.user.username}."
-                )
-            except Exception as e:
-                logger.error(f"Error deleting old profile picture: {e}")
+        # Delete the old picture using the storage backend
+        old_picture.delete(save=False)
+        logger.info(f"Deleted old profile picture for user {instance.user.username}.")
