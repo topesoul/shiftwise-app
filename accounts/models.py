@@ -2,7 +2,6 @@
 
 import hashlib
 import logging
-import os
 import uuid
 
 from django.contrib.auth.models import AbstractUser
@@ -194,16 +193,15 @@ class Profile(models.Model):
     def save(self, *args, **kwargs):
         try:
             this = Profile.objects.get(id=self.id)
-            if this.profile_picture != self.profile_picture:
-                if this.profile_picture:
-                    if os.path.isfile(this.profile_picture.path):
-                        os.remove(this.profile_picture.path)
-                        logger.info(
-                            f"Old profile picture deleted for user {self.user.username}."
-                        )
+            if this.profile_picture and self.profile_picture != this.profile_picture:
+                # Delete the old profile picture from storage
+                this.profile_picture.delete(save=False)
+                logger.info(
+                    f"Old profile picture deleted for user {self.user.username}."
+                )
         except Profile.DoesNotExist:
-            pass
-        super(Profile, self).save(*args, **kwargs)
+            pass  # When new profile object is created
+        super().save(*args, **kwargs)
 
 
 class Invitation(models.Model):
