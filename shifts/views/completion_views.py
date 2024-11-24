@@ -196,9 +196,7 @@ class ShiftCompleteView(
                 return redirect("shifts:shift_detail", pk=shift.id)
 
             messages.success(request, "Shift completed successfully.")
-            logger.info(
-                f"User {request.user.username} completed Shift ID {shift_id}."
-            )
+            logger.info(f"User {request.user.username} completed Shift ID {shift_id}.")
             return redirect("shifts:shift_detail", pk=shift.id)
         else:
             messages.error(request, "Please correct the errors below.")
@@ -235,7 +233,9 @@ class ShiftCompleteForUserView(
 
         # Ensure the worker belongs to the same agency as the shift
         if user_to_complete.profile.agency != shift.agency:
-            messages.error(request, "The worker does not belong to the same agency as the shift.")
+            messages.error(
+                request, "The worker does not belong to the same agency as the shift."
+            )
             return redirect("shifts:shift_detail", pk=shift.id)
 
         # Check if shift is already completed
@@ -271,7 +271,9 @@ class ShiftCompleteForUserView(
 
         # Ensure the worker belongs to the same agency as the shift
         if user_to_complete.profile.agency != shift.agency:
-            messages.error(request, "The worker does not belong to the same agency as the shift.")
+            messages.error(
+                request, "The worker does not belong to the same agency as the shift."
+            )
             return redirect("shifts:shift_detail", pk=shift.id)
 
         # Check if shift is already completed
@@ -383,7 +385,10 @@ class ShiftCompleteForUserView(
                 messages.error(request, ve.message)
                 return redirect("shifts:shift_detail", pk=shift.id)
 
-            messages.success(request, f"Shift '{shift.name}' completed successfully for {user_to_complete.get_full_name()}.")
+            messages.success(
+                request,
+                f"Shift '{shift.name}' completed successfully for {user_to_complete.get_full_name()}.",
+            )
             logger.info(
                 f"Shift ID {shift.id} completed by {request.user.username} for user {user_to_complete.username}."
             )
@@ -433,9 +438,7 @@ class ShiftCompleteAjaxView(
         signature = request.POST.get("signature")
         latitude = request.POST.get("latitude")
         longitude = request.POST.get("longitude")
-        attendance_status = request.POST.get(
-            "attendance_status"
-        )
+        attendance_status = request.POST.get("attendance_status")
 
         # Handle signature if provided
         if signature:
@@ -471,7 +474,8 @@ class ShiftCompleteAjaxView(
 
                 except (ValueError, TypeError):
                     return JsonResponse(
-                        {"success": False, "message": "Invalid location data."}, status=400
+                        {"success": False, "message": "Invalid location data."},
+                        status=400,
                     )
 
                 # Proceed with distance check
@@ -523,7 +527,10 @@ class ShiftCompleteAjaxView(
                 f"Error updating ShiftAssignment for user {user.username} and shift {shift.id}: {e}"
             )
             return JsonResponse(
-                {"success": False, "message": "An error occurred while completing the shift."},
+                {
+                    "success": False,
+                    "message": "An error occurred while completing the shift.",
+                },
                 status=500,
             )
 
@@ -541,9 +548,7 @@ class ShiftCompleteAjaxView(
             shift.clean(skip_date_validation=True)
             shift.save()
         except ValidationError as ve:
-            return JsonResponse(
-                {"success": False, "message": ve.message}, status=400
-            )
+            return JsonResponse({"success": False, "message": ve.message}, status=400)
 
         logger.info(f"User {user.username} completed Shift ID {shift_id} via AJAX.")
         return JsonResponse(
