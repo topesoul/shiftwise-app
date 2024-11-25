@@ -12,19 +12,24 @@
     background-color: var(--light-color);
     box-shadow: var(--box-shadow-light);
 }
-.table th, .table td {
+
+.table th,
+.table td {
     padding: 1rem;
     border: 1px solid var(--border-color);
     text-align: left;
 }
+
 .table thead th {
     background-color: var(--primary-gradient-start);
     color: #fff;
     font-weight: 600;
 }
+
 .table tbody tr:hover {
     background-color: rgba(0, 123, 255, 0.05);
 }
+
 .table-responsive {
     overflow-x: auto;
 }
@@ -45,7 +50,9 @@
 
 /* Responsive Table Adjustments */
 @media (max-width: 768px) {
-    .table th, .table td {
+
+    .table th,
+    .table td {
         padding: 0.75rem;
         font-size: var(--font-size-sm);
     }

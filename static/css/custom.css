@@ -16,6 +16,7 @@
     transition: color var(--transition-speed);
     text-decoration: none;
 }
+
 .footer a:hover {
     color: var(--accent-color);
     text-decoration: underline;
@@ -35,9 +36,15 @@
     animation: spin 1s linear infinite;
     margin: 2rem auto;
 }
+
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Custom Tooltip */
@@ -48,15 +55,19 @@
     padding: 0.5rem;
     font-size: var(--font-size-sm);
 }
+
 .tooltip.bs-tooltip-top .arrow::before {
     border-top-color: var(--dark-color);
 }
+
 .tooltip.bs-tooltip-bottom .arrow::before {
     border-bottom-color: var(--dark-color);
 }
+
 .tooltip.bs-tooltip-left .arrow::before {
     border-left-color: var(--dark-color);
 }
+
 .tooltip.bs-tooltip-right .arrow::before {
     border-right-color: var(--dark-color);
 }
@@ -79,7 +90,9 @@
     color: #fff;
     transition: color var(--transition-speed);
 }
-.navbar-nav .nav-link:hover, .navbar-nav .nav-item.active .nav-link {
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-item.active .nav-link {
     color: var(--accent-color);
 }
 
@@ -88,6 +101,7 @@
     .navbar-nav {
         text-align: center;
     }
+
     .navbar-nav .nav-item {
         margin: 0.5rem 0;
     }
@@ -99,13 +113,15 @@
 
 /* Testimonials Container with Sky Blue Tint */
 #testimonials {
-    background-color: rgba(135, 206, 235, 0.1); /* Light sky blue tint */
+    background-color: rgba(135, 206, 235, 0.1);
+    /* Light sky blue tint */
     padding: 2rem 0;
 }
 
 /* Testimonials Blockquote Styling */
 #testimonials .blockquote {
-    background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+    background-color: rgba(255, 255, 255, 0.8);
+    /* Semi-transparent white background */
     border-left: 5px solid var(--primary-gradient-end);
     position: relative;
     padding: 1.5rem;
@@ -142,6 +158,7 @@
 .container.my-5.text-center .card {
     transition: transform var(--transition-speed), box-shadow var(--transition-speed);
 }
+
 .container.my-5.text-center .card:hover {
     transform: translateY(-10px);
     box-shadow: var(--box-shadow-hover);
@@ -151,6 +168,7 @@
     color: var(--primary-gradient-end);
     transition: color var(--transition-speed);
 }
+
 .container.my-5.text-center .card-body i:hover {
     color: var(--accent-color);
 }
@@ -169,24 +187,31 @@
 .dark-mode .container.my-5.text-center h2 {
     color: #bb86fc;
 }
+
 .dark-mode .container.my-5.text-center .card-body i {
     color: #bb86fc;
 }
+
 .dark-mode .container.my-5.text-center .card-body i:hover {
     color: var(--accent-color);
 }
+
 .dark-mode .container.my-5.text-center .card-text {
     color: #adb5bd;
 }
 
 .dark-mode #testimonials {
-    background-color: rgba(25, 25, 112, 0.1); /* Darker sky blue tint */
+    background-color: rgba(25, 25, 112, 0.1);
+    /* Darker sky blue tint */
 }
 
 .dark-mode #testimonials .blockquote {
-    background-color: rgba(30, 30, 30, 0.8); /* Dark semi-transparent background */
-    border-left: 5px solid var(--accent-color); /* Accent color border */
+    background-color: rgba(30, 30, 30, 0.8);
+    /* Dark semi-transparent background */
+    border-left: 5px solid var(--accent-color);
+    /* Accent color border */
 }
+
 /* =========================================
    Responsive Adjustments for Testimonials
 ========================================= */
@@ -195,12 +220,15 @@
     .container.my-5.text-center h2 {
         font-size: 2rem;
     }
+
     .container.my-5.text-center .card {
         margin-bottom: 1.5rem;
     }
+
     .container.my-5.text-center .card-title {
         font-size: 1.25rem;
     }
+
     .container.my-5.text-center .card-text {
         font-size: 0.95rem;
     }

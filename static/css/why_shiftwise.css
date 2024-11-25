@@ -27,6 +27,7 @@
 .container.my-5.text-center .card {
     transition: transform var(--transition-speed), box-shadow var(--transition-speed);
 }
+
 .container.my-5.text-center .card:hover {
     transform: translateY(-10px);
     box-shadow: var(--box-shadow-hover);
@@ -36,6 +37,7 @@
     color: var(--primary-gradient-end);
     transition: color var(--transition-speed);
 }
+
 .container.my-5.text-center .card-body i:hover {
     color: var(--accent-color);
 }
@@ -54,12 +56,15 @@
 .dark-mode .container.my-5.text-center h2 {
     color: #bb86fc;
 }
+
 .dark-mode .container.my-5.text-center .card-body i {
     color: #bb86fc;
 }
+
 .dark-mode .container.my-5.text-center .card-body i:hover {
     color: var(--accent-color);
 }
+
 .dark-mode .container.my-5.text-center .card-text {
     color: #adb5bd;
 }
@@ -72,12 +77,15 @@
     .container.my-5.text-center h2 {
         font-size: 2rem;
     }
+
     .container.my-5.text-center .card {
         margin-bottom: 1.5rem;
     }
+
     .container.my-5.text-center .card-title {
         font-size: 1.25rem;
     }
+
     .container.my-5.text-center .card-text {
         font-size: 0.95rem;
     }

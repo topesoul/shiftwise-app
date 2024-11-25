@@ -21,7 +21,8 @@
 
 .hero-section {
     background: linear-gradient(135deg, var(--primary-gradient-start), var(--primary-gradient-end));
-    color: var(--text-color); /* Ensures text color adapts to dark mode */
+    color: var(--text-color);
+    /* Ensures text color adapts to dark mode */
     padding: 4rem 1rem;
     text-align: center;
     position: relative;
@@ -36,17 +37,21 @@
     transition: padding var(--transition-speed);
 }
 
-.hero-section h1, .hero-section p {
-    color: var(--text-color); /* Ensures text color adapts to dark mode */
+.hero-section h1,
+.hero-section p {
+    color: var(--text-color);
+    /* Ensures text color adapts to dark mode */
     text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .hero-section h1 {
-    font-size: 2.5rem; /* Base font size */
+    font-size: 2.5rem;
+    /* Base font size */
 }
 
 .hero-section p.lead {
-    font-size: 1.25rem; /* Base font size */
+    font-size: 1.25rem;
+    /* Base font size */
 }
 
 .hero-section .btn {
@@ -61,12 +66,15 @@
     .hero-section {
         padding: 2rem 1rem;
     }
+
     .hero-overlay {
         padding: 2rem;
     }
+
     .hero-section h1 {
         font-size: 2rem;
     }
+
     .hero-section p.lead {
         font-size: 1rem;
     }
@@ -76,6 +84,7 @@
     .hero-section h1 {
         font-size: 1.75rem;
     }
+
     .hero-section p.lead {
         font-size: 0.9rem;
     }

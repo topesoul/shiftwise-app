@@ -24,7 +24,7 @@
 }
 
 /* Active State Styling Using :checked */
-.subscription-toggle .btn-check:checked + .btn {
+.subscription-toggle .btn-check:checked+.btn {
     background-color: var(--primary-gradient-end);
     color: var(--light-color);
     border-color: var(--primary-gradient-end);
@@ -44,6 +44,7 @@
 .subscription-card {
     transition: transform var(--transition-speed), box-shadow var(--transition-speed);
 }
+
 .subscription-card:hover {
     transform: translateY(-5px);
     box-shadow: var(--box-shadow-hover);
@@ -55,14 +56,13 @@
     padding: 0.5em 0.75em;
 }
 
-/* Ensure card backgrounds and text adapt to dark mode via base.css */
-
 /* Subscribe Button within Subscription Card */
 .subscribe-button {
     background-color: var(--primary-gradient-end);
     border-color: var(--primary-gradient-end);
     transition: background-color var(--transition-speed), border-color var(--transition-speed);
 }
+
 .subscribe-button:hover {
     background-color: var(--primary-gradient-start);
     border-color: var(--primary-gradient-start);
@@ -89,6 +89,7 @@
     background-color: #007bff;
     border-color: #007bff;
 }
+
 .dark-mode .subscribe-button:hover {
     background-color: #0056b3;
     border-color: #004085;
@@ -100,11 +101,13 @@
     color: #ffffff;
     border-color: #ffffff;
 }
+
 .dark-mode .subscription-toggle .btn:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: #ffffff;
 }
-.dark-mode .subscription-toggle .btn-check:checked + .btn {
+
+.dark-mode .subscription-toggle .btn-check:checked+.btn {
     background-color: #ffffff;
     color: var(--primary-gradient-end);
     border-color: #ffffff;

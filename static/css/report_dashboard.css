@@ -65,10 +65,12 @@
     box-shadow: var(--box-shadow-light);
     transition: transform var(--transition-speed), box-shadow var(--transition-speed);
 }
+
 .dashboard-card:hover {
     transform: translateY(-5px);
     box-shadow: var(--box-shadow-hover);
 }
+
 .dark-mode .dashboard-card {
     background-color: #1e1e1e;
     color: #ffffff;
