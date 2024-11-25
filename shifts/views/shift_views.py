@@ -7,26 +7,11 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import (
-    BooleanField,
-    Case,
-    Count,
-    Exists,
-    F,
-    OuterRef,
-    Q,
-    When,
-)
+from django.db.models import BooleanField, Case, Count, Exists, F, OuterRef, Q, When
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    DetailView,
-    ListView,
-    UpdateView,
-)
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from core.mixins import (
     AgencyManagerRequiredMixin,
@@ -183,7 +168,7 @@ class ShiftDetailView(
             queryset = queryset.filter(is_active=True)
             logger.debug("User is superuser. Filtering active shifts.")
         elif user.groups.filter(name="Agency Owners").exists():
-            agency = user.profile.agency or getattr(user, "owned_agency", None)
+            agency = user.profile.agency
             if agency:
                 queryset = queryset.filter(agency=agency, is_active=True)
                 logger.debug(
@@ -195,15 +180,29 @@ class ShiftDetailView(
                     f"Agency Owner {user.username} does not have an associated agency."
                 )
         elif user.groups.filter(name="Agency Managers").exists():
-            queryset = queryset.filter(agency=user.profile.agency, is_active=True)
-            logger.debug(
-                f"User is an Agency Manager. Filtering shifts for agency: {user.profile.agency}"
-            )
+            agency = user.profile.agency
+            if agency:
+                queryset = queryset.filter(agency=agency, is_active=True)
+                logger.debug(
+                    f"User is an Agency Manager. Filtering shifts for agency: {agency}"
+                )
+            else:
+                queryset = Shift.objects.none()
+                logger.warning(
+                    f"Agency Manager {user.username} does not have an associated agency."
+                )
         elif user.groups.filter(name="Agency Staff").exists():
-            queryset = queryset.filter(agency=user.profile.agency, is_active=True)
-            logger.debug(
-                f"User is Agency Staff. Filtering shifts for agency: {user.profile.agency}"
-            )
+            agency = user.profile.agency
+            if agency:
+                queryset = queryset.filter(agency=agency, is_active=True)
+                logger.debug(
+                    f"User is Agency Staff. Filtering shifts for agency: {agency}"
+                )
+            else:
+                queryset = Shift.objects.none()
+                logger.warning(
+                    f"Agency Staff {user.username} does not have an associated agency."
+                )
         else:
             queryset = Shift.objects.none()
             logger.debug(
@@ -309,10 +308,10 @@ class ShiftDetailView(
 
         # Add ShiftCompletionForm to context if the modal is included
         if (
-            self.request.user.is_superuser
-            or user.groups.filter(name="Agency Managers").exists()
-            or user.groups.filter(name="Agency Owners").exists()
-            or user.groups.filter(name="Agency Staff").exists()
+            user.is_superuser
+            or user.groups.filter(
+                name__in=["Agency Managers", "Agency Owners", "Agency Staff"]
+            ).exists()
         ):
             if not shift.is_completed and shift.is_active:
                 context["form"] = ShiftCompletionForm()
@@ -329,7 +328,7 @@ class ShiftCreateView(
 ):
     """
     Allows agency managers and superusers to create new shifts.
-    Superusers can assign shifts to any agency or without an agency.
+    Superusers can assign shifts to any agency.
     """
 
     required_features = ["shift_management"]
@@ -362,9 +361,8 @@ class ShiftCreateView(
     def form_valid(self, form):
         shift = form.save(commit=False)
         if self.request.user.is_superuser:
-            # Superuser must assign an agency if provided
+            # Superuser must assign an agency
             agency = form.cleaned_data.get("agency")
-            # Agency is required; form validation ensures it's provided
             shift.agency = agency
         else:
             # Agency managers assign shifts to their own agency
@@ -380,7 +378,7 @@ class ShiftCreateView(
                     day=1, hour=0, minute=0, second=0, microsecond=0
                 )
                 current_shift_count = Shift.objects.filter(
-                    agency=shift.agency, shift_date__gte=current_month_start
+                    agency=agency, created_at__gte=current_month_start
                 ).count()
                 if current_shift_count >= subscription.plan.shift_limit:
                     messages.error(
@@ -388,14 +386,13 @@ class ShiftCreateView(
                         f"Your agency has reached the maximum number of shifts ({subscription.plan.shift_limit}) for this month. Please upgrade your subscription.",
                     )
                     logger.info(
-                        f"Agency '{shift.agency.name}' has reached the shift limit for the month."
+                        f"Agency '{agency.name}' has reached the shift limit for the month."
                     )
-                    return redirect(
-                        "subscriptions:upgrade_subscription"
-                    )  # Redirect to upgrade page
+                    return redirect("subscriptions:upgrade_subscription")
 
-        # Generate a unique shift code
-        shift.shift_code = generate_shift_code()
+        # Generate a unique shift code if not already set
+        if not shift.shift_code:
+            shift.shift_code = generate_shift_code()
 
         # Save the shift
         shift.save()
@@ -403,7 +400,7 @@ class ShiftCreateView(
 
         messages.success(self.request, "Shift created successfully.")
         logger.info(
-            f"Shift '{shift.name}' created by {self.request.user.username} for agency {agency.name if agency else 'No Agency'}."
+            f"Shift '{shift.name}' created by {self.request.user.username} for agency {agency.name}."
         )
         return super().form_valid(form)
 
@@ -423,7 +420,7 @@ class ShiftUpdateView(
 ):
     """
     Allows agency managers and superusers to update existing shifts.
-    Superusers can change the agency of a shift or leave it without an agency.
+    Superusers can change the agency of a shift.
     """
 
     required_features = ["shift_management"]
@@ -445,16 +442,13 @@ class ShiftUpdateView(
         if self.request.user.is_superuser:
             # Superuser can change the agency if provided
             agency = form.cleaned_data.get("agency")
-            # Agency is optional; no action needed if not provided
             if agency:
                 shift.agency = agency
         else:
             # Agency managers cannot change the agency of a shift
             shift.agency = self.request.user.profile.agency
 
-        # Update shift code if needed
-        shift.shift_code = generate_shift_code()
-
+        # Do not regenerate shift code on update
         # Save the shift
         shift.save()
         form.save_m2m()
@@ -506,4 +500,5 @@ class ShiftDeleteView(
         logger.info(
             f"Shift '{shift.name}' deactivated by user {request.user.username}."
         )
-        return super().delete(request, *args, **kwargs)
+        messages.success(request, self.success_message)
+        return redirect(self.success_url)
