@@ -110,7 +110,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 # Custom context processors
                 "accounts.context_processors.user_roles_and_subscriptions",
-                "shiftwise.context_processors.google_places_api_key",
+                "core.context_processors.google_places_api_key",
             ],
             "builtins": [
                 "django.templatetags.static",
