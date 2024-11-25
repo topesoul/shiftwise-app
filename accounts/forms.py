@@ -1365,6 +1365,25 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
                 Column("county", css_class="form-group col-md-4 mb-0"),
                 Column("postcode", css_class="form-group col-md-4 mb-0"),
             ),
+            "country",
+            "travel_radius",
+            # Hidden fields
+            Field("latitude"),
+            Field("longitude"),
+        )
+
+    def __init__(self, *args, **kwargs):
+        super(UpdateProfileForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            "address_line1",
+            "address_line2",
+            Row(
+                Column("city", css_class="form-group col-md-4 mb-0"),
+                Column("county", css_class="form-group col-md-4 mb-0"),
+                Column("postcode", css_class="form-group col-md-4 mb-0"),
+            ),
             Row(
                 Column("country", css_class="form-group col-md-6 mb-0"),
             ),
