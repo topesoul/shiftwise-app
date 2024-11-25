@@ -13,7 +13,6 @@ from core.mixins import (
     SubscriptionRequiredMixin,
 )
 from shifts.models import Shift, ShiftAssignment
-from shifts.utils import is_shift_full, is_user_assigned
 from shiftwise.utils import haversine_distance
 
 # Initialize logger
@@ -48,12 +47,12 @@ class ShiftBookView(
             return redirect("shifts:shift_list")
 
         # Check if the shift is full
-        if is_shift_full(shift):
+        if shift.is_full:
             messages.error(request, "This shift is already full.")
             return redirect("shifts:shift_list")
 
         # Check if the user has already booked the shift
-        if is_user_assigned(shift, user):
+        if ShiftAssignment.objects.filter(shift=shift, worker=user).exists():
             messages.info(request, "You have already booked this shift.")
             return redirect("shifts:shift_detail", pk=shift_id)
 
@@ -86,13 +85,11 @@ class ShiftBookView(
 
         # Create a ShiftAssignment
         try:
-            # trunk-ignore(ruff/F841)
-            assignment = ShiftAssignment.objects.create(shift=shift, worker=user)
+            ShiftAssignment.objects.create(shift=shift, worker=user)
             messages.success(request, "You have successfully booked the shift.")
-            return redirect("shifts:shift_detail", pk=shift_id)
-        # trunk-ignore(ruff/F821)
-        except ValidationError as e:
-            messages.error(request, e.message)
+            logger.info(
+                f"User {user.username} booked shift {shift.id} successfully."
+            )
             return redirect("shifts:shift_detail", pk=shift_id)
         except Exception as e:
             messages.error(
@@ -149,6 +146,9 @@ class ShiftUnbookView(
             assignment.delete()
             messages.success(
                 request, f"You have been unbooked from the shift: {shift.name}."
+            )
+            logger.info(
+                f"User {user.username} unbooked from shift {shift.id} successfully."
             )
             return redirect("shifts:shift_detail", pk=shift_id)
         except Exception as e:
