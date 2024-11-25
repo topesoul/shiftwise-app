@@ -142,8 +142,8 @@
         <form method="post" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
           <div class="modal-header">
-            <h5 class="modal-title text-white" id="updateProfileModalLabel">Update Your Profile</h5>
-            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+            <h5 class="modal-title" id="updateProfileModalLabel">Update Your Profile</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
@@ -171,10 +171,8 @@
         </form>
       </div>
     </div>
-  </div>  
-{% endblock %}
+</div>  
 
-{% block extra_js %}
-<!-- Include the Address Autocomplete JavaScript -->
+<!-- Include jQuery, Bootstrap JS, Google Maps API, and address_autocomplete.js -->
 <script src="{% static 'js/address_autocomplete.js' %}"></script>
 {% endblock %}
