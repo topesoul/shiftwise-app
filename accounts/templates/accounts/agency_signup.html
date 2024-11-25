@@ -11,7 +11,7 @@
 {% block content %}
 <div class="container my-5">
     <h2>Agency Sign-Up</h2>
-    <form method="post" enctype="multipart/form-data" novalidate>
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
         <!-- Display non-field errors -->
@@ -20,18 +20,6 @@
                 {{ form.non_field_errors }}
             </div>
         {% endif %}
-
-        <!-- Display field-specific errors above the form -->
-        {% for field in form %}
-            {% if field.errors %}
-                <div class="alert alert-danger">
-                    <strong>{{ field.label }}:</strong>
-                    {% for error in field.errors %}
-                        {{ error }}{% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endfor %}
 
         <!-- Render the form using crispy_forms -->
         {{ form|crispy }}
