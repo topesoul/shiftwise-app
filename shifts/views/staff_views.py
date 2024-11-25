@@ -6,27 +6,18 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
-from django.core.exceptions import PermissionDenied
 from django.db.models import Count, ExpressionWrapper, F, FloatField, Q, Sum
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    DetailView,
-    ListView,
-    UpdateView,
-)
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from accounts.forms import StaffCreationForm, StaffUpdateForm
-from accounts.models import Profile
 from core.mixins import (
     AgencyManagerRequiredMixin,
     FeatureRequiredMixin,
     SubscriptionRequiredMixin,
 )
-from shifts.models import Shift, ShiftAssignment, StaffPerformance
-from shifts.utils import is_shift_full, is_user_assigned
+from shifts.models import Shift
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -61,9 +52,11 @@ class StaffListView(
         date_to = self.request.GET.get("date_to", "")
 
         # Base queryset filtering Agency Staff and active users
-        staff_members = User.objects.filter(groups__name="Agency Staff", is_active=True)
+        staff_members = User.objects.filter(
+            groups__name="Agency Staff", is_active=True
+        )
 
-        if not user.is_superuser:
+        if not user.is_superuser and agency:
             staff_members = staff_members.filter(profile__agency=agency)
 
         # Annotate with shift statistics
@@ -135,7 +128,7 @@ class StaffCreateView(
 ):
     """
     Allows agency managers and superusers to add new staff members to their agency.
-    Superusers can add staff without being associated with any agency.
+    Superusers can add staff to any agency.
     """
 
     required_features = ["custom_integrations"]
@@ -164,9 +157,19 @@ class StaffCreateView(
             user.profile.travel_radius = form.cleaned_data.get("travel_radius") or 0.0
             user.profile.save()
         else:
-            user.save()
+            # Superuser can assign staff to any agency
+            agency = form.cleaned_data.get("agency")
+            if agency:
+                user.save()
+                user.profile.agency = agency
+                user.profile.save()
+            else:
+                messages.error(
+                    self.request, "You must select an agency for the staff member."
+                )
+                return self.form_invalid(form)
         # Add to 'Agency Staff' group
-        agency_staff_group, created = Group.objects.get_or_create(name="Agency Staff")
+        agency_staff_group, _ = Group.objects.get_or_create(name="Agency Staff")
         user.groups.add(agency_staff_group)
         messages.success(self.request, "Staff member added successfully.")
         logger.info(
@@ -199,11 +202,12 @@ class StaffUpdateView(
         """
         user = self.request.user
         staff_member = self.get_object()
-        if not user.is_superuser and staff_member.profile.agency != user.profile.agency:
-            messages.error(
-                request, "You do not have permission to edit this staff member."
-            )
-            return redirect("shifts:staff_list")
+        if not user.is_superuser:
+            if staff_member.profile.agency != user.profile.agency:
+                messages.error(
+                    request, "You do not have permission to edit this staff member."
+                )
+                return redirect("shifts:staff_list")
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -238,11 +242,12 @@ class StaffDeleteView(
         """
         user = self.request.user
         staff_member = self.get_object()
-        if not user.is_superuser and staff_member.profile.agency != user.profile.agency:
-            messages.error(
-                request, "You do not have permission to deactivate this staff member."
-            )
-            return redirect("shifts:staff_list")
+        if not user.is_superuser:
+            if staff_member.profile.agency != user.profile.agency:
+                messages.error(
+                    request, "You do not have permission to deactivate this staff member."
+                )
+                return redirect("shifts:staff_list")
         return super().dispatch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
