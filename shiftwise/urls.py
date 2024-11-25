@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from core import views
 
 # Import custom error views
 from shifts.views.custom_views import (
@@ -20,6 +21,7 @@ urlpatterns = [
     path("contact/", include("contact.urls", namespace="contact")),
     path("subscriptions/", include("subscriptions.urls", namespace="subscriptions")),
     path("notifications/", include("notifications.urls", namespace="notifications")),
+    path("core/", include("core.urls", namespace="core")),
     path("", include("home.urls", namespace="home")),
 ]
 
