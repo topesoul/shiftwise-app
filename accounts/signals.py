@@ -43,11 +43,13 @@ def handle_profile_picture_resize(sender, instance, **kwargs):
             img = ImageOps.exif_transpose(img)
             img.thumbnail(max_size, Image.LANCZOS)
 
+            # Convert image mode if necessary
+            if img.mode in ("RGBA", "LA") or (img.mode == "P" and 'transparency' in img.info):
+                img = img.convert("RGB")
+
             # Save the processed image back to storage
             img_io = BytesIO()
-            img_format = (
-                img.format if img.format else "JPEG"
-            )  # Default to JPEG if format is undefined
+            img_format = img.format if img.format else "JPEG"  # Default to JPEG if format is undefined
             img.save(img_io, format=img_format)
             instance.profile_picture.save(
                 instance.profile_picture.name,
@@ -56,9 +58,7 @@ def handle_profile_picture_resize(sender, instance, **kwargs):
             )
             logger.info(f"Profile picture resized for user {instance.user.username}.")
         except Exception as e:
-            logger.error(
-                f"Error resizing profile picture for {instance.user.username}: {e}"
-            )
+            logger.error(f"Error resizing profile picture for {instance.user.username}: {e}")
 
 
 @receiver(pre_save, sender=Profile)
@@ -80,3 +80,4 @@ def delete_old_profile_picture(sender, instance, **kwargs):
         # Delete the old picture using the storage backend
         old_picture.delete(save=False)
         logger.info(f"Deleted old profile picture for user {instance.user.username}.")
+
