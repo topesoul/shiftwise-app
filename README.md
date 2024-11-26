@@ -407,7 +407,7 @@ ShiftWise offers a comprehensive suite of features tailored to the needs of care
 
 ### Subscriptions
 
-![Price Cards with Plans](.docs/images/price-cards-dark-mode.png)  
+![Price Cards with Plans](./docs/images/price-cards-dark-mode.png)  
 [Stripe Payment Page](./docs/images/payment_stripe.png)  
 [Stripe Payment Success](./docs/images/payment-stripe-test-success.png)  
 [Stripe Webhook Event Success](./docs/images/stripe-webhook-test-subscription-event-success.png)
@@ -907,7 +907,7 @@ ShiftWise utilizes a relational database (PostgreSQL) to manage and store data e
     - `custom_integrations (Boolean)`
     - `is_active (Boolean)`
     - `shift_limit (Integer)`
-```
+
   - **Description**: Defines the available subscription plans with corresponding features.
 
 - **Notification**
@@ -930,7 +930,7 @@ ShiftWise utilizes a relational database (PostgreSQL) to manage and store data e
 
 ### Entity Relationship Diagram (ERD)
 
-![ERD](docs/images/erd.png)
+![ERD](./docs/images/erd.png)
 
 ---
 
