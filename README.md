@@ -1009,7 +1009,7 @@ ShiftWise leverages Django's powerful admin interface for managing shifts, assig
 
 ## Security Features
 
-![MFA-Enabled Pre-Login Verification](.docs/images/mfa-login-verification-page.png)
+![MFA-Enabled Pre-Login Verification](./docs/images/mfa-login-verification-page.png)
 
 ShiftWise prioritizes security to protect user data and ensure platform integrity. Below are key security measures implemented:
 
@@ -1032,7 +1032,7 @@ ShiftWise prioritizes security to protect user data and ensure platform integrit
 
   - Differentiates access levels between Superusers, Agency Owners, Agency Managers, and Agency Staff.
 
-![MFA User Setup](.docs/images/mfa-enabled.png)
+![MFA User Setup](./docs/images/mfa-enabled.png)
 - **Multi-Factor Authentication (MFA)**: 
   - Adds an additional security layer during user login using TOTP.
 
