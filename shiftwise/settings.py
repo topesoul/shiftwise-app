@@ -96,6 +96,11 @@ SITE_URL = os.getenv("SITE_URL")
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
+# google_maps_api_key is required for Google Places API integration
+if not GOOGLE_PLACES_API_KEY:
+    raise ImproperlyConfigured("GOOGLE_PLACES_API_KEY must be set in environment variables.")
+
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
