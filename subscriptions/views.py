@@ -357,7 +357,6 @@ class StripeWebhookView(View):
             logger.error(
                 f"Subscription with ID {stripe_subscription_id} does not exist in local database."
             )
-            # Optional: Notify admin or create the subscription
         except Plan.DoesNotExist:
             logger.exception(
                 f"Plan with price ID {subscription['items']['data'][0]['price']['id']} does not exist."
