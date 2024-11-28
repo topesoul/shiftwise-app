@@ -11,16 +11,24 @@ class AddressFormMixin:
     Mixin to include common address validation methods.
     """
 
-    def clean_postcode(self):
-        """Common postcode validation."""
-        postcode = self.cleaned_data.get("postcode", "").strip()
-        if not postcode:
-            return postcode
-        # UK postcode regex
-        uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
-        if not re.match(uk_postcode_regex, postcode.upper()):
-            raise ValidationError("Enter a valid UK postcode.")
-        return postcode.upper()
+
+def clean_postcode(self):
+    """
+    Validates the postcode based on UK-specific formats.
+    """
+    postcode = self.cleaned_data.get("postcode", "")
+    if postcode:
+        postcode = postcode.strip()
+
+    # Handle empty postcode case
+    if not postcode:
+        return postcode
+
+    # UK postcode regex
+    uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
+    if not re.match(uk_postcode_regex, postcode.upper()):
+        raise ValidationError("Enter a valid UK postcode.")
+    return postcode.upper()
 
     def clean_latitude(self):
         """Common latitude validation."""

@@ -220,18 +220,17 @@ class AgencyForm(AddressFormMixin, forms.ModelForm):
             self.add_error("address_line1", "Address fields cannot be empty.")
         return cleaned_data
 
+
     def clean_postcode(self):
         """
         Validates the postcode based on UK-specific formats.
         """
-        postcode = self.cleaned_data.get("postcode")
+        postcode = self.cleaned_data.get("postcode", "")
         if postcode:
             postcode = postcode.strip()
-        else:
-            postcode = ""
 
+        # Handle empty postcode case
         if not postcode:
-            # If no postcode is provided, return it as is
             return postcode
 
         # UK postcode regex
@@ -547,25 +546,24 @@ class AgencySignUpForm(AddressFormMixin, UserCreationForm):
             raise ValidationError("Travel radius must be between 0 and 50 miles.")
         return travel_radius
 
-    def clean_postcode(self):
-        """
-        Validates the postcode based on UK-specific formats.
-        """
-        postcode = self.cleaned_data.get("postcode")
-        if postcode:
-            postcode = postcode.strip()
-        else:
-            postcode = ""
 
-        if not postcode:
-            # If no postcode is provided, return it as is
-            return postcode
+def clean_postcode(self):
+    """
+    Validates the postcode based on UK-specific formats.
+    """
+    postcode = self.cleaned_data.get("postcode", "")
+    if postcode:
+        postcode = postcode.strip()
 
-        # UK postcode regex
-        uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
-        if not re.match(uk_postcode_regex, postcode.upper()):
-            raise ValidationError("Enter a valid UK postcode.")
-        return postcode.upper()
+    # Handle empty postcode case
+    if not postcode:
+        return postcode
+
+    # UK postcode regex
+    uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
+    if not re.match(uk_postcode_regex, postcode.upper()):
+        raise ValidationError("Enter a valid UK postcode.")
+    return postcode.upper()
 
     def clean_latitude(self):
         """
@@ -1393,13 +1391,19 @@ class UpdateProfileForm(AddressFormMixin, forms.ModelForm):
             Field("longitude"),
         )
 
+
     def clean_postcode(self):
         """
         Validates the postcode based on UK-specific formats.
         """
-        postcode = self.cleaned_data.get("postcode", "").strip()
+        postcode = self.cleaned_data.get("postcode", "")
+        if postcode:
+            postcode = postcode.strip()
+
+        # Handle empty postcode case
         if not postcode:
             return postcode
+
         # UK postcode regex
         uk_postcode_regex = r"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$"
         if not re.match(uk_postcode_regex, postcode.upper()):
@@ -1880,18 +1884,17 @@ class StaffCreationForm(AddressFormMixin, UserCreationForm):
             raise ValidationError("Travel radius must be between 0 and 50 miles.")
         return travel_radius
 
+
     def clean_postcode(self):
         """
         Validates the postcode based on UK-specific formats.
         """
-        postcode = self.cleaned_data.get("postcode")
+        postcode = self.cleaned_data.get("postcode", "")
         if postcode:
             postcode = postcode.strip()
-        else:
-            postcode = ""
 
+        # Handle empty postcode case
         if not postcode:
-            # If no postcode is provided, return it as is
             return postcode
 
         # UK postcode regex
@@ -2209,18 +2212,17 @@ class StaffUpdateForm(AddressFormMixin, forms.ModelForm):
             raise ValidationError("Travel radius must be between 0 and 50 miles.")
         return travel_radius
 
+
     def clean_postcode(self):
         """
         Validates the postcode based on UK-specific formats.
         """
-        postcode = self.cleaned_data.get("postcode")
+        postcode = self.cleaned_data.get("postcode", "")
         if postcode:
             postcode = postcode.strip()
-        else:
-            postcode = ""
 
+        # Handle empty postcode case
         if not postcode:
-            # If no postcode is provided, return it as is
             return postcode
 
         # UK postcode regex

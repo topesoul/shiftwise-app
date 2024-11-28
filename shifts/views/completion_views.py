@@ -15,11 +15,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import View
 
-from core.mixins import (
-    AgencyManagerRequiredMixin,
-    FeatureRequiredMixin,
-    SubscriptionRequiredMixin,
-)
+from core.mixins import (AgencyManagerRequiredMixin, FeatureRequiredMixin,
+                         SubscriptionRequiredMixin)
 from shifts.forms import ShiftCompletionForm
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import haversine_distance

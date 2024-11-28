@@ -7,24 +7,18 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import BooleanField, Case, Count, Exists, F, OuterRef, Q, When
+from django.db.models import (BooleanField, Case, Count, Exists, F, OuterRef,
+                              Q, When)
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
+                                  UpdateView)
 
-from core.mixins import (
-    AgencyManagerRequiredMixin,
-    AgencyStaffRequiredMixin,
-    FeatureRequiredMixin,
-    SubscriptionRequiredMixin,
-)
-from shifts.forms import (
-    AssignWorkerForm,
-    ShiftCompletionForm,
-    ShiftFilterForm,
-    ShiftForm,
-)
+from core.mixins import (AgencyManagerRequiredMixin, AgencyStaffRequiredMixin,
+                         FeatureRequiredMixin, SubscriptionRequiredMixin)
+from shifts.forms import (AssignWorkerForm, ShiftCompletionForm,
+                          ShiftFilterForm, ShiftForm)
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import generate_shift_code, haversine_distance
 

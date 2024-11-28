@@ -1,5 +1,6 @@
 # /workspace/shiftwise/core/urls.py
 from django.urls import path
+
 from .views import google_maps_proxy
 
 app_name = "core"

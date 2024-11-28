@@ -7,18 +7,16 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Avg, Count, ExpressionWrapper, F, FloatField, Q, Sum
+from django.db.models import (Avg, Count, ExpressionWrapper, F, FloatField, Q,
+                              Sum)
 from django.http import StreamingHttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView, View
 
 from accounts.models import Agency
-from core.mixins import (
-    AgencyManagerRequiredMixin,
-    FeatureRequiredMixin,
-    SubscriptionRequiredMixin,
-)
+from core.mixins import (AgencyManagerRequiredMixin, FeatureRequiredMixin,
+                         SubscriptionRequiredMixin)
 from shifts.models import Shift, StaffPerformance
 
 # Initialize logger

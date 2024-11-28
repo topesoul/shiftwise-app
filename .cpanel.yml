@@ -1,0 +1,10 @@
+# .cpanel.yml
+deployment:
+  tasks:
+    - export DEPLOY_ENV=production
+    - /usr/local/bin/python3.9 -m venv venv
+    - source venv/bin/activate
+    - pip install -r requirements.txt
+    - python manage.py collectstatic --noinput
+    - python manage.py migrate --noinput
+    - touch tmp/restart.txt

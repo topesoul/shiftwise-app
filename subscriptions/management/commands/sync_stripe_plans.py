@@ -72,20 +72,16 @@ class Command(BaseCommand):
                             f"Invalid unit_amount_decimal for price ID {price.id}"
                         )
                     )
-                    logger.error(
-                        f"Invalid unit_amount_decimal for price ID {price.id}"
-                    )
+                    logger.error(f"Invalid unit_amount_decimal for price ID {price.id}")
                     continue  # Skip this price
 
                 # Map Stripe product metadata to feature flags
                 metadata = product.get("metadata", {})
                 notifications_enabled = (
-                    metadata.get("notifications_enabled", "false").lower()
-                    == "true"
+                    metadata.get("notifications_enabled", "false").lower() == "true"
                 )
                 advanced_reporting = (
-                    metadata.get("advanced_reporting", "false").lower()
-                    == "true"
+                    metadata.get("advanced_reporting", "false").lower() == "true"
                 )
                 priority_support = (
                     metadata.get("priority_support", "false").lower() == "true"
@@ -94,21 +90,17 @@ class Command(BaseCommand):
                     metadata.get("shift_management", "false").lower() == "true"
                 )
                 staff_performance = (
-                    metadata.get("staff_performance", "false").lower()
-                    == "true"
+                    metadata.get("staff_performance", "false").lower() == "true"
                 )
                 custom_integrations = (
-                    metadata.get("custom_integrations", "false").lower()
-                    == "true"
+                    metadata.get("custom_integrations", "false").lower() == "true"
                 )
 
                 # Extract shift_limit from metadata if available
                 shift_limit = metadata.get("shift_limit")
                 if shift_limit:
                     # Remove surrounding quotes if any and convert to lowercase
-                    shift_limit_clean = (
-                        shift_limit.strip('"').strip("'").lower()
-                    )
+                    shift_limit_clean = shift_limit.strip('"').strip("'").lower()
                     if shift_limit_clean in ["none", "null", ""]:
                         shift_limit = None
                     else:
@@ -204,6 +196,4 @@ class Command(BaseCommand):
             logger.error(f"Stripe Error during sync_stripe_plans: {str(e)}")
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"Unexpected Error: {str(e)}"))
-            logger.exception(
-                f"Unexpected Error during sync_stripe_plans: {str(e)}"
-            )
+            logger.exception(f"Unexpected Error during sync_stripe_plans: {str(e)}")

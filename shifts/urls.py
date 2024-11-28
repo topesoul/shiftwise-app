@@ -3,32 +3,14 @@
 from django.urls import include, path
 
 from shifts.views import (  # Staff Management Views; Shift Management Views; Shift Completion Views; Shift Booking and Unbooking Views; Timesheet and Reporting Views; Staff Performance Views; API Views; Dashboard View; Worker Assignment Views
-    APIAccessView,
-    AssignWorkerView,
-    ReportDashboardView,
-    ShiftBookView,
-    ShiftCompleteAjaxView,
-    ShiftCompleteForUserView,
-    ShiftCompleteView,
-    ShiftCreateView,
-    ShiftDeleteView,
-    ShiftDetailsAPIView,
-    ShiftDetailView,
-    ShiftListView,
-    ShiftUnbookView,
-    ShiftUpdateView,
-    StaffCreateView,
-    StaffDeleteView,
-    StaffListView,
-    StaffPerformanceCreateView,
-    StaffPerformanceDeleteView,
-    StaffPerformanceDetailView,
-    StaffPerformanceListView,
-    StaffPerformanceUpdateView,
-    StaffUpdateView,
-    TimesheetDownloadView,
-    UnassignWorkerView,
-)
+    APIAccessView, AssignWorkerView, ReportDashboardView, ShiftBookView,
+    ShiftCompleteAjaxView, ShiftCompleteForUserView, ShiftCompleteView,
+    ShiftCreateView, ShiftDeleteView, ShiftDetailsAPIView, ShiftDetailView,
+    ShiftListView, ShiftUnbookView, ShiftUpdateView, StaffCreateView,
+    StaffDeleteView, StaffListView, StaffPerformanceCreateView,
+    StaffPerformanceDeleteView, StaffPerformanceDetailView,
+    StaffPerformanceListView, StaffPerformanceUpdateView, StaffUpdateView,
+    TimesheetDownloadView, UnassignWorkerView)
 
 app_name = "shifts"
 

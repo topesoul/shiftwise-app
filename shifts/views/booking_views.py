@@ -7,11 +7,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import View
 
-from core.mixins import (
-    AgencyStaffRequiredMixin,
-    FeatureRequiredMixin,
-    SubscriptionRequiredMixin,
-)
+from core.mixins import (AgencyStaffRequiredMixin, FeatureRequiredMixin,
+                         SubscriptionRequiredMixin)
 from shifts.models import Shift, ShiftAssignment
 from shiftwise.utils import haversine_distance
 
@@ -87,9 +84,7 @@ class ShiftBookView(
         try:
             ShiftAssignment.objects.create(shift=shift, worker=user)
             messages.success(request, "You have successfully booked the shift.")
-            logger.info(
-                f"User {user.username} booked shift {shift.id} successfully."
-            )
+            logger.info(f"User {user.username} booked shift {shift.id} successfully.")
             return redirect("shifts:shift_detail", pk=shift_id)
         except Exception as e:
             messages.error(

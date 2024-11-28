@@ -20,9 +20,7 @@ class Command(BaseCommand):
         for stripe_sub in subscriptions.auto_paging_iter():
             try:
                 # Get the agency based on stripe_customer_id
-                agency = Agency.objects.get(
-                    stripe_customer_id=stripe_sub.customer
-                )
+                agency = Agency.objects.get(stripe_customer_id=stripe_sub.customer)
             except Agency.DoesNotExist:
                 self.stdout.write(
                     self.style.ERROR(
@@ -53,8 +51,7 @@ class Command(BaseCommand):
                         "status": stripe_sub.status,
                         "current_period_start": current_period_start,
                         "current_period_end": current_period_end,
-                        "is_expired": stripe_sub.status
-                        in ["canceled", "unpaid"],
+                        "is_expired": stripe_sub.status in ["canceled", "unpaid"],
                     },
                 )
 
@@ -80,9 +77,7 @@ class Command(BaseCommand):
 
             except Plan.DoesNotExist:
                 self.stdout.write(
-                    self.style.ERROR(
-                        f"Plan with price ID {plan_id} does not exist."
-                    )
+                    self.style.ERROR(f"Plan with price ID {plan_id} does not exist.")
                 )
             except Exception as e:
                 self.stdout.write(

@@ -12,11 +12,8 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from accounts.forms import StaffCreationForm, StaffUpdateForm
-from core.mixins import (
-    AgencyManagerRequiredMixin,
-    FeatureRequiredMixin,
-    SubscriptionRequiredMixin,
-)
+from core.mixins import (AgencyManagerRequiredMixin, FeatureRequiredMixin,
+                         SubscriptionRequiredMixin)
 from shifts.models import Shift
 
 # Initialize logger
@@ -52,9 +49,7 @@ class StaffListView(
         date_to = self.request.GET.get("date_to", "")
 
         # Base queryset filtering Agency Staff and active users
-        staff_members = User.objects.filter(
-            groups__name="Agency Staff", is_active=True
-        )
+        staff_members = User.objects.filter(groups__name="Agency Staff", is_active=True)
 
         if not user.is_superuser and agency:
             staff_members = staff_members.filter(profile__agency=agency)
@@ -245,7 +240,8 @@ class StaffDeleteView(
         if not user.is_superuser:
             if staff_member.profile.agency != user.profile.agency:
                 messages.error(
-                    request, "You do not have permission to deactivate this staff member."
+                    request,
+                    "You do not have permission to deactivate this staff member.",
                 )
                 return redirect("shifts:staff_list")
         return super().dispatch(request, *args, **kwargs)

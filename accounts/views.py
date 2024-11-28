@@ -8,7 +8,8 @@ import pyotp
 import qrcode
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, get_user_model, login, logout, get_backends
+from django.contrib.auth import (authenticate, get_backends, get_user_model,
+                                 login, logout)
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -20,40 +21,20 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    FormView,
-    ListView,
-    TemplateView,
-    UpdateView,
-    View,
-)
+from django.views.generic import (CreateView, DeleteView, FormView, ListView,
+                                  TemplateView, UpdateView, View)
 
 # Import mixins from core.mixins
-from core.mixins import (
-    AgencyManagerRequiredMixin,
-    AgencyOwnerRequiredMixin,
-    AgencyStaffRequiredMixin,
-    SubscriptionRequiredMixin,
-    SuperuserRequiredMixin,
-)
+from core.mixins import (AgencyManagerRequiredMixin, AgencyOwnerRequiredMixin,
+                         AgencyStaffRequiredMixin, SubscriptionRequiredMixin,
+                         SuperuserRequiredMixin)
 from shifts.models import ShiftAssignment
 from shiftwise.utils import geocode_address, get_address_from_address_line1
 from subscriptions.models import Subscription
 
-from .forms import (
-    AcceptInvitationForm,
-    AgencyForm,
-    AgencySignUpForm,
-    InvitationForm,
-    MFAForm,
-    ProfilePictureForm,
-    SignUpForm,
-    UpdateProfileForm,
-    UserForm,
-    UserUpdateForm,
-)
+from .forms import (AcceptInvitationForm, AgencyForm, AgencySignUpForm,
+                    InvitationForm, MFAForm, ProfilePictureForm, SignUpForm,
+                    UpdateProfileForm, UserForm, UserUpdateForm)
 from .models import Agency, Invitation, Profile
 
 User = get_user_model()
@@ -89,7 +70,9 @@ class CustomLoginView(FormView):
             if hasattr(user.profile, "totp_secret") and user.profile.totp_secret:
                 # User has MFA enabled
                 self.request.session["pre_mfa_user_id"] = user.id
-                self.request.session["auth_backend"] = backend  # Store backend in session
+                self.request.session["auth_backend"] = (
+                    backend  # Store backend in session
+                )
                 logger.info(
                     f"User {user.username} passed primary authentication and requires MFA."
                 )
@@ -97,12 +80,8 @@ class CustomLoginView(FormView):
             else:
                 # User does not have MFA enabled, log them in
                 login(self.request, user, backend=backend)
-                messages.success(
-                    self.request, f"Welcome back, {user.get_full_name()}!"
-                )
-                logger.info(
-                    f"User {user.username} logged in successfully without MFA."
-                )
+                messages.success(self.request, f"Welcome back, {user.get_full_name()}!")
+                logger.info(f"User {user.username} logged in successfully without MFA.")
                 # Redirect based on role
                 return self.redirect_user(user)
         else:
@@ -177,9 +156,7 @@ class MFAVerifyView(FormView):
         if totp.verify(totp_code):
             # MFA verification successful
             login(self.request, user, backend=backend)
-            messages.success(
-                self.request, f"Welcome back, {user.get_full_name()}!"
-            )
+            messages.success(self.request, f"Welcome back, {user.get_full_name()}!")
             logger.info(f"User {user.username} logged in successfully with MFA.")
             # Clean up session
             del self.request.session["pre_mfa_user_id"]
@@ -242,9 +219,7 @@ class AgencySignUpView(CreateView):
         user = authenticate(username=username, password=password)
         if user is not None:
             # Assign user to Agency Owners group
-            agency_owners_group, _ = Group.objects.get_or_create(
-                name="Agency Owners"
-            )
+            agency_owners_group, _ = Group.objects.get_or_create(name="Agency Owners")
             user.groups.add(agency_owners_group)
             logger.info(f"User {user.username} assigned to 'Agency Owners' group.")
 
@@ -269,6 +244,7 @@ class AgencySignUpView(CreateView):
                     return backend_path
         # Default to ModelBackend if no specific backend found
         return "django.contrib.auth.backends.ModelBackend"
+
 
 # ---------------------------
 # MFA Management CBVs
@@ -350,9 +326,7 @@ class ActivateTOTPView(LoginRequiredMixin, View):
             return render(request, "accounts/recovery_codes.html", context)
         else:
             messages.error(request, "Invalid code. Please try again.")
-            logger.warning(
-                f"Invalid MFA code entered by user {request.user.username}."
-            )
+            logger.warning(f"Invalid MFA code entered by user {request.user.username}.")
             # Reuse the same totp_secret to allow the user to try again
             totp = pyotp.TOTP(totp_secret, interval=settings.MFA_TOTP_PERIOD)
             provisioning_uri = totp.provisioning_uri(
@@ -387,6 +361,7 @@ class DisableTOTPView(LoginRequiredMixin, View):
         messages.success(request, "MFA has been disabled.")
         logger.info(f"MFA disabled for user {request.user.username}.")
         return redirect("accounts:profile")
+
 
 class ResendTOTPCodeView(LoginRequiredMixin, View):
     """Resends or refreshes the TOTP QR code."""
@@ -446,9 +421,7 @@ class ProfileView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         profile, _ = Profile.objects.get_or_create(user=request.user)
         profile_form = UpdateProfileForm(request.POST, instance=profile)
-        picture_form = ProfilePictureForm(
-            request.POST, request.FILES, instance=profile
-        )
+        picture_form = ProfilePictureForm(request.POST, request.FILES, instance=profile)
 
         if profile_form.is_valid() and picture_form.is_valid():
             profile_form.save()
@@ -605,13 +578,9 @@ class InviteStaffView(
                 and self.request.user.profile.agency
             ):
                 invitation.agency = self.request.user.profile.agency
-                logger.debug(
-                    f"Agency assigned to invitation: {invitation.agency.name}"
-                )
+                logger.debug(f"Agency assigned to invitation: {invitation.agency.name}")
             else:
-                messages.error(
-                    self.request, "You are not associated with any agency."
-                )
+                messages.error(self.request, "You are not associated with any agency.")
                 logger.error(
                     f"User {self.request.user.username} attempted to invite staff without an associated agency."
                 )
@@ -653,9 +622,7 @@ class InviteStaffView(
                 [invitation.email],
                 fail_silently=False,
             )
-            messages.success(
-                self.request, f"Invitation sent to {invitation.email}."
-            )
+            messages.success(self.request, f"Invitation sent to {invitation.email}.")
             logger.info(
                 f"Invitation email sent to {invitation.email} by {self.request.user.username}"
             )
@@ -710,9 +677,7 @@ class AcceptInvitationView(View):
             user = form.save()
 
             # Assign the user to the 'Agency Staff' group
-            agency_staff_group, _ = Group.objects.get_or_create(
-                name="Agency Staff"
-            )
+            agency_staff_group, _ = Group.objects.get_or_create(name="Agency Staff")
             user.groups.add(agency_staff_group)
             logger.info(f"User {user.username} assigned to 'Agency Staff' group.")
 
@@ -738,17 +703,11 @@ class AcceptInvitationView(View):
             backend = self.get_user_backend(user)
             login(request, user, backend=backend)
             messages.success(request, "Your account has been created successfully.")
-            logger.info(
-                f"User {user.username} logged in after accepting invitation."
-            )
-            return redirect(
-                "accounts:staff_dashboard"
-            )  # Redirect to staff dashboard
+            logger.info(f"User {user.username} logged in after accepting invitation.")
+            return redirect("accounts:staff_dashboard")  # Redirect to staff dashboard
         else:
             messages.error(request, "Please correct the errors below.")
-            logger.warning(
-                f"Invalid acceptance form submitted by {invitation.email}"
-            )
+            logger.warning(f"Invalid acceptance form submitted by {invitation.email}")
             return render(request, "accounts/accept_invitation.html", {"form": form})
 
     def get_user_backend(self, user):
@@ -786,9 +745,11 @@ def get_address(request):
             }
         )
 
+
 # ---------------------------
 # Manage Agencies CBVs
 # ---------------------------
+
 
 class AgencyListView(
     LoginRequiredMixin, AgencyOwnerRequiredMixin, SubscriptionRequiredMixin, ListView

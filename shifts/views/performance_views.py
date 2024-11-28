@@ -7,19 +7,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    DetailView,
-    ListView,
-    UpdateView,
-)
+from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
+                                  UpdateView)
 
-from core.mixins import (
-    AgencyManagerRequiredMixin,
-    FeatureRequiredMixin,
-    SubscriptionRequiredMixin,
-)
+from core.mixins import (AgencyManagerRequiredMixin, FeatureRequiredMixin,
+                         SubscriptionRequiredMixin)
 from shifts.forms import StaffPerformanceForm
 from shifts.models import StaffPerformance
 from shiftwise.utils import generate_shift_code

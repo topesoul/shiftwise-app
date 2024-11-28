@@ -7,7 +7,6 @@ from math import atan2, cos, radians, sin, sqrt
 
 from django.conf import settings
 from django.core.cache import cache
-
 from geopy.exc import GeocoderServiceError, GeocoderTimedOut
 from geopy.geocoders import GoogleV3
 
@@ -23,9 +22,7 @@ def haversine_distance(lat1, lon1, lat2, lon2, unit="miles"):
     on the Earth specified by latitude/longitude using the Haversine formula.
     """
     # Convert latitude and longitude from degrees to radians
-    lat1_rad, lon1_rad, lat2_rad, lon2_rad = map(
-        radians, [lat1, lon1, lat2, lon2]
-    )
+    lat1_rad, lon1_rad, lat2_rad, lon2_rad = map(radians, [lat1, lon1, lat2, lon2])
 
     # Haversine formula
     dlat = lat2_rad - lat1_rad
@@ -133,13 +130,17 @@ def get_shift_assignment_queryset(user):
         logger.debug(f"Superuser {user.username} accessing all shift assignments.")
         return ShiftAssignment.objects.all()
     elif user.groups.filter(name="Agency Managers").exists():
-        logger.debug(f"Agency Manager {user.username} accessing agency shift assignments.")
+        logger.debug(
+            f"Agency Manager {user.username} accessing agency shift assignments."
+        )
         return ShiftAssignment.objects.filter(shift__agency=user.profile.agency)
     elif user.groups.filter(name="Agency Staff").exists():
         logger.debug(f"Agency Staff {user.username} accessing their shift assignments.")
         return ShiftAssignment.objects.filter(worker=user)
     else:
-        logger.debug(f"User {user.username} has no permissions to access shift assignments.")
+        logger.debug(
+            f"User {user.username} has no permissions to access shift assignments."
+        )
         return ShiftAssignment.objects.none()
 
 

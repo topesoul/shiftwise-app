@@ -1,9 +1,10 @@
 # /workspace/shiftwise/core/views.py
 
 import logging
+
 import requests
-from django.http import HttpResponse, JsonResponse
 from django.conf import settings
+from django.http import HttpResponse, JsonResponse
 
 logger = logging.getLogger(__name__)
 
