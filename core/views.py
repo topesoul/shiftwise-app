@@ -33,3 +33,12 @@ def google_maps_proxy(request):
     except Exception as e:
         logger.exception(f"Error in google_maps_proxy: {str(e)}")
         return JsonResponse({"error": "An error occurred"}, status=500)
+
+def serve_well_known_file(request, filename):
+    file_path = BASE_DIR / ".well-known/pki-validation" / filename
+    try:
+        with open(file_path, "r") as f:
+            content = f.read()
+        return HttpResponse(content, content_type="text/plain")
+    except FileNotFoundError:
+        raise Http404("File not found")
