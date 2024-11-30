@@ -325,7 +325,10 @@ LOGGING = {
 USE_AWS = os.getenv("USE_AWS", "False") == "True"
 
 # Always define STATICFILES_DIRS
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+    BASE_DIR / ".well-known",
+]
 
 # Always define STATICFILES_FINDERS
 STATICFILES_FINDERS = [
