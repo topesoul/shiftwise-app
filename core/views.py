@@ -4,7 +4,7 @@ import logging
 
 import requests
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,9 @@ def google_maps_proxy(request):
         logger.exception(f"Error in google_maps_proxy: {str(e)}")
         return JsonResponse({"error": "An error occurred"}, status=500)
 
+
 def serve_well_known_file(request, filename):
-    file_path = BASE_DIR / ".well-known/pki-validation" / filename
+    file_path = settings.BASE_DIR / ".well-known/pki-validation" / filename
     try:
         with open(file_path, "r") as f:
             content = f.read()
